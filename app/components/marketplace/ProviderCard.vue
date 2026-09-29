@@ -59,7 +59,7 @@ async function handleMessage() {
   }
 }
 
-const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-700'
+const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 active:scale-[0.97]'
 </script>
 
 <template>

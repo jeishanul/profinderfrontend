@@ -106,7 +106,16 @@
     "login": "Log in",
     "signup": "Sign up",
     "messages": "Messages",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "home": "Home",
+    "browse": "Browse",
+    "saved": "Saved",
+    "more": "More"
+  },
+  "more": {
+    "viewProfile": "View and edit your profile",
+    "generalSection": "General",
+    "loginPrompt": "Log in to message providers, book services and track your bookings."
   },
   "footer": {
     "tagline": "Connecting skilled local professionals with people who need work done.",
@@ -697,6 +706,9 @@
       "title": "Messages",
       "subtitle": "Clients and providers, in one inbox",
       "searchPlaceholder": "Search conversations",
+      "backToList": "Back to conversations",
+      "archive": "Archive",
+      "archiveConversation": "Archive conversation",
       "roleClient": "Client",
       "roleProvider": "Provider",
       "viewBooking": "View booking",
@@ -745,6 +757,7 @@
       "title": "Notifications",
       "subtitle": "Bookings, payments, reviews and messages, all in one feed",
       "markAllRead": "Mark all as read",
+      "markRead": "Mark read",
       "filters": {
         "all": "All",
         "bookings": "Bookings",

@@ -36,7 +36,7 @@ const toPercent = computed(() => percentOf(to.value))
 </script>
 
 <template>
-  <div class="relative h-5 w-full">
+  <div class="relative h-7 w-full">
     <div class="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-black/10 dark:bg-white/15" />
     <div
       class="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-600"
@@ -67,7 +67,7 @@ const toPercent = computed(() => percentOf(to.value))
 @reference "~/assets/css/main.css";
 
 .range-input {
-  @apply pointer-events-none absolute inset-x-0 top-1/2 m-0 h-5 w-full -translate-y-1/2 appearance-none bg-transparent;
+  @apply pointer-events-none absolute inset-x-0 top-1/2 m-0 h-7 w-full -translate-y-1/2 appearance-none bg-transparent;
 }
 .range-input::-webkit-slider-runnable-track {
   @apply appearance-none bg-transparent;
@@ -75,10 +75,13 @@ const toPercent = computed(() => percentOf(to.value))
 .range-input::-moz-range-track {
   @apply appearance-none bg-transparent;
 }
+/* 28px, not the 20px this started at — a thumb you actually drag with a
+   fingertip instead of a mouse pointer wants to read closer to a native
+   slider's touch target than a desktop-scrollbar-style handle. */
 .range-input::-webkit-slider-thumb {
-  @apply pointer-events-auto h-5 w-5 cursor-pointer appearance-none rounded-full border-2 border-brand-600 bg-white shadow-md;
+  @apply pointer-events-auto h-7 w-7 cursor-pointer appearance-none rounded-full border-[3px] border-brand-600 bg-white shadow-md;
 }
 .range-input::-moz-range-thumb {
-  @apply pointer-events-auto h-5 w-5 cursor-pointer rounded-full border-2 border-brand-600 bg-white shadow-md;
+  @apply pointer-events-auto h-7 w-7 cursor-pointer rounded-full border-[3px] border-brand-600 bg-white shadow-md;
 }
 </style>

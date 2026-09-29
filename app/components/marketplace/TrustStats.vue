@@ -10,7 +10,7 @@ const STATS: Array<{ id: string, icon: IconName, value: string }> = [
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:px-10">
+  <section class="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-24 lg:px-10">
     <div class="grid gap-6 rounded-3xl border border-black/10 bg-white/60 px-8 py-8 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:grid-cols-3">
       <div
         v-for="(stat, index) in STATS"

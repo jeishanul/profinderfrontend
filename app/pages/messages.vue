@@ -17,11 +17,49 @@ const { data: conversations, refresh } = await useApi<Conversation[]>('/dashboar
 const search = ref('')
 const activeId = ref('')
 
+// Swipe-to-archive on the list (see `UiSwipeAction`) — archiving is per-side
+// on the backend (see `ConversationController::archive`), so it drops out of
+// `conversations` on the next refresh without any client-side filtering.
+async function archiveConversation(id: string) {
+  if (activeId.value === id) {
+    activeId.value = ''
+    mobileThreadOpen.value = false
+  }
+  try {
+    await useApiFetch(`/api/dashboard/conversations/${id}/archive`, { method: 'PATCH' })
+    await refresh()
+  }
+  catch (error) {
+    console.error('Failed to archive conversation', error)
+  }
+}
+
+// Master-detail collapses to one pane on mobile (native chat-app pattern —
+// see CLAUDE.md): the list and thread never show side by side below `md`,
+// so a real tap (or an incoming `?conversation=`) is what reveals the
+// thread, not the list's default auto-select of `list[0]` below. While the
+// thread pane is showing on mobile, `<AppBottomNav>` steps aside too — its
+// own fixed composer would otherwise stack on top of the tab bar (see
+// `useBottomNav`) — and `onUnmounted` guarantees that gets reset even if
+// the user navigates away mid-thread.
+const mobileThreadOpen = ref(false)
+const bottomNav = useBottomNav()
+
+watch(mobileThreadOpen, (open) => {
+  if (open) bottomNav.hide()
+  else bottomNav.show()
+})
+onUnmounted(() => bottomNav.show())
+
 watch(conversations, (list) => {
   if (!activeId.value) {
     const requested = typeof route.query.conversation === 'string' ? route.query.conversation : undefined
     const match = requested ? list?.find(c => c.id === requested) : undefined
     activeId.value = match?.id ?? list?.[0]?.id ?? ''
+    // Arriving with an explicit `?conversation=` is intent to view that
+    // thread; the plain `list[0]` fallback above is not — it stays on the
+    // list on mobile until the person actually taps a conversation.
+    if (match) mobileThreadOpen.value = true
   }
 }, { immediate: true })
 
@@ -32,12 +70,19 @@ watch(() => route.query.conversation, (value) => {
   const requested = typeof value === 'string' ? value : undefined
   if (requested && conversations.value?.some(c => c.id === requested)) {
     activeId.value = requested
+    mobileThreadOpen.value = true
   }
 })
 
+function selectConversation(id: string) {
+  activeId.value = id
+  mobileThreadOpen.value = true
+}
+
 const filteredConversations = computed(() => {
   const query = search.value.trim().toLowerCase()
-  return (conversations.value ?? []).filter(conversation => !query || conversation.personName.toLowerCase().includes(query))
+  return (conversations.value ?? [])
+    .filter(conversation => !query || conversation.personName.toLowerCase().includes(query))
 })
 
 const activeConversation = computed(() =>
@@ -116,7 +161,7 @@ useSeoMeta({
 
 <template>
   <div class="flex h-[calc(100vh-160px)] min-h-[560px] flex-col gap-5">
-    <div>
+    <div :class="mobileThreadOpen ? 'hidden md:block' : 'block'">
       <h1 class="font-display text-2xl font-bold">
         {{ t('dashboard.messages.title') }}
       </h1>
@@ -126,7 +171,10 @@ useSeoMeta({
     </div>
 
     <div class="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
-      <div class="flex w-[320px] shrink-0 flex-col border-r border-black/10 dark:border-white/10">
+      <div
+        class="w-full shrink-0 flex-col border-r border-black/10 md:flex md:w-[320px] dark:border-white/10"
+        :class="mobileThreadOpen ? 'hidden' : 'flex'"
+      >
         <div class="p-3">
           <UiInput
             v-model="search"
@@ -138,21 +186,28 @@ useSeoMeta({
           <DashboardConversationList
             :conversations="filteredConversations"
             :active-id="activeId"
-            @select="activeId = $event"
+            @select="selectConversation"
+            @archive="archiveConversation"
           />
         </div>
       </div>
 
-      <DashboardMessageThread
-        v-if="activeConversation"
-        :conversation="activeConversation"
-        :messages="activeMessages"
-        @send="handleSend"
-        @delete="handleDelete"
-        @send-quote="handleSendQuote"
-        @accept-quote="handleAcceptQuote"
-        @decline-quote="handleDeclineQuote"
-      />
+      <div
+        class="w-full min-w-0 md:flex md:flex-1"
+        :class="mobileThreadOpen ? 'flex' : 'hidden'"
+      >
+        <DashboardMessageThread
+          v-if="activeConversation"
+          :conversation="activeConversation"
+          :messages="activeMessages"
+          @back="mobileThreadOpen = false"
+          @send="handleSend"
+          @delete="handleDelete"
+          @send-quote="handleSendQuote"
+          @accept-quote="handleAcceptQuote"
+          @decline-quote="handleDeclineQuote"
+        />
+      </div>
     </div>
   </div>
 </template>

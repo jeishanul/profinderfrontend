@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import type { BookingStatus, ClientServed } from '#shared/types/dashboard'
 
+// Reached from Home's quick tiles or the More sheet, never a bottom-nav tab
+// — mobile gets a back button instead of the tab bar (see `UiBackButton`).
 definePageMeta({
   layout: 'dashboard',
   middleware: 'auth',
+  hideBottomNav: true,
 })
 
 const { t } = useI18n()
@@ -48,6 +51,7 @@ useSeoMeta({
 
 <template>
   <div class="flex flex-col gap-6">
+    <UiBackButton fallback="/" />
     <div>
       <h1 class="font-display text-2xl font-bold">
         {{ t('dashboard.clients.title') }}
@@ -85,7 +89,7 @@ useSeoMeta({
       />
     </div>
 
-    <div class="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+    <div class="rounded-2xl border border-black/10 p-5 sm:p-6 dark:border-white/10">
       <DashboardClientsTable :clients="filteredClients" />
     </div>
   </div>

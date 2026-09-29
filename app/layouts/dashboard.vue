@@ -12,6 +12,12 @@ const { t } = useI18n()
 const session = useSession()
 const route = useRoute()
 const localePath = useLocalePath()
+// Drop the bottom clearance meant for `<AppBottomNav>` on mobile whenever a
+// page has hidden it (a whole route via `hideBottomNav` page meta, or a
+// state change like `messages.vue`'s thread view via `useBottomNav`) — else
+// it leaves a dead gap where the bar used to reserve space.
+const bottomNav = useBottomNav()
+const bottomNavHidden = computed(() => route.meta.hideBottomNav === true || bottomNav.isForceHidden.value)
 
 function isActive(path: string) {
   return route.path === localePath(path)
@@ -240,7 +246,7 @@ function handleLogout() {
 
     <div class="flex min-w-0 flex-1 flex-col">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 px-5 py-3.5 dark:border-white/10 sm:px-8">
-        <nav class="flex items-center gap-1 overflow-x-auto lg:hidden">
+        <nav class="hidden items-center gap-1 overflow-x-auto md:flex lg:hidden">
           <NuxtLinkLocale
             v-for="item in mobileNavItems"
             :key="item.to"
@@ -294,13 +300,19 @@ function handleLogout() {
         </div>
       </div>
 
-      <div class="flex items-center px-5 py-2.5 lg:hidden">
+      <div class="hidden items-center px-5 py-2.5 md:flex lg:hidden">
         <DashboardRoleSwitch />
       </div>
 
-      <main class="flex-1 px-5 py-6 sm:px-8 sm:py-8">
+      <main
+        class="flex-1 px-5 py-6 sm:px-8 sm:py-8 md:pb-8"
+        :class="bottomNavHidden ? 'pb-6' : 'pb-20'"
+      >
         <slot />
       </main>
     </div>
+
+    <AppBottomNav />
+    <AppMoreMenu />
   </div>
 </template>

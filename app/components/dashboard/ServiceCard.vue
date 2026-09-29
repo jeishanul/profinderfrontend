@@ -20,7 +20,7 @@ const isPaused = computed(() => props.service.status === 'paused')
 
 <template>
   <div
-    class="flex flex-col gap-3.5 rounded-2xl border border-black/10 p-6 dark:border-white/10"
+    class="flex flex-col gap-3.5 rounded-2xl border border-black/10 p-5 sm:p-6 dark:border-white/10"
     :class="isPaused && 'opacity-70'"
   >
     <div class="flex items-start justify-between gap-3">

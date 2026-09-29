@@ -54,7 +54,7 @@ useSeoMeta({
 
     <div
       v-if="visibleProviders.length > 0"
-      class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
     >
       <DashboardSavedProviderCard
         v-for="(provider, index) in visibleProviders"
@@ -67,7 +67,7 @@ useSeoMeta({
 
     <div
       v-else
-      class="rounded-2xl border border-black/10 p-12 text-center dark:border-white/10"
+      class="rounded-2xl border border-black/10 p-8 text-center sm:p-12 dark:border-white/10"
     >
       <p class="text-sm font-semibold text-black/60 dark:text-white/60">
         {{ t('dashboard.savedProviders.empty') }}

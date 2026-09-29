@@ -3,6 +3,13 @@
 // the visitor to keep scrolling toward "Why Choose Us"
 // (`app/components/marketplace/WhyChooseUs.vue`, `id="why-choose-us"`), and
 // hides itself once that section has been reached or scrolled past.
+//
+// Its `bottom` offset clears `<AppBottomNav>` on mobile (both are `fixed`;
+// at the same `bottom-8` they visibly overlapped, this pill half-buried
+// behind the tab bar — a real bug, confirmed by comparing their bounding
+// boxes) and sits below it in stacking order too (`z-30` vs. the nav's
+// `z-40`) as a second line of defense. `md:bottom-8` restores the original
+// position once the bottom nav itself is hidden at that breakpoint.
 const { t } = useI18n()
 
 const visible = ref(true)
@@ -28,7 +35,7 @@ if (import.meta.client) {
     <button
       v-if="visible"
       type="button"
-      class="fixed bottom-8 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-black/10 bg-white py-1.5 pr-1.5 pl-5 text-sm font-semibold text-black shadow-lg transition-shadow hover:shadow-xl dark:border-white/10 dark:bg-black dark:text-white"
+      class="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full border border-black/10 bg-white py-1.5 pr-1.5 pl-5 text-sm font-semibold text-black shadow-lg transition-shadow hover:shadow-xl md:bottom-8 dark:border-white/10 dark:bg-black dark:text-white"
       :aria-label="t('marketplace.whyChooseUs.scrollHint')"
       @click="scrollToTarget"
     >

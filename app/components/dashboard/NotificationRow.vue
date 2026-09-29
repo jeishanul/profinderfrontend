@@ -8,15 +8,11 @@ const props = defineProps<{
   item: NotificationItem
 }>()
 
-const emit = defineEmits<{
-  'mark-read': []
+defineEmits<{
+  read: [id: string]
 }>()
 
 const { t } = useI18n()
-
-function handleClick() {
-  if (!props.item.read) emit('mark-read')
-}
 
 const ICON_BY_KIND: Record<NotificationItem['kind'], IconName> = {
   new_booking: 'briefcase',
@@ -57,31 +53,36 @@ const timeLabel = computed(() => props.item.timeAgoHours < 24
 </script>
 
 <template>
-  <button
-    type="button"
-    class="mb-1.5 flex w-full gap-3.5 rounded-xl px-2 py-3.5 text-left last:mb-0"
-    :class="!item.read && 'bg-brand-50 dark:bg-brand-700/10'"
-    @click="handleClick"
+  <UiSwipeAction
+    class="mb-1.5 last:mb-0"
+    :action-label="t('dashboard.notificationsPage.markRead')"
+    action-icon="check"
+    @action="$emit('read', item.id)"
   >
-    <span
-      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-      :class="TINT_BY_KIND[item.kind]"
+    <div
+      class="flex gap-3.5 rounded-xl px-2 py-3.5"
+      :class="!item.read && 'bg-brand-50 dark:bg-brand-700/10'"
     >
-      <UiIcon
-        :name="ICON_BY_KIND[item.kind]"
-        :size="16"
-      />
-    </span>
-    <div class="min-w-0 flex-1">
-      <div class="text-sm font-bold">
-        {{ title }}
+      <span
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+        :class="TINT_BY_KIND[item.kind]"
+      >
+        <UiIcon
+          :name="ICON_BY_KIND[item.kind]"
+          :size="16"
+        />
+      </span>
+      <div class="min-w-0 flex-1">
+        <div class="text-sm font-bold">
+          {{ title }}
+        </div>
+        <div class="mt-0.5 text-xs text-black/60 dark:text-white/60">
+          {{ body }}
+        </div>
       </div>
-      <div class="mt-0.5 text-xs text-black/60 dark:text-white/60">
-        {{ body }}
+      <div class="shrink-0 text-xs whitespace-nowrap text-black/40 dark:text-white/40">
+        {{ timeLabel }}
       </div>
     </div>
-    <div class="shrink-0 text-xs whitespace-nowrap text-black/40 dark:text-white/40">
-      {{ timeLabel }}
-    </div>
-  </button>
+  </UiSwipeAction>
 </template>

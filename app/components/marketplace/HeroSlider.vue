@@ -94,9 +94,18 @@ observe(searchAnchor)
         </div>
       </div>
 
+      <!-- In-flow (not absolute) below `sm` — the stacked mobile search bar
+           (see ServiceSearchBar.vue) is much taller than the single-row
+           pill this `-bottom-9` dock offset was tuned for; anchoring it by
+           `bottom` regardless of height meant it could ride up and cover
+           the headline. A small negative margin gives the same "docked,
+           slightly overlapping" look without depending on a fixed height,
+           and lets normal document flow push `TrustStats` down by however
+           tall the search bar actually ends up. `sm:` and up restores the
+           original absolute dock, unchanged (that pill's height is stable). -->
       <div
         ref="searchAnchor"
-        class="absolute inset-x-4 -bottom-9 sm:inset-x-10"
+        class="relative -mt-8 px-4 sm:absolute sm:inset-x-10 sm:-bottom-9 sm:mt-0 sm:px-0"
       >
         <MarketplaceServiceSearchBar
           :categories="categories"

@@ -18,6 +18,10 @@ const emit = defineEmits<{
   'send-quote': [payload: { basePriceUsd: number, baseHours: number, extraHourlyRateUsd: number, note: string }]
   'accept-quote': [quoteId: string]
   'decline-quote': [quoteId: string]
+  /** Mobile-only back button (see `messages.vue`'s list/thread split) — a
+   * no-op on desktop, where nothing listens for it since the list stays
+   * visible alongside the thread there. */
+  'back': []
 }>()
 
 // A quote only makes sense flowing provider -> client (see
@@ -167,8 +171,19 @@ function handleKeydown(event: KeyboardEvent) {
 
 <template>
   <div class="flex h-full min-w-0 flex-1 flex-col">
-    <div class="flex items-center justify-between gap-3 border-b border-black/10 px-6 py-4 dark:border-white/10">
+    <div class="flex items-center justify-between gap-3 border-b border-black/10 px-4 py-4 sm:px-6 dark:border-white/10">
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full md:hidden"
+          :aria-label="t('dashboard.messages.backToList')"
+          @click="$emit('back')"
+        >
+          <UiIcon
+            name="chevron-left"
+            :size="18"
+          />
+        </button>
         <span class="relative shrink-0">
           <span class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
             {{ initialsFor(conversation.personName) }}

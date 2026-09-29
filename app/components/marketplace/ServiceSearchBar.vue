@@ -51,14 +51,22 @@ function handleSubmit() {
 </script>
 
 <template>
+  <!-- `large` (hero) stacks full-width below `sm` — cramming category +
+       location + button into one pill-shaped row left both text fields
+       truncated to "Wh…"/"Y…" on a phone (a real bug, confirmed in a
+       390px-wide screenshot), and a full-width tappable row reads far more
+       like a native search field than a squeezed segment anyway. `compact`
+       (the header-docked copy, `md:flex` only — see AppHeader.vue) never
+       renders below `md`, so it keeps the single-row pill unconditionally. -->
   <form
-    class="relative z-10 flex items-center gap-1 rounded-full border border-black/10 bg-white/70 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-black/40"
-    :class="variant === 'large' ? 'p-2' : 'p-1'"
+    class="relative z-10 rounded-3xl border border-black/10 bg-white/70 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-black/40"
+    :class="variant === 'large' ? 'flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-1 sm:rounded-full sm:p-2' : 'flex items-center gap-1 rounded-full p-1'"
     @submit.prevent="handleSubmit"
   >
     <label
       :for="`${uid}-category`"
-      class="flex flex-1 items-center gap-2.5 rounded-full px-4 py-2.5 min-w-0"
+      class="flex flex-1 items-center gap-2.5 rounded-2xl px-4 py-3 min-w-0"
+      :class="variant === 'large' ? 'bg-black/[0.03] sm:rounded-full sm:bg-transparent sm:py-2.5 dark:bg-white/[0.05] sm:dark:bg-transparent' : 'rounded-full py-2.5'"
     >
       <span class="sr-only">{{ t('marketplace.search.categoryLabel') }}</span>
       <UiIcon
@@ -76,9 +84,15 @@ function handleSubmit() {
       />
     </label>
 
-    <div class="h-6 w-px shrink-0 bg-black/10 dark:bg-white/10" />
+    <div
+      class="h-6 w-px shrink-0 bg-black/10 dark:bg-white/10"
+      :class="variant === 'large' ? 'hidden sm:block' : ''"
+    />
 
-    <div class="flex-1 px-4 py-2.5 min-w-0">
+    <div
+      class="flex-1 rounded-2xl px-4 py-3 min-w-0"
+      :class="variant === 'large' ? 'bg-black/[0.03] sm:rounded-full sm:bg-transparent sm:py-2.5 dark:bg-white/[0.05] sm:dark:bg-transparent' : 'py-2.5'"
+    >
       <UiLocationPicker
         :id="`${uid}-location`"
         v-model:province="provinceCode"
@@ -91,7 +105,7 @@ function handleSubmit() {
     <UiButton
       type="submit"
       class="rounded-full!"
-      :class="variant === 'compact' ? 'px-4! py-2! text-xs!' : ''"
+      :class="variant === 'compact' ? 'px-4! py-2! text-xs!' : 'w-full justify-center! sm:w-auto'"
     >
       <UiIcon
         name="search"

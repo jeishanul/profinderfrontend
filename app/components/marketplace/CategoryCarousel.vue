@@ -11,9 +11,15 @@ const { t } = useI18n()
 const carousel = useCarousel(() => props.categories.length, { visibleCount: 4, intervalMs: 3000 })
 
 const CARD_STEP_PX = 272
-const trackStyle = computed(() => ({
-  transform: `translateX(-${carousel.index.value * CARD_STEP_PX}px)`,
-}))
+// Below `sm` this is a native scroll-snap strip instead (see the template) —
+// a real swipe gesture, not a "carousel" a phone user can only advance via
+// tiny arrow buttons. The JS transform below only drives the desktop/tablet
+// arrow-button version; leaving it applied on mobile too would fight the
+// browser's own scroll position for the same axis.
+const isDesktop = useMediaQuery('(min-width: 640px)')
+const trackStyle = computed(() => (isDesktop.value
+  ? { transform: `translateX(-${carousel.index.value * CARD_STEP_PX}px)` }
+  : {}))
 </script>
 
 <template>
@@ -63,7 +69,7 @@ const trackStyle = computed(() => ({
     <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -->
     <div
       role="region"
-      class="-my-4 overflow-hidden py-4"
+      class="-my-4 -mx-4 overflow-x-auto scrollbar-hide px-4 py-4 sm:mx-0 sm:overflow-hidden sm:px-0"
       :aria-label="t('marketplace.categories.heading')"
       @mouseenter="carousel.pause()"
       @mouseleave="carousel.resume()"
@@ -71,14 +77,14 @@ const trackStyle = computed(() => ({
       @focusout="carousel.resume()"
     >
       <div
-        class="flex gap-5 transition-transform duration-500 ease-out"
+        class="flex snap-x snap-mandatory gap-5 transition-transform duration-500 ease-out sm:snap-none"
         :style="trackStyle"
       >
         <NuxtLinkLocale
           v-for="category in categories"
           :key="category.id"
           :to="{ path: '/browse', query: { category: category.id } }"
-          class="flex w-[252px] shrink-0 items-center gap-4 rounded-2xl border border-black/10 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-shadow hover:shadow-lg dark:border-white/10 dark:bg-black/30"
+          class="flex w-[252px] shrink-0 snap-start items-center gap-4 rounded-2xl border border-black/10 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-shadow hover:shadow-lg dark:border-white/10 dark:bg-black/30"
         >
           <div class="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
             <UiIcon

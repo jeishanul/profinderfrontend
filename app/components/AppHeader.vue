@@ -83,11 +83,20 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
         />
       </div>
 
+      <!-- Messages/notifications/avatar (logged in) and Log in/Sign up
+           (guest) both hide below `md` — with `AppBottomNav` + `AppMoreMenu`
+           now covering that same navigation on mobile (Messages is a tab;
+           notifications, account and auth all live in the More sheet),
+           keeping them here too overflowed this header at 390px width (the
+           real bug this fixes) for no benefit, since it's now a second path
+           to the same places. Theme toggle stays — it's the one control
+           with no mobile equivalent on a page using this (marketing-site)
+           header. -->
       <div class="flex shrink-0 items-center gap-3.5">
         <UiThemeToggle />
         <div
           v-if="session.isAuthenticated.value"
-          class="flex items-center gap-1.5"
+          class="hidden items-center gap-1.5 md:flex"
         >
           <NuxtLinkLocale
             to="/messages"
@@ -129,7 +138,7 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
         </div>
         <div
           v-else
-          class="flex items-center gap-2.5"
+          class="hidden items-center gap-2.5 md:flex"
         >
           <UiButton
             variant="ghost"

@@ -9,7 +9,13 @@ export type ButtonSize = 'sm' | 'md'
  * string) because merging Tailwind utilities that touch the same CSS
  * property is order-dependent and unreliable.
  */
-export const BUTTON_BASE_CLASS = 'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors'
+// `transition` (not `transition-colors`) — covers `transform` too, needed for
+// the `active:scale` press feedback below; two transition-* utilities would
+// fight over `transition-property` (last one in the generated stylesheet
+// wins, not additive — see CLAUDE.md's Tailwind gotchas). The scale-down
+// itself is the native-app "tap feedback" every button in the app gets for
+// free from this one shared class (see CLAUDE.md's mobile redesign notes).
+export const BUTTON_BASE_CLASS = 'inline-flex items-center justify-center gap-2 rounded-md font-medium transition active:scale-[0.97]'
 
 export const BUTTON_SIZE_CLASS: Record<ButtonSize, string> = {
   sm: 'px-3.5 py-1.5 text-xs',

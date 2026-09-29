@@ -62,6 +62,33 @@ body {
 }
 
 /*
+ * Safe-area utilities for `AppBottomNav`/`UiBottomSheet` — `env(...)` reads
+ * as 0 on devices without a notch/home indicator, so these are harmless
+ * no-ops there and only add real inset on iOS/Android devices that report
+ * one (requires `viewport-fit=cover`, set in nuxt.config.ts `app.head`).
+ */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility h-safe-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+/*
+ * For a horizontal scroll-snap track (`MarketplaceCategoryCarousel`,
+ * `MarketplaceJobsGallery` below `sm` — see their own comments) standing in
+ * for a native swipeable carousel: the point is a touch-swipeable strip,
+ * not a visible desktop-style scrollbar under it.
+ */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
  * `UiThemeToggle` drives the light/dark switch via the View Transition API:
  * it animates a circular `clip-path` on `::view-transition-new(root)` itself
  * (expanding from the click point), so the browser's own default cross-fade

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import type { NotificationItem, NotificationTopic } from '#shared/types/dashboard'
 
+// Reached from Home's quick tiles or the More sheet, never a bottom-nav tab
+// — mobile gets a back button instead of the tab bar (see `UiBackButton`).
 definePageMeta({
   layout: 'dashboard',
   middleware: 'auth',
+  hideBottomNav: true,
 })
 
 const { t } = useI18n()
@@ -54,6 +57,7 @@ useSeoMeta({
 
 <template>
   <div class="flex flex-col gap-6">
+    <UiBackButton fallback="/" />
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div>
         <h1 class="font-display text-2xl font-bold">
@@ -85,7 +89,7 @@ useSeoMeta({
           v-for="item in todayItems"
           :key="item.id"
           :item="item"
-          @mark-read="markRead(item.id)"
+          @read="markRead"
         />
       </template>
 
@@ -97,7 +101,7 @@ useSeoMeta({
           v-for="item in earlierItems"
           :key="item.id"
           :item="item"
-          @mark-read="markRead(item.id)"
+          @read="markRead"
         />
       </template>
 

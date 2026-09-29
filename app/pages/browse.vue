@@ -89,8 +89,14 @@ function syncUrl() {
   }), { replace: true })
 }
 
+// Below `lg` (where the sidebar collapses to full-width-if-shown), filters
+// live in a bottom sheet instead — the 2026 mobile pattern (see CLAUDE.md's
+// native-feel redesign notes): a desktop sidebar never ports to a native app.
+const filterSheetOpen = ref(false)
+
 function applyFilters() {
   filters.page = 1
+  filterSheetOpen.value = false
   syncUrl()
 }
 
@@ -130,16 +136,33 @@ useSchemaOrg([defineWebPage()])
 
 <template>
   <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-10">
-    <h1 class="font-display text-2xl font-bold sm:text-3xl">
-      {{ pageTitle }}
-    </h1>
+    <div class="flex items-center justify-between gap-3">
+      <h1 class="font-display text-2xl font-bold sm:text-3xl">
+        {{ pageTitle }}
+      </h1>
+      <button
+        type="button"
+        class="flex shrink-0 items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-sm font-bold md:hidden dark:border-white/10"
+        @click="filterSheetOpen = true"
+      >
+        <UiIcon
+          name="sliders"
+          :size="15"
+        />
+        {{ t('marketplace.filters.heading') }}
+      </button>
+    </div>
 
-    <div class="mt-8 grid gap-7 lg:grid-cols-[300px_minmax(0,1fr)]">
+    <div class="mt-8 grid gap-7 md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]">
       <!-- This wrapper is the grid cell and stretches to the row's full
            height (matching the results column); the sidebar itself is the
            `sticky` element inside it, so it has room to travel and pin all
-           the way down a tall results list instead of stopping early. -->
-      <div>
+           the way down a tall results list instead of stopping early.
+           Hidden below `md` (phones only) — tablet has the width for the
+           real sidebar (narrower than desktop's, widening again at `lg`),
+           so only phones fall back to the bottom sheet (`UiBottomSheet`
+           below); tablet never sees a full-width inline sidebar-less list. -->
+      <div class="hidden md:block">
         <MarketplaceProviderFilterSidebar
           v-model:category-ids="filters.categories"
           v-model:province="filters.province"
@@ -208,5 +231,35 @@ useSchemaOrg([defineWebPage()])
         </div>
       </div>
     </div>
+
+    <UiBottomSheet
+      :open="filterSheetOpen"
+      labelledby="browse-filter-sheet-heading"
+      @close="filterSheetOpen = false"
+    >
+      <div class="px-5 pb-6">
+        <h2
+          id="browse-filter-sheet-heading"
+          class="sr-only"
+        >
+          {{ t('marketplace.filters.heading') }}
+        </h2>
+        <MarketplaceProviderFilterSidebar
+          v-model:category-ids="filters.categories"
+          v-model:province="filters.province"
+          v-model:city="filters.city"
+          v-model:barangay="filters.barangay"
+          v-model:min-rating="filters.minRating"
+          v-model:verified-only="filters.verifiedOnly"
+          v-model:min-price="filters.minPrice"
+          v-model:max-price="filters.maxPrice"
+          :categories="categories ?? []"
+          id-prefix="browse-filter-sheet"
+          bare
+          @apply="applyFilters"
+          @reset="handleReset"
+        />
+      </div>
+    </UiBottomSheet>
   </div>
 </template>

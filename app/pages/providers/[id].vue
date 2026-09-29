@@ -1,11 +1,24 @@
 <script setup lang="ts">
 import type { ProviderProfile, ServiceCategory } from '#shared/types/marketplace'
 
+// Drill-down/detail screen: mobile gets a floating back button over the
+// banner plus its own sticky Message/Book action bar instead of the app
+// shell's tab bar (see `AppBottomNav`'s `hideBottomNav` meta flag).
+definePageMeta({
+  hideBottomNav: true,
+})
+
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const localePath = useLocalePath()
 const authModal = useAuthModal()
 const session = useSession()
+
+function goBack() {
+  if (window.history.length > 1) router.back()
+  else navigateTo(localePath('/browse'))
+}
 
 const { data: provider, error } = await useApi<ProviderProfile>(`/providers/${route.params.id}`)
 
@@ -78,13 +91,24 @@ useSchemaOrg([defineWebPage()])
 
 <template>
   <div v-if="provider">
-    <div class="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-10">
+    <div class="relative mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-10">
       <div class="h-[220px] w-full overflow-hidden rounded-3xl">
         <UiPlaceholderMedia
           icon="image"
           label="1152 x 220"
         />
       </div>
+      <button
+        type="button"
+        class="absolute top-12 left-8 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm md:hidden dark:bg-black/70"
+        :aria-label="t('marketplace.search.back')"
+        @click="goBack"
+      >
+        <UiIcon
+          name="chevron-left"
+          :size="18"
+        />
+      </button>
     </div>
 
     <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
@@ -125,7 +149,7 @@ useSchemaOrg([defineWebPage()])
             </span>
           </div>
         </div>
-        <div class="flex gap-2.5 pb-2">
+        <div class="hidden gap-2.5 pb-2 md:flex">
           <UiButton
             variant="ghost"
             @click="handleRequestQuote"
@@ -194,7 +218,7 @@ useSchemaOrg([defineWebPage()])
         </div>
       </div>
 
-      <div class="grid gap-8 pb-20 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div class="grid gap-8 pb-20 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_340px]">
         <div class="flex flex-col gap-9">
           <div>
             <h2 class="mb-3.5 text-lg font-bold">
@@ -342,6 +366,27 @@ useSchemaOrg([defineWebPage()])
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="fixed inset-x-0 bottom-0 z-40 flex gap-2.5 border-t border-black/10 bg-white/95 px-4 py-3 pb-safe backdrop-blur-xl md:hidden dark:border-white/10 dark:bg-black/90">
+      <UiButton
+        variant="ghost"
+        class="shrink-0 px-4!"
+        :aria-label="t('marketplace.provider.message')"
+        @click="authModal.open('login')"
+      >
+        <UiIcon
+          name="message"
+          :size="18"
+        />
+      </UiButton>
+      <UiButton
+        variant="primary"
+        class="flex-1 justify-center"
+        @click="handleRequestQuote"
+      >
+        {{ t('marketplace.providerProfile.requestQuote') }} · {{ t('marketplace.provider.estimate', { rate: provider.ratePerHour }) }}
+      </UiButton>
     </div>
   </div>
 </template>

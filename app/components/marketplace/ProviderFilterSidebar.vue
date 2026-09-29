@@ -4,9 +4,21 @@ import type { ServiceCategory } from '#shared/types/marketplace'
 // Auto-imported as <MarketplaceProviderFilterSidebar />. The service picker
 // is multi-select (checkable rows, like the rating filter below it) — a
 // consumer can filter for several kinds of pro at once.
-defineProps<{
-  categories: ServiceCategory[]
-}>()
+//
+// Mounted twice on `browse.vue` — once as the always-present desktop aside,
+// once inside the mobile `<UiBottomSheet>` (CSS-hidden at the breakpoint the
+// other one shows at, per CLAUDE.md's mobile-first redesign) — so `idPrefix`
+// keeps their form-control ids from colliding when both happen to be in the
+// DOM at once, and `bare` drops the standalone card chrome (border/backdrop/
+// padding) when the sheet already provides it.
+withDefaults(
+  defineProps<{
+    categories: ServiceCategory[]
+    idPrefix?: string
+    bare?: boolean
+  }>(),
+  { idPrefix: 'filter-sidebar', bare: false },
+)
 
 const emit = defineEmits<{
   apply: []
@@ -46,7 +58,10 @@ function resetAll() {
 </script>
 
 <template>
-  <aside class="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/30">
+  <component
+    :is="bare ? 'div' : 'aside'"
+    :class="bare ? '' : 'rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/30'"
+  >
     <div class="mb-5 flex items-center justify-between">
       <div class="flex items-center gap-2 font-bold">
         <UiIcon
@@ -70,7 +85,7 @@ function resetAll() {
         {{ t('marketplace.filters.location') }}
       </p>
       <UiLocationPicker
-        id="filter-sidebar-location"
+        :id="`${idPrefix}-location`"
         v-model:province="provinceCode"
         v-model:city="cityCode"
         v-model:barangay="barangay"
@@ -160,12 +175,12 @@ function resetAll() {
       <div class="flex items-center gap-3">
         <div class="flex flex-1 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 py-2.5 focus-within:border-brand-500 dark:border-white/10 dark:bg-white/5">
           <label
-            for="filter-sidebar-min-price"
+            :for="`${idPrefix}-min-price`"
             class="sr-only"
           >{{ t('marketplace.filters.minPriceLabel') }}</label>
           <span class="text-sm text-black/40 dark:text-white/40">$</span>
           <input
-            id="filter-sidebar-min-price"
+            :id="`${idPrefix}-min-price`"
             v-model.number="minPrice"
             type="number"
             :min="PRICE_MIN"
@@ -180,12 +195,12 @@ function resetAll() {
         >&ndash;</span>
         <div class="flex flex-1 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 py-2.5 focus-within:border-brand-500 dark:border-white/10 dark:bg-white/5">
           <label
-            for="filter-sidebar-max-price"
+            :for="`${idPrefix}-max-price`"
             class="sr-only"
           >{{ t('marketplace.filters.maxPriceLabel') }}</label>
           <span class="text-sm text-black/40 dark:text-white/40">$</span>
           <input
-            id="filter-sidebar-max-price"
+            :id="`${idPrefix}-max-price`"
             v-model.number="maxPrice"
             type="number"
             :min="PRICE_MIN"
@@ -213,7 +228,7 @@ function resetAll() {
     </fieldset>
 
     <label
-      for="filter-sidebar-verified"
+      :for="`${idPrefix}-verified`"
       class="flex cursor-pointer items-center justify-between border-t border-black/10 pt-5 dark:border-white/10"
     >
       <span class="text-sm font-semibold">{{ t('marketplace.filters.verifiedOnly') }}</span>
@@ -222,7 +237,7 @@ function resetAll() {
         :class="verifiedOnly ? 'bg-brand-600' : 'bg-black/15 dark:bg-white/20'"
       >
         <input
-          id="filter-sidebar-verified"
+          :id="`${idPrefix}-verified`"
           v-model="verifiedOnly"
           type="checkbox"
           class="absolute inset-0 opacity-0"
@@ -240,5 +255,5 @@ function resetAll() {
     >
       {{ t('marketplace.filters.apply') }}
     </UiButton>
-  </aside>
+  </component>
 </template>

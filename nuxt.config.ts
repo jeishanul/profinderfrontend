@@ -23,6 +23,13 @@ export default defineNuxtConfig({
   // browsers/contexts that don't support SVG favicons.
   app: {
     head: {
+      // `viewport-fit=cover` lets the page paint under the iOS notch/home
+      // indicator instead of leaving a hard white bar there, which is what
+      // makes `env(safe-area-inset-*)` (used by `AppBottomNav`/`UiBottomSheet`
+      // — see main.css) return a real value instead of 0 on notched devices.
+      meta: [
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+      ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },

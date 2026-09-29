@@ -15,7 +15,13 @@ const currentItems = computed(() => props.itemsByTab[activeTab.value])
 
 const CARD_STEP_PX = 296
 const carousel = useCarousel(() => currentItems.value.length, { visibleCount: 3, intervalMs: 3600 })
-const trackStyle = computed(() => ({ transform: `translateX(-${carousel.index.value * CARD_STEP_PX}px)` }))
+// Below `sm` this is a native scroll-snap strip instead (see the template
+// and CategoryCarousel.vue's matching comment) — the JS transform only
+// drives the desktop/tablet arrow-button version.
+const isDesktop = useMediaQuery('(min-width: 640px)')
+const trackStyle = computed(() => (isDesktop.value
+  ? { transform: `translateX(-${carousel.index.value * CARD_STEP_PX}px)` }
+  : {}))
 
 function selectTab(tab: GalleryTab) {
   activeTab.value = tab
@@ -53,7 +59,7 @@ function selectTab(tab: GalleryTab) {
       <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -->
       <div
         role="region"
-        class="overflow-hidden"
+        class="-mx-4 overflow-x-auto scrollbar-hide px-4 sm:mx-0 sm:overflow-hidden sm:px-0"
         :aria-label="t(`marketplace.gallery.tabs.${activeTab}`)"
         @mouseenter="carousel.pause()"
         @mouseleave="carousel.resume()"
@@ -61,13 +67,13 @@ function selectTab(tab: GalleryTab) {
         @focusout="carousel.resume()"
       >
         <div
-          class="flex gap-5 transition-transform duration-500 ease-out"
+          class="flex snap-x snap-mandatory gap-5 transition-transform duration-500 ease-out sm:snap-none"
           :style="trackStyle"
         >
           <div
             v-for="(item, index) in currentItems"
             :key="`${activeTab}-${index}`"
-            class="w-[276px] shrink-0"
+            class="w-[276px] shrink-0 snap-start"
           >
             <div class="h-[190px] overflow-hidden rounded-2xl">
               <UiPlaceholderMedia
@@ -83,7 +89,7 @@ function selectTab(tab: GalleryTab) {
       </div>
       <button
         type="button"
-        class="absolute -left-5 top-[78px] flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-brand-50 dark:bg-black/70 dark:text-white"
+        class="absolute -left-5 top-[78px] hidden h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-brand-50 sm:flex dark:bg-black/70 dark:text-white"
         :aria-label="t('marketplace.gallery.previous')"
         @click="carousel.prev()"
       >
@@ -95,7 +101,7 @@ function selectTab(tab: GalleryTab) {
       </button>
       <button
         type="button"
-        class="absolute -right-5 top-[78px] flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-brand-50 dark:bg-black/70 dark:text-white"
+        class="absolute -right-5 top-[78px] hidden h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-brand-50 sm:flex dark:bg-black/70 dark:text-white"
         :aria-label="t('marketplace.gallery.next')"
         @click="carousel.next()"
       >
