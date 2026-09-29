@@ -23,13 +23,6 @@ export default defineNuxtConfig({
   // browsers/contexts that don't support SVG favicons.
   app: {
     head: {
-      // `viewport-fit=cover` lets the page paint under the iOS notch/home
-      // indicator instead of leaving a hard white bar there, which is what
-      // makes `env(safe-area-inset-*)` (used by `AppBottomNav`/`UiBottomSheet`
-      // — see main.css) return a real value instead of 0 on notched devices.
-      meta: [
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-      ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
@@ -43,7 +36,7 @@ export default defineNuxtConfig({
 
   // --- SEO (@nuxtjs/seo: site-config, robots, sitemap, og-image, schema-org, seo-utils) ---
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3838',
+    url: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
     name: 'FindPeople',
     description: 'FindPeople',
     defaultLocale: 'en',
@@ -51,15 +44,6 @@ export default defineNuxtConfig({
   },
 
   // --- Theme toggle (AppHeader) ---
-  // `classSuffix: ''` so the module toggles a plain `.dark`/`.light` class on
-  // <html> — matches the `@custom-variant dark (&:where(.dark, .dark *))`
-  // override in main.css (Tailwind v4's class-based dark mode). The module
-  // injects a blocking inline script (before hydration) that reads
-  // `storageKey` from localStorage and applies the class immediately, so
-  // there's no flash of the wrong theme on refresh even though this is
-  // localStorage — not cookie — backed. `preference: 'system'` is the
-  // *initial* value only; picking light/dark explicitly (see
-  // ThemeToggle.vue) overrides it from then on, persisted under this key.
   colorMode: {
     classSuffix: '',
     preference: 'system',
@@ -68,29 +52,12 @@ export default defineNuxtConfig({
   },
 
   // Server-only — read exclusively by the Nitro proxy layer in server/api/
-  // (see server/utils/apiProxy.ts). Never under `public`, since the browser
-  // never talks to Laravel directly (Nitro-as-BFF — see CLAUDE.md's Data
-  // fetching / Security sections and the wiring plan).
+  // Server-to-server direct internal call to Laravel backend port 8000
   runtimeConfig: {
-    apiBaseUrl: process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8123',
+    apiBaseUrl: process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000',
   },
 
   // --- Hybrid rendering defaults; extend per-route as pages are added ---
-  // `/` and `/providers/**` deliberately stay plain SSR, not `isr`: isr's
-  // route-caching layer serves those pages through the same payload-
-  // extraction path as a prerendered route, but this app never prerenders
-  // them — the client then requests a `_payload.json` that was never
-  // written, which 404s and produces a hydration mismatch on every load.
-  // Reproduced and confirmed by removing `isr` here. Revisit only after
-  // confirming that payload actually gets generated (e.g. after a real
-  // `nuxt generate`/CDN-backed cache storage), not just in local preview.
-  // The logged-in user panel is authenticated/dashboard-style (session-driven,
-  // not content SEO wants indexed) — `ssr: false` per CLAUDE.md's rendering
-  // guidance for this kind of route, plus an explicit `robots: false` so it's
-  // never indexed regardless of the site-wide `indexable` setting. Each panel
-  // page is a clean top-level route (e.g. `/profile`, not `/dashboard/profile`)
-  // rather than nested under one prefix, so every one of them is listed here
-  // individually instead of a single `/dashboard/**` wildcard.
   routeRules: {
     '/dashboard': { ssr: false, robots: false },
     '/profile': { ssr: false, robots: false },
@@ -127,7 +94,6 @@ export default defineNuxtConfig({
 
   typescript: {
     strict: true,
-    // Full type-checking runs via `npm run typecheck` (CI/pre-commit), not on every dev/build for speed.
     typeCheck: false,
     tsConfig: {
       compilerOptions: {
@@ -151,20 +117,14 @@ export default defineNuxtConfig({
     },
   },
 
-  // --- i18n: architecture ready for multiple locales; only `en` is active. ---
-  // `prefix_except_default` keeps English at clean unprefixed URLs (/about) while
-  // any future locale gets its own prefix (/fr/about) — adding a locale is just adding
-  // an entry to `locales` + a message file, no routing/URL rework needed.
+  // --- i18n configuration ---
   i18n: {
-    baseUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3838',
+    baseUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
     defaultLocale: 'en',
     strategy: 'prefix_except_default',
     locales: [
       { code: 'en', language: 'en-US', name: 'English', file: 'en.json', dir: 'ltr' },
     ],
-    // Inert with a single locale; wired correctly now so adding a second locale doesn't
-    // require revisiting this. Root-only redirect keeps explicit locale URLs stable and
-    // indexable (redirecting on every route would confuse crawlers and split link equity).
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
@@ -174,51 +134,36 @@ export default defineNuxtConfig({
   },
 
   image: {
-    // Add third-party providers here (cloudinary, ipx, etc.) as the project grows.
     quality: 80,
     format: ['avif', 'webp'],
   },
 
   robots: {
     blockNonSeoBots: true,
-    // 2026 baseline: explicit policy for AI crawlers/trainers (GPTBot, ClaudeBot, etc.)
-    // rather than leaving it to each bot's default behavior. Flip to `false` per-bot
-    // in `groups` if this site wants to opt in to AI training/answer engines.
     blockAiBots: true,
   },
 
-  // Security headers (CSP, HSTS, X-Frame-Options, etc.) via nuxt-security.
-  // Using the module's defaults for everything except CORS and two CSP
-  // directives: the module's own CORS default binds `corsHandler.origin` to
-  // the *dev server* URL even in a production build, which never matches a
-  // real deployed domain, so bind it to our actual site URL instead. The
-  // messages composer lets a person attach a photo/video straight from their
-  // device (see `DashboardMessageThread`) and previews it via
-  // `URL.createObjectURL()` before anything is sent anywhere — that preview
-  // is a `blob:` URL, which the default `img-src`/`media-src` (`'self'
-  // data:'` / `'self'`) blocks outright. Extending just those two directives
-  // is enough; nothing else about the default policy changes.
+  // --- Security Headers (nuxt-security) ---
+  // Fix for ERR_SSL_PROTOCOL_ERROR on pure HTTP IP setup:
+  // 1. upgradeInsecureRequests false kora hoyeche jate HTTP request HTTPS-e convert na hoy.
+  // 2. strictTransportSecurity (HSTS) disable kora hoyeche.
+  // 3. crossOriginOpenerPolicy false kora hoyeche IP origin warning bondho korte.
   security: {
-    // Real mutating routes and cookie-based auth exist now (see
-    // server/utils/apiProxy.ts) — CLAUDE.md flagged this as the trigger to
-    // flip CSRF on at the same time.
     csrf: true,
     corsHandler: {
-      origin: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3838',
+      origin: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
     },
     headers: {
+      strictTransportSecurity: false,
+      crossOriginOpenerPolicy: false,
       contentSecurityPolicy: {
-        'img-src': ['\'self\'', 'data:', 'blob:'],
-        'media-src': ['\'self\'', 'blob:'],
+        'upgrade-insecure-requests': false,
+        'img-src': ['\'self\'', 'data:', 'blob:', 'http:', 'https:'],
+        'media-src': ['\'self\'', 'blob:', 'http:', 'https:'],
       },
     },
   },
 
-  // `nuxt-seo-utils` (bundled in @nuxtjs/seo) auto-mirrors OG tags into
-  // `twitter:card` etc. by default — unhead's own dev-time SEO lint then
-  // flags every one of those as deprecated ("use Open Graph metadata
-  // instead"). Open Graph tags alone cover every modern platform's preview,
-  // so turn the Twitter-specific mirroring off rather than silence the warning.
   seo: {
     automaticTwitterTags: false,
   },
