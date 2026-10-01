@@ -8,6 +8,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const categoryLabel = useCategoryLabel()
 
 const TABS: GalleryTab[] = ['home', 'recommended', 'trending']
 const activeTab = ref<GalleryTab>('home')
@@ -76,13 +77,21 @@ function selectTab(tab: GalleryTab) {
             class="w-[276px] shrink-0 snap-start"
           >
             <div class="h-[190px] overflow-hidden rounded-2xl">
+              <img
+                v-if="item.imageUrl"
+                :src="item.imageUrl"
+                :alt="item.title ?? categoryLabel(item.categoryId, item.categoryName)"
+                loading="lazy"
+                class="h-full w-full object-cover"
+              >
               <UiPlaceholderMedia
+                v-else
                 :icon="getCategoryIcon(categories, item.categoryId)"
                 label="276 x 190"
               />
             </div>
             <p class="mt-3 font-semibold">
-              {{ t(`marketplace.categories.${item.categoryId}.label`) }}
+              {{ item.title ?? categoryLabel(item.categoryId, item.categoryName) }}
             </p>
           </div>
         </div>

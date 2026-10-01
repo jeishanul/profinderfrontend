@@ -12,6 +12,15 @@ definePageMeta({
 const { t } = useI18n()
 const session = useSession()
 const localePath = useLocalePath()
+// `resolveComponent` so Nuxt can resolve the auto-imported link in a dynamic `:is`.
+const NuxtLinkLocale = resolveComponent('NuxtLinkLocale')
+const isProvider = computed(() => session.isProvider.value)
+const isPersonalInfoOpen = ref(false)
+
+// The language section only means something once a second language exists.
+const { locale, locales } = useI18n()
+const hasManyLocales = computed(() => locales.value.length > 1)
+const currentLocaleName = computed(() => locales.value.find(entry => entry.code === locale.value)?.name ?? locale.value)
 
 const { data: account, refresh: refreshAccount } = await useApi<AccountSettings>('/dashboard/account', {
   key: 'dashboard-account',
@@ -113,14 +122,18 @@ async function submitChangePassword() {
     passwordJustChanged.value = true
     setTimeout(() => (passwordJustChanged.value = false), 2500)
   }
-  catch {
-    passwordError.value = t('dashboard.settings.security.currentPasswordError')
+  catch (error) {
+    // Tell the user what was actually wrong — not always "current password is incorrect".
+    const fields = apiFieldErrors(error)
+    passwordError.value = fields.currentPassword
+      ? t('dashboard.settings.security.currentPasswordError')
+      : (fields.password ?? apiErrorMessage(error, t('ui.errors.generic')))
   }
 }
 
 // --- Deactivate / delete account — destructive, so both are gated behind a
-// confirmation dialog rather than firing on a single click. Deactivate just
-// flips `status` to suspended (an admin can restore it); delete requires the
+// confirmation dialog rather than firing on a single click. Deactivate pauses
+// the account (logging in again offers to reactivate it); delete requires the
 // current password and soft-deletes the account (see `AccountController`).
 
 const dangerAction = ref<'deactivate' | 'delete' | null>(null)
@@ -156,10 +169,11 @@ async function confirmDangerAction() {
     await session.logout()
     await navigateTo(localePath('/'))
   }
-  catch {
-    dangerError.value = dangerAction.value === 'delete'
+  catch (error) {
+    // A wrong password has its own wording; anything else (e.g. "finish your active bookings first") is the server's message.
+    dangerError.value = dangerAction.value === 'delete' && apiFieldErrors(error).currentPassword
       ? t('dashboard.settings.security.currentPasswordError')
-      : t('errors.somethingWrong')
+      : apiErrorMessage(error, t('errors.somethingWrong'))
   }
   finally {
     dangerSubmitting.value = false
@@ -196,9 +210,12 @@ useSeoMeta({
           {{ t('dashboard.settings.account.heading') }}
         </p>
         <div class="mb-5 rounded-2xl border border-black/10 dark:border-white/10">
-          <NuxtLinkLocale
-            to="/profile"
-            class="flex items-center gap-3 px-4 py-3.5"
+          <component
+            :is="isProvider ? NuxtLinkLocale : 'button'"
+            :to="isProvider ? '/profile' : undefined"
+            :type="isProvider ? undefined : 'button'"
+            class="flex w-full items-center gap-3 px-4 py-3.5 text-left"
+            @click="!isProvider && (isPersonalInfoOpen = true)"
           >
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70">
               <UiIcon
@@ -215,7 +232,7 @@ useSeoMeta({
               :size="16"
               class="shrink-0 rotate-180 text-black/30 dark:text-white/30"
             />
-          </NuxtLinkLocale>
+          </component>
         </div>
 
         <p class="mb-2 px-1 text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40">
@@ -316,24 +333,26 @@ useSeoMeta({
           </div>
         </div>
 
-        <p class="mb-2 px-1 text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40">
-          {{ t('dashboard.settings.language.heading') }}
-        </p>
-        <div class="mb-5 rounded-2xl border border-black/10 dark:border-white/10">
-          <div class="flex items-center gap-3 px-4 py-3.5">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70">
-              <UiIcon
-                name="globe"
-                :size="16"
-              />
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block text-[13.5px] font-semibold">{{ t('dashboard.settings.language.heading') }}</span>
-              <span class="block text-xs text-black/50 dark:text-white/50">English (United States)</span>
-            </span>
-            <UiLocaleSwitcher />
+        <template v-if="hasManyLocales">
+          <p class="mb-2 px-1 text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40">
+            {{ t('dashboard.settings.language.heading') }}
+          </p>
+          <div class="mb-5 rounded-2xl border border-black/10 dark:border-white/10">
+            <div class="flex items-center gap-3 px-4 py-3.5">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70">
+                <UiIcon
+                  name="globe"
+                  :size="16"
+                />
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block text-[13.5px] font-semibold">{{ t('dashboard.settings.language.heading') }}</span>
+                <span class="block text-xs text-black/50 dark:text-white/50">{{ currentLocaleName }}</span>
+              </span>
+              <UiLocaleSwitcher />
+            </div>
           </div>
-        </div>
+        </template>
 
         <p class="mb-2 px-1 text-[11px] font-bold tracking-wide text-red-700/70 uppercase dark:text-red-300/70">
           {{ t('dashboard.settings.danger.heading') }}
@@ -385,14 +404,23 @@ useSeoMeta({
               {{ t('dashboard.settings.account.heading') }}
             </h2>
             <NuxtLinkLocale
+              v-if="isProvider"
               to="/profile"
               :class="linkButtonClass('ghost', 'sm')"
             >
               {{ t('dashboard.settings.account.editProfile') }}
             </NuxtLinkLocale>
+            <UiButton
+              v-else
+              variant="ghost"
+              size="sm"
+              @click="isPersonalInfoOpen = true"
+            >
+              {{ t('dashboard.settings.account.editPersonalInfo') }}
+            </UiButton>
           </div>
           <p class="mb-3.5 text-xs text-black/50 dark:text-white/50">
-            {{ t('dashboard.settings.account.editHint') }}
+            {{ isProvider ? t('dashboard.settings.account.editHint') : t('dashboard.settings.account.editHintPersonal') }}
           </p>
           <div class="flex flex-col gap-3.5 py-1">
             <div>
@@ -416,7 +444,7 @@ useSeoMeta({
                 {{ t('dashboard.settings.account.phone') }}
               </div>
               <div class="mt-0.5 text-[13px] text-black/60 dark:text-white/60">
-                {{ account.phone }}
+                {{ account.phone || '—' }}
               </div>
             </div>
           </div>
@@ -504,7 +532,10 @@ useSeoMeta({
           </div>
         </section>
 
-        <section class="rounded-2xl border border-black/10 p-5 sm:p-6 dark:border-white/10">
+        <section
+          v-if="hasManyLocales"
+          class="rounded-2xl border border-black/10 p-5 sm:p-6 dark:border-white/10"
+        >
           <h2 class="mb-1 font-display text-[15px] font-bold">
             {{ t('dashboard.settings.language.heading') }}
           </h2>
@@ -514,7 +545,7 @@ useSeoMeta({
                 {{ t('dashboard.settings.language.current') }}
               </div>
               <div class="mt-0.5 text-[13px] text-black/60 dark:text-white/60">
-                English (United States)
+                {{ currentLocaleName }}
               </div>
             </div>
             <UiLocaleSwitcher />
@@ -562,6 +593,14 @@ useSeoMeta({
         </section>
       </div>
     </template>
+
+    <DashboardPersonalInfoModal
+      v-if="account"
+      :open="isPersonalInfoOpen"
+      :account="account"
+      @close="isPersonalInfoOpen = false"
+      @saved="refreshAccount"
+    />
 
     <UiModal
       :open="isPasswordModalOpen"

@@ -33,9 +33,19 @@ const active = computed<Testimonial | undefined>(() => props.testimonials[carous
         @focusin="carousel.pause()"
         @focusout="carousel.resume()"
       >
-        <div class="mb-5 flex justify-center gap-1">
+        <img
+          v-if="active.avatarUrl"
+          :src="active.avatarUrl"
+          :alt="active.reviewerName"
+          class="mx-auto mb-4 h-14 w-14 rounded-full object-cover"
+        >
+        <div
+          class="mb-5 flex justify-center gap-1"
+          role="img"
+          :aria-label="t('ui.starInput.stars', { count: active.rating }, active.rating)"
+        >
           <UiIcon
-            v-for="n in 5"
+            v-for="n in active.rating"
             :key="n"
             name="star"
             filled

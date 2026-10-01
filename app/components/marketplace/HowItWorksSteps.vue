@@ -4,13 +4,24 @@
 // on the left swaps to match.
 const { t } = useI18n()
 
-const STEP_IDS = ['request', 'compare', 'book', 'review'] as const
-const STEP_ICON: Record<(typeof STEP_IDS)[number], IconName> = {
-  request: 'search',
-  compare: 'calendar',
-  book: 'lock',
-  review: 'star',
-}
+const FALLBACK_IDS = ['request', 'compare', 'book', 'review'] as const
+const STEP_ICONS: IconName[] = ['search', 'calendar', 'lock', 'star']
+
+// The admin's steps, else the built-in four.
+const content = useContentSection('how_it_works')
+const steps = computed(() => content.value.length > 0
+  ? content.value.map((item, index) => ({
+      id: `cms-${index}`,
+      icon: knownIcon(item.icon, STEP_ICONS[index % STEP_ICONS.length]!),
+      title: item.title ?? '',
+      description: item.description ?? '',
+    }))
+  : FALLBACK_IDS.map((id, index) => ({
+      id,
+      icon: STEP_ICONS[index]!,
+      title: t(`marketplace.howItWorks.steps.${id}.title`),
+      description: t(`marketplace.howItWorks.steps.${id}.description`),
+    })))
 
 const stepRefs = ref<Array<HTMLElement | null>>([])
 const { activeIndex, recalculate } = useScrollSpy(stepRefs)
@@ -47,8 +58,8 @@ onMounted(recalculate)
             mode="out-in"
           >
             <UiIcon
-              :key="STEP_IDS[activeIndex]"
-              :name="STEP_ICON[STEP_IDS[activeIndex] ?? 'request']"
+              :key="steps[activeIndex]?.id"
+              :name="steps[activeIndex]?.icon ?? 'search'"
               :size="72"
             />
           </Transition>
@@ -60,8 +71,8 @@ onMounted(recalculate)
 
       <div class="flex flex-col">
         <button
-          v-for="(stepId, index) in STEP_IDS"
-          :key="stepId"
+          v-for="(step, index) in steps"
+          :key="step.id"
           :ref="(el) => setStepRef(el, index)"
           type="button"
           class="w-full appearance-none border-0 bg-transparent py-5 text-left transition-opacity duration-300"
@@ -77,10 +88,10 @@ onMounted(recalculate)
             </div>
             <div>
               <h3 class="text-xl font-bold">
-                {{ t(`marketplace.howItWorks.steps.${stepId}.title`) }}
+                {{ step.title }}
               </h3>
               <p class="mt-2 max-w-md text-black/60 dark:text-white/60">
-                {{ t(`marketplace.howItWorks.steps.${stepId}.description`) }}
+                {{ step.description }}
               </p>
             </div>
           </div>

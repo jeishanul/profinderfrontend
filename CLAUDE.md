@@ -1,4 +1,4 @@
-# FindPeople — Architecture Contract
+# ProFinder — Architecture Contract
 
 This file is the source of truth for how code gets added to this project. It exists so that
 every future feature — whoever or whatever implements it — lands in the same structure, using
@@ -187,7 +187,7 @@ instead of a rework.
 
 1. `useSeoMeta({ title, description, ...})` (translated via `t()` — see Internationalization
    above) — title is picked up by the `titleTemplate` set in `app/app.vue` (renders as
-   `"<page title> · FindPeople"`).
+   `"<page title> · ProFinder"`).
 2. `defineOgImage('<ComponentName>', { ... })` using a component from `app/components/OgImage/`
    (see the renderer-suffix note below). Add a new template there for new content types instead
    of overloading `Default.satori.vue`.
@@ -325,10 +325,8 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   `NUXT_PUBLIC_SITE_URL`. If this app ever needs a *different* origin to call its API (a separate
   marketing site, a mobile app, a partner integration), extend `corsHandler.origin` to an array —
   don't widen it to `*`.
-- **CSRF is off by default** (`security.csrf` defaults to `false`) and there are currently no
-  state-changing (`POST`/`PUT`/`DELETE`) routes or session-based auth to protect. The moment
-  either is added — a login form, any mutation endpoint — enable `security.csrf` in
-  `nuxt.config.ts` at the same time, not as an afterthought.
+- **CSRF is on** (`nuxt-csurf`). Every POST/PUT/PATCH/DELETE needs the `csrf-token` header, which
+  `useApiFetch` attaches for you (see Calling our API below). A raw `$fetch` mutation fails with 403.
 - **Rate limiting is on by default** (150 requests / 5 min / IP) using the `lruCache` in-memory
   driver. That driver is per-process — fine for a single instance, but it resets on redeploy and
   doesn't share state across horizontally-scaled instances. If/when this deploys to more than one
@@ -345,6 +343,75 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   `NUXT_OG_IMAGE_SECRET` (see `.env.example`, generate with `npx nuxt-og-image generate-secret`)
   so a URL signed by one instance/build still validates on another — otherwise OG images 404
   intermittently during/after a rolling deploy.
+
+## Patterns added with the marketplace work (use these, don't reinvent)
+
+### Calling our API: `useApi` vs `useApiFetch`
+
+- **`useApi`** — reads: initial and reactive GETs (SSR-safe, keyed, refetch when `query` changes).
+- **`useApiFetch`** — one-off calls from event handlers: every mutation, uploads, and "load another
+  page". It wraps `$csrfFetch` (adds the CSRF header) and sends a 401 back to the login modal.
+- Errors: show `apiErrorMessage(error, t('…fallback'))` (`utils/apiError.ts`) in a toast. Never swallow
+  a failed action silently and never show raw server text without a translated fallback.
+- Routes that call `readFormData` on the server (uploads) must be sent as `FormData`, not JSON.
+
+### Feedback and confirmation
+
+- **`useToast()`** (`toast.success/error/info(message, action?)`, rendered once by `<UiToastContainer/>`
+  in `app.vue`). An `action` (`{ label, run }`) gives a toast an "Undo" button — prefer undo over a
+  confirm for reversible actions (archive, unsave).
+- **`useConfirm()`** replaces `window.confirm`: `if (!(await confirm({ title, message, confirmLabel, tone: 'danger' }))) return`.
+  Use it for destructive or irreversible actions. Never call `window.confirm`/`alert`.
+
+### Site settings and money
+
+- **`useSiteSettings()`** exposes the admin-editable settings (name, logo, contact details, currency,
+  maintenance mode) loaded once by a plugin. Read them from here; never hardcode a brand name, email,
+  phone or social link in a component.
+- **Money**: API fields are still called `…Usd` for history, but the value is in the site currency
+  (PHP by default). Format with `const { money } = useSiteSettings()` → `money(amount)`, or the pure
+  `formatMoney(amount, currency, locale)` in `utils/money.ts`. Never write `$${amount}` or `₱${amount}`.
+
+### Roles
+
+- The Provider/Consumer switch is the **`pf_role` cookie** (read during SSR so the first paint is the
+  right panel), seeded into `useState('active-role')` by `useSession()`. `useSession().activeRole` can only
+  be `provider` when `AuthUser.isProvider` is true, so a stale cookie can't expose provider UI. Gate UI
+  on `session.isProvider` / `activeRole`, never on the raw cookie. It is a presentation preference, not
+  authorization: the API enforces what each account may do.
+
+### The booking flow (quote → booking, cash payments)
+
+- A booking starts as a **job request** (`<MarketplaceJobRequestModal/>`: what, when, where) that opens a
+  conversation. The provider answers with a **quote** (`<DashboardQuoteFormModal/>`) and accepting the
+  quote creates the booking. Nothing on the client creates a booking directly.
+- **Booking drawer**: `useBookingDrawer().open(id)` opens `<DashboardBookingDrawer/>` (mounted once in the
+  dashboard layout). It shows detail and the actions the server allows. Render buttons from
+  `booking.can.*` (computed server-side by `BookingStateMachine`); never infer them from `status`.
+- **Book again**: `useBookAgain()`. `start(bookingId)` reopens the thread and opens the job-request form
+  pre-filled; `requestFrom(providerId, name)` opens it empty (saved providers). Both drive the single modal
+  mounted in the dashboard layout. Neither books anything by itself.
+- Reviews: `useReviewForm()` + `<DashboardReviewFormModal/>`; `<UiStarInput/>` for the rating.
+
+### Lists and paging
+
+- Account-area lists (`clients`, `purchases`, `services`, `saved-providers`, `conversations`) are
+  server-paged: `{ data, meta: { page, perPage, total, hasMore } }`. Use **`usePagedList<T>(url, { key, query, perPage })`**:
+  it returns `items`, `meta`, `hasMore`, `loadMore()`, `refresh()` (keeps the pages already loaded) and works
+  with or without `await`. Put filters in `query` (a change refetches page 1) and render
+  `<DashboardLoadMore/>` under the list. Status chip counts and headline numbers come from `meta.counts` /
+  `meta.totals` — never compute them from the loaded rows.
+- Search boxes on paged lists debounce (`refDebounced(search, 300)`) and send `q` to the server.
+- Pass new list params through the BFF with `pickListQuery(getQuery(event))` (`server/utils/apiProxy.ts`),
+  which forwards only `page`, `perPage`, `q`, `status`, `archived`.
+- Public Browse keeps its filters in the URL (the URL is the source of truth) — see `pages/browse.vue`.
+
+### Private files through the BFF
+
+- Chat attachments are private on the backend. The browser can't hold the token, so
+  `server/api/dashboard/messages/[id]/attachment.get.ts` adds the caller's credentials and **streams** the
+  file (`$fetch.raw(..., { responseType: 'stream' })` + `sendStream`) with `cache-control: private, no-store`.
+  Never buffer these through `callApi`, and never expose a storage URL for them.
 
 ## Known benign warnings (do not "fix" these)
 

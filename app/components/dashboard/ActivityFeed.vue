@@ -8,6 +8,8 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { money } = useSiteSettings()
+const categoryLabel = useCategoryLabel()
 
 const ICON_BY_KIND: Record<ActivityItem['kind'], IconName> = {
   new_booking: 'briefcase',
@@ -26,8 +28,8 @@ function iconFor(item: ActivityItem) {
 function textFor(item: ActivityItem) {
   return t(`dashboard.overview.activity.${item.kind}`, {
     name: item.personName,
-    category: t(`marketplace.categories.${item.categoryId}.label`),
-    amount: item.amountUsd ?? 0,
+    category: categoryLabel(item.categoryId),
+    amount: money(item.amountUsd ?? 0),
     rating: item.ratingGiven ?? 0,
   })
 }
@@ -42,7 +44,16 @@ const rows = computed(() => props.items)
 </script>
 
 <template>
-  <ul class="flex flex-col">
+  <p
+    v-if="rows.length === 0"
+    class="py-6 text-center text-sm text-black/50 dark:text-white/50"
+  >
+    {{ t('dashboard.overview.activity.empty') }}
+  </p>
+  <ul
+    v-else
+    class="flex flex-col"
+  >
     <li
       v-for="(item, index) in rows"
       :key="item.id"

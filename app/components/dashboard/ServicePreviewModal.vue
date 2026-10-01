@@ -14,6 +14,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const categoryLabel = useCategoryLabel()
+const servicePrice = useServicePrice()
 const titleId = useId()
 </script>
 
@@ -48,7 +50,7 @@ const titleId = useId()
             {{ service.title }}
           </div>
           <div class="mt-0.5 text-xs text-black/60 dark:text-white/60">
-            {{ t(`marketplace.categories.${service.categoryId}.label`) }} &middot; {{ service.durationLabel }}
+            {{ categoryLabel(service.categoryId, service.categoryName) }} &middot; {{ service.durationLabel }}
           </div>
         </div>
       </div>
@@ -58,7 +60,7 @@ const titleId = useId()
       </p>
 
       <div class="mt-4 flex items-center gap-4 border-t border-black/10 pt-3.5 text-[12.5px] text-black/60 dark:border-white/10 dark:text-white/60">
-        <span class="font-bold text-black dark:text-white">{{ service.priceLabel }}</span>
+        <span class="font-bold text-black dark:text-white">{{ servicePrice(service) }}</span>
         <span>{{ t('dashboard.services.bookingsCount', { count: service.bookingsCount }) }}</span>
         <span class="flex items-center gap-1">
           <UiIcon

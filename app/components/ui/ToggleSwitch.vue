@@ -4,13 +4,15 @@
 const props = withDefaults(
   defineProps<{
     label?: string
+    disabled?: boolean
   }>(),
-  { label: undefined },
+  { label: undefined, disabled: false },
 )
 
 const model = defineModel<boolean>({ default: false })
 
 function toggle() {
+  if (props.disabled) return
   model.value = !model.value
 }
 </script>
@@ -21,7 +23,9 @@ function toggle() {
     role="switch"
     :aria-checked="model"
     :aria-label="props.label"
-    class="relative h-6 w-[42px] shrink-0 rounded-full p-0.5 transition-colors"
+    :aria-disabled="props.disabled || undefined"
+    :disabled="props.disabled"
+    class="relative h-6 w-[42px] shrink-0 rounded-full p-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
     :class="model ? 'bg-brand-600' : 'bg-black/10 dark:bg-white/15'"
     @click="toggle"
   >

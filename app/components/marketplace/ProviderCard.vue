@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProviderProfile } from '#shared/types/marketplace'
+import type { ProviderSummary } from '#shared/types/marketplace'
 
 // Auto-imported as <MarketplaceProviderCard />. `variant="card"` is the
 // vertical tile used in grids (featured providers); `variant="row"` is the
@@ -9,7 +9,7 @@ import type { ProviderProfile } from '#shared/types/marketplace'
 // `<button>` is invalid and inaccessible).
 const props = withDefaults(
   defineProps<{
-    provider: ProviderProfile
+    provider: ProviderSummary
     categoryIcon: IconName
     variant?: 'card' | 'row'
   }>(),
@@ -17,6 +17,7 @@ const props = withDefaults(
 )
 
 const { t } = useI18n()
+const { money } = useSiteSettings()
 const authModal = useAuthModal()
 const session = useSession()
 const localePath = useLocalePath()
@@ -24,16 +25,20 @@ const localePath = useLocalePath()
 // and isn't a Suspense/page boundary, so a top-level `await` here would
 // break Nuxt's composable context) calls `ensureLoaded()` once.
 const savedProviders = useSavedProviders()
+const toast = useToast()
 
 const isSaving = ref(false)
 async function handleToggleSave() {
   if (!session.isAuthenticated.value) {
-    authModal.open('login')
+    authModal.open('login', { onSuccess: () => handleToggleSave() })
     return
   }
   isSaving.value = true
   try {
     await savedProviders.toggle(props.provider.id)
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('ui.errors.generic')))
   }
   finally {
     isSaving.value = false
@@ -43,7 +48,7 @@ async function handleToggleSave() {
 const isMessaging = ref(false)
 async function handleMessage() {
   if (!session.isAuthenticated.value) {
-    authModal.open('login')
+    authModal.open('login', { onSuccess: () => handleMessage() })
     return
   }
   isMessaging.value = true
@@ -53,6 +58,9 @@ async function handleMessage() {
       body: { providerId: Number(props.provider.id) },
     })
     await navigateTo(localePath({ path: '/messages', query: { conversation: conversation.id } }))
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('ui.errors.generic')))
   }
   finally {
     isMessaging.value = false
@@ -81,7 +89,17 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
         :size="16"
       />
     </button>
-    <div class="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
+    <img
+      v-if="provider.avatarUrl"
+      :src="provider.avatarUrl"
+      :alt="provider.name"
+      loading="lazy"
+      class="h-[76px] w-[76px] shrink-0 rounded-2xl object-cover"
+    >
+    <div
+      v-else
+      class="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100"
+    >
       <UiIcon
         :name="categoryIcon"
         :size="32"
@@ -115,16 +133,16 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
       </div>
       <div class="mt-3 flex flex-wrap gap-2">
         <UiTag
-          v-for="skillId in provider.skillIds.slice(0, 3)"
-          :key="skillId"
+          v-for="skill in provider.skills.slice(0, 3)"
+          :key="skill.id"
         >
-          {{ t(`marketplace.skills.${skillId}`) }}
+          {{ skill.name }}
         </UiTag>
       </div>
     </div>
     <div class="flex shrink-0 flex-col items-start gap-3 sm:items-end">
       <p class="font-display text-xl font-bold">
-        {{ t('marketplace.provider.estimate', { rate: provider.ratePerHour }) }}
+        {{ t('marketplace.provider.estimate', { rate: money(provider.ratePerHour) }) }}
       </p>
       <div class="flex gap-2">
         <UiButton
@@ -164,7 +182,17 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
     </button>
 
     <div class="flex items-center gap-3">
-      <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
+      <img
+        v-if="provider.avatarUrl"
+        :src="provider.avatarUrl"
+        :alt="provider.name"
+        loading="lazy"
+        class="h-14 w-14 shrink-0 rounded-full object-cover"
+      >
+      <div
+        v-else
+        class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100"
+      >
         <UiIcon
           :name="categoryIcon"
           :size="26"
@@ -182,7 +210,7 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
           />
         </div>
         <p class="text-xs text-black/50 dark:text-white/50">
-          {{ t(`marketplace.categories.${provider.categoryId}.label`) }}
+          {{ provider.categoryName }}
         </p>
       </div>
     </div>
@@ -194,15 +222,15 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
 
     <div class="flex flex-wrap gap-2">
       <UiTag
-        v-for="skillId in provider.skillIds.slice(0, 2)"
-        :key="skillId"
+        v-for="skill in provider.skills.slice(0, 2)"
+        :key="skill.id"
       >
-        {{ t(`marketplace.skills.${skillId}`) }}
+        {{ skill.name }}
       </UiTag>
     </div>
 
     <div class="flex items-center justify-between border-t border-black/10 pt-3.5 text-sm text-black/50 dark:border-white/10 dark:text-white/50">
-      <span>{{ t('marketplace.provider.fromEstimate', { rate: provider.ratePerHour }) }}</span>
+      <span>{{ t('marketplace.provider.fromEstimate', { rate: money(provider.ratePerHour) }) }}</span>
       <span class="inline-flex items-center gap-1">
         <UiIcon
           name="map-pin"

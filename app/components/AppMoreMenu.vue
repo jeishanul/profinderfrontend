@@ -15,8 +15,13 @@ function go() {
   moreMenu.close()
 }
 
-function handleLogout() {
-  session.logout()
+async function handleLogout() {
+  try {
+    await session.logout()
+  }
+  catch {
+    session.clearLocal()
+  }
   moreMenu.close()
   navigateTo(useLocalePath()('/'))
 }
@@ -46,13 +51,16 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
 
       <template v-if="session.isAuthenticated.value">
         <NuxtLinkLocale
-          to="/profile"
+          :to="session.isProvider.value ? '/profile' : '/settings'"
           class="flex items-center gap-3 rounded-2xl px-1 py-3"
           @click="go"
         >
-          <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 font-display text-base font-bold text-white">
-            {{ session.initials.value }}
-          </span>
+          <UiAvatar
+            :name="session.name.value"
+            :src="session.user.value?.avatarUrl"
+            size-class="h-12 w-12 rounded-2xl"
+            text-class="text-base"
+          />
           <span class="flex-1">
             <span class="block text-base font-bold">{{ session.name.value }}</span>
             <span class="block text-xs text-black/50 dark:text-white/50">{{ t('more.viewProfile') }}</span>
@@ -81,6 +89,20 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
             />
           </span>
           {{ t('dashboard.sidebar.dashboard') }}
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
+          v-if="!session.isProvider.value"
+          to="/become-a-provider"
+          :class="itemClass"
+          @click="go"
+        >
+          <span :class="iconWrapClass">
+            <UiIcon
+              name="briefcase"
+              :size="17"
+            />
+          </span>
+          {{ t('dashboard.roleSwitch.becomeProvider') }}
         </NuxtLinkLocale>
         <NuxtLinkLocale
           v-if="!isProvider"

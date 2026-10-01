@@ -1,4 +1,4 @@
-# FindPeople
+# ProFinder
 
 Nuxt 4 + TypeScript + Tailwind CSS v4, with a full SEO/performance module stack. See
 [`CLAUDE.md`](./CLAUDE.md) for the architecture rules and conventions this project follows —

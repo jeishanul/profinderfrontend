@@ -1,8 +1,11 @@
 <script setup lang="ts">
 // Auto-imported as <MarketplaceDownloadAppSection />.
 const { t } = useI18n()
+const { settings } = useSiteSettings()
+const requestUrl = useRequestURL()
 
-const phoneNumber = ref('')
+// What the QR code opens: the app listing if there is one, otherwise the site itself.
+const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.playStoreUrl ?? requestUrl.origin)
 </script>
 
 <template>
@@ -34,31 +37,12 @@ const phoneNumber = ref('')
           {{ t('marketplace.downloadApp.description') }}
         </p>
 
-        <form
-          class="mt-7 flex max-w-md gap-1.5 rounded-full border border-black/10 bg-white/70 p-1.5 backdrop-blur-xl dark:border-white/10 dark:bg-black/30"
-          @submit.prevent
-        >
-          <label
-            for="download-app-phone"
-            class="sr-only"
-          >{{ t('marketplace.downloadApp.phonePlaceholder') }}</label>
-          <input
-            id="download-app-phone"
-            v-model="phoneNumber"
-            type="tel"
-            :placeholder="t('marketplace.downloadApp.phonePlaceholder')"
-            class="w-full rounded-full bg-transparent px-4 py-3 text-sm outline-none placeholder:text-black/40 dark:placeholder:text-white/40"
-          >
-          <UiButton
-            type="submit"
-            class="shrink-0 rounded-full! whitespace-nowrap"
-          >
-            {{ t('marketplace.downloadApp.cta') }}
-          </UiButton>
-        </form>
-
         <div class="mt-6 flex items-center gap-4">
-          <UiQrCode :size="64" />
+          <UiQrCode
+            :value="qrTarget"
+            :size="72"
+            :label="t('marketplace.downloadApp.qrHint')"
+          />
           <p class="max-w-[220px] text-sm text-black/60 dark:text-white/60">
             {{ t('marketplace.downloadApp.qrHint') }}
           </p>
@@ -66,35 +50,40 @@ const phoneNumber = ref('')
       </div>
     </div>
 
-    <div class="mt-16 flex flex-col items-center justify-between gap-6 rounded-3xl border border-black/10 bg-white/70 p-9 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:flex-row">
+    <div
+      v-if="settings.contactPhone || settings.contactEmail"
+      class="mt-16 flex flex-col items-center justify-between gap-6 rounded-3xl border border-black/10 bg-white/70 p-9 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:flex-row"
+    >
       <div>
         <p class="text-lg font-bold">
           {{ t('marketplace.downloadApp.helpline.heading') }}
         </p>
         <p class="mt-1.5 text-sm text-black/60 dark:text-white/60">
-          {{ t('marketplace.downloadApp.helpline.description', { number: SUPPORT_PHONE, email: SUPPORT_EMAIL }) }}
+          {{ t('marketplace.downloadApp.helpline.description') }}
         </p>
       </div>
       <div class="flex shrink-0 flex-wrap justify-center gap-2.5">
         <a
-          :href="`tel:${SUPPORT_PHONE}`"
+          v-if="settings.contactPhone"
+          :href="`tel:${settings.contactPhone}`"
           class="inline-flex items-center gap-2 rounded-md bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-700/20 dark:text-brand-100 dark:hover:bg-brand-700/30"
         >
           <UiIcon
             name="phone"
             :size="15"
           />
-          {{ SUPPORT_PHONE }}
+          {{ settings.contactPhone }}
         </a>
         <a
-          :href="`mailto:${SUPPORT_EMAIL}`"
+          v-if="settings.contactEmail"
+          :href="`mailto:${settings.contactEmail}`"
           class="inline-flex items-center gap-2 rounded-md bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-700/20 dark:text-brand-100 dark:hover:bg-brand-700/30"
         >
           <UiIcon
             name="mail"
             :size="15"
           />
-          {{ SUPPORT_EMAIL }}
+          {{ settings.contactEmail }}
         </a>
         <NuxtLinkLocale
           to="/browse"

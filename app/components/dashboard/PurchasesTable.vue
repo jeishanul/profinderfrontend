@@ -2,7 +2,9 @@
 import type { PurchaseRecord } from '#shared/types/dashboard'
 
 // Auto-imported as <DashboardPurchasesTable/>. Used both on the dashboard
-// overview (a 3-row preview) and the full my-purchases page.
+// overview (a 3-row preview) and the full my-purchases page. "Details" opens
+// the shared booking drawer, where a client can cancel or message; "Book
+// again" starts a pre-filled request to the same provider.
 const props = withDefaults(
   defineProps<{
     purchases: PurchaseRecord[]
@@ -11,8 +13,14 @@ const props = withDefaults(
   { limit: undefined },
 )
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { money } = useSiteSettings()
+const categoryLabel = useCategoryLabel()
 const localePath = useLocalePath()
+const toast = useToast()
+const drawer = useBookingDrawer()
+const bookAgain = useBookAgain()
+const reviewForm = useReviewForm()
 
 const rows = computed(() => (props.limit ? props.purchases.slice(0, props.limit) : props.purchases))
 
@@ -26,18 +34,30 @@ function avatarClass(index: number) {
   return AVATAR_TINTS[index % AVATAR_TINTS.length]
 }
 
-// "Message" opens (or creates) a real conversation with this provider.
-// "Book again" searches Browse for the same category.
-async function messageProvider(purchase: PurchaseRecord) {
-  const conversation = await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
-    method: 'POST',
-    body: { providerId: Number(purchase.providerId) },
-  })
-  await navigateTo(localePath({ path: '/messages', query: { conversation: conversation.id } }))
-}
+const canCancel = (purchase: PurchaseRecord) => purchase.can.cancel
+const canEditReview = (purchase: PurchaseRecord) => purchase.hasReview && purchase.reviewEditable
+const openReview = (purchase: PurchaseRecord) => reviewForm.open({ bookingId: purchase.id, providerName: purchase.providerName })
+const canBookAgain = (purchase: PurchaseRecord) => purchase.status === 'completed' || purchase.status === 'cancelled'
+const serviceLabel = (purchase: PurchaseRecord) => purchase.serviceTitle ?? categoryLabel(purchase.categoryId, purchase.categoryName)
 
-function bookAgain(purchase: PurchaseRecord) {
-  navigateTo(localePath({ path: '/browse', query: { category: purchase.categoryId } }))
+// "Message" opens the thread this booking came from, or finds/creates one.
+const messagingId = ref<string | null>(null)
+async function messageProvider(purchase: PurchaseRecord) {
+  if (messagingId.value) return
+  messagingId.value = purchase.id
+  try {
+    const conversationId = purchase.conversationId ?? (await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
+      method: 'POST',
+      body: { providerId: Number(purchase.providerId) },
+    })).id
+    await navigateTo(localePath({ path: '/messages', query: { conversation: conversationId } }))
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('dashboard.table.messageFailed')))
+  }
+  finally {
+    messagingId.value = null
+  }
 }
 </script>
 
@@ -64,35 +84,82 @@ function bookAgain(purchase: PurchaseRecord) {
             <div>
               <div>{{ purchase.providerName }}</div>
               <div class="mt-0.5 text-xs font-normal text-black/60 dark:text-white/60">
-                {{ t(`marketplace.categories.${purchase.categoryId}.label`) }} &middot; {{ purchase.date }}
+                {{ serviceLabel(purchase) }} &middot; {{ formatDateTime(purchase.scheduledAt, locale) }}
               </div>
             </div>
           </div>
-          <DashboardStatusBadge :status="purchase.status" />
+          <div class="flex flex-col items-end gap-1.5">
+            <DashboardStatusBadge :status="purchase.status" />
+            <DashboardPaymentBadge
+              v-if="purchase.status !== 'cancelled'"
+              :status="purchase.paymentStatus"
+            />
+          </div>
+        </div>
+        <div class="mt-2 text-sm font-semibold">
+          {{ money(purchase.amountUsd) }}
         </div>
         <div class="mt-3.5 flex gap-2">
           <UiButton
-            variant="ghost"
+            v-if="purchase.can.review"
+            variant="primary"
             size="sm"
             class="flex-1 justify-center"
-            @click="messageProvider(purchase)"
+            @click="openReview(purchase)"
           >
-            {{ t('dashboard.table.message') }}
+            {{ t('dashboard.table.review') }}
+          </UiButton>
+          <UiButton
+            v-if="canEditReview(purchase)"
+            variant="secondary"
+            size="sm"
+            class="flex-1 justify-center"
+            @click="drawer.open(purchase.id)"
+          >
+            {{ t('dashboard.table.editReview') }}
           </UiButton>
           <UiButton
             variant="secondary"
             size="sm"
             class="flex-1 justify-center"
-            @click="bookAgain(purchase)"
+            @click="drawer.open(purchase.id)"
+          >
+            {{ t('dashboard.table.details') }}
+          </UiButton>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            class="flex-1 justify-center"
+            :disabled="messagingId === purchase.id"
+            @click="messageProvider(purchase)"
+          >
+            {{ t('dashboard.table.message') }}
+          </UiButton>
+          <UiButton
+            v-if="canBookAgain(purchase)"
+            variant="ghost"
+            size="sm"
+            class="flex-1 justify-center"
+            :disabled="bookAgain.isStarting.value"
+            @click="bookAgain.start(purchase.id)"
           >
             {{ t('dashboard.table.bookAgain') }}
+          </UiButton>
+          <UiButton
+            v-if="canCancel(purchase)"
+            variant="ghost"
+            size="sm"
+            class="flex-1 justify-center text-red-600! dark:text-red-400!"
+            @click="drawer.open(purchase.id, { cancel: true })"
+          >
+            {{ t('dashboard.table.cancel') }}
           </UiButton>
         </div>
       </div>
     </div>
 
     <div class="hidden overflow-x-auto sm:block">
-      <table class="w-full min-w-[680px] border-collapse text-sm">
+      <table class="w-full min-w-[760px] border-collapse text-sm">
         <thead>
           <tr class="border-b border-black/10 text-left text-xs font-bold tracking-wide text-black/40 uppercase dark:border-white/10 dark:text-white/40">
             <th class="pb-3 pr-3 font-bold">
@@ -105,10 +172,13 @@ function bookAgain(purchase: PurchaseRecord) {
               {{ t('dashboard.table.date') }}
             </th>
             <th class="pb-3 pr-3 font-bold">
+              {{ t('dashboard.table.amount') }}
+            </th>
+            <th class="pb-3 pr-3 font-bold">
               {{ t('dashboard.table.status') }}
             </th>
             <th class="pb-3 font-bold">
-              <span class="sr-only">{{ t('dashboard.table.message') }}</span>
+              <span class="sr-only">{{ t('dashboard.table.actions') }}</span>
             </th>
           </tr>
         </thead>
@@ -130,29 +200,73 @@ function bookAgain(purchase: PurchaseRecord) {
               </div>
             </td>
             <td class="py-3.5 pr-3 text-black/60 dark:text-white/60">
-              {{ t(`marketplace.categories.${purchase.categoryId}.label`) }}
+              {{ serviceLabel(purchase) }}
             </td>
             <td class="py-3.5 pr-3 text-black/60 dark:text-white/60">
-              {{ purchase.date }}
+              {{ formatDateTime(purchase.scheduledAt, locale) }}
+            </td>
+            <td class="py-3.5 pr-3 font-semibold">
+              {{ money(purchase.amountUsd) }}
             </td>
             <td class="py-3.5 pr-3">
-              <DashboardStatusBadge :status="purchase.status" />
+              <div class="flex flex-wrap items-center gap-1.5">
+                <DashboardStatusBadge :status="purchase.status" />
+                <DashboardPaymentBadge
+                  v-if="purchase.status !== 'cancelled'"
+                  :status="purchase.paymentStatus"
+                />
+              </div>
             </td>
             <td class="py-3.5">
               <div class="flex justify-end gap-2">
                 <UiButton
+                  v-if="purchase.can.review"
+                  variant="primary"
+                  size="sm"
+                  @click="openReview(purchase)"
+                >
+                  {{ t('dashboard.table.review') }}
+                </UiButton>
+                <UiButton
+                  v-if="canEditReview(purchase)"
+                  variant="secondary"
+                  size="sm"
+                  @click="drawer.open(purchase.id)"
+                >
+                  {{ t('dashboard.table.editReview') }}
+                </UiButton>
+                <UiButton
+                  variant="secondary"
+                  size="sm"
+                  @click="drawer.open(purchase.id)"
+                >
+                  {{ t('dashboard.table.details') }}
+                </UiButton>
+                <UiButton
                   variant="ghost"
                   size="sm"
+                  :disabled="messagingId === purchase.id"
                   @click="messageProvider(purchase)"
                 >
                   {{ t('dashboard.table.message') }}
                 </UiButton>
                 <UiButton
-                  variant="secondary"
+                  v-if="canBookAgain(purchase)"
+                  variant="ghost"
                   size="sm"
-                  @click="bookAgain(purchase)"
+                  :disabled="bookAgain.isStarting.value"
+                  @click="bookAgain.start(purchase.id)"
                 >
                   {{ t('dashboard.table.bookAgain') }}
+                </UiButton>
+                <UiButton
+                  v-if="canCancel(purchase)"
+                  variant="ghost"
+                  size="sm"
+                  class="text-red-600! dark:text-red-400!"
+                  @click="drawer.open(purchase.id, { cancel: true })"
+                >
+                  {{ t('dashboard.table.cancel') }}
                 </UiButton>
               </div>
             </td>

@@ -5,15 +5,20 @@ import type { ServiceListing } from '#shared/types/dashboard'
 // page, with a working active/paused toggle.
 const props = defineProps<{
   service: ServiceListing
+  /** The provider isn't verified, so a paused listing can't go live yet. */
+  needsVerification?: boolean
 }>()
 
 defineEmits<{
   'toggle-status': [id: string]
   'edit': [service: ServiceListing]
   'preview': [service: ServiceListing]
+  'delete': [service: ServiceListing]
 }>()
 
 const { t } = useI18n()
+const categoryLabel = useCategoryLabel()
+const servicePrice = useServicePrice()
 
 const isPaused = computed(() => props.service.status === 'paused')
 </script>
@@ -41,7 +46,7 @@ const isPaused = computed(() => props.service.status === 'paused')
             {{ service.title }}
           </div>
           <div class="mt-0.5 text-xs text-black/60 dark:text-white/60">
-            {{ t(`marketplace.categories.${service.categoryId}.label`) }} · {{ service.durationLabel }}
+            {{ categoryLabel(service.categoryId, service.categoryName) }} · {{ service.durationLabel }}
           </div>
         </div>
       </div>
@@ -52,6 +57,8 @@ const isPaused = computed(() => props.service.status === 'paused')
         <UiToggleSwitch
           :model-value="!isPaused"
           :label="isPaused ? t('dashboard.services.activate') : t('dashboard.services.deactivate')"
+          :disabled="isPaused && needsVerification"
+          :title="isPaused && needsVerification ? t('dashboard.services.unverified.title') : undefined"
           @update:model-value="$emit('toggle-status', service.id)"
         />
       </div>
@@ -62,7 +69,7 @@ const isPaused = computed(() => props.service.status === 'paused')
     </p>
 
     <div class="flex items-center gap-4 border-t border-black/10 pt-3 text-[12.5px] text-black/60 dark:border-white/10 dark:text-white/60">
-      <span class="font-bold text-black dark:text-white">{{ service.priceLabel }}</span>
+      <span class="font-bold text-black dark:text-white">{{ servicePrice(service) }}</span>
       <span>{{ t('dashboard.services.bookingsCount', { count: service.bookingsCount }) }}</span>
       <span class="flex items-center gap-1">
         <UiIcon
@@ -93,6 +100,16 @@ const isPaused = computed(() => props.service.status === 'paused')
             name="eye"
             :size="13"
           />{{ t('dashboard.services.preview') }}
+        </button>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+          @click="$emit('delete', service)"
+        >
+          <UiIcon
+            name="trash"
+            :size="13"
+          />{{ t('dashboard.services.delete') }}
         </button>
       </span>
     </div>

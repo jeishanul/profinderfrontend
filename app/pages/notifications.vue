@@ -10,11 +10,25 @@ definePageMeta({
 })
 
 const { t } = useI18n()
+const toast = useToast()
+const { confirm } = useConfirm()
 
-const { data: notifications, refresh } = await useApi<NotificationItem[]>('/dashboard/notifications', {
+// "Show more" grows the page size; a full page back means there may be more.
+const PAGE_SIZE = 30
+const limit = ref(PAGE_SIZE)
+
+const { data: notifications, refresh, status } = await useApi<NotificationItem[]>('/dashboard/notifications', {
   key: 'dashboard-notifications',
+  query: computed(() => ({ limit: limit.value })),
   default: () => [],
 })
+
+const hasMore = computed(() => (notifications.value?.length ?? 0) >= limit.value)
+
+async function showMore() {
+  limit.value += PAGE_SIZE
+  await refresh()
+}
 
 const filter = ref<string>('all')
 
@@ -28,6 +42,8 @@ const filterOptions = computed(() => {
     { value: 'bookings', label: t('dashboard.notificationsPage.filters.bookings'), count: countFor('bookings') },
     { value: 'payments', label: t('dashboard.notificationsPage.filters.payments'), count: countFor('payments') },
     { value: 'messages', label: t('dashboard.notificationsPage.filters.messages'), count: countFor('messages') },
+    { value: 'account', label: t('dashboard.notificationsPage.filters.account'), count: countFor('account') },
+    { value: 'system', label: t('dashboard.notificationsPage.filters.system'), count: countFor('system') },
   ]
 })
 
@@ -38,16 +54,34 @@ const visibleItems = computed(() =>
 
 const todayItems = computed(() => visibleItems.value.filter(item => item.timeAgoHours < 24))
 const earlierItems = computed(() => visibleItems.value.filter(item => item.timeAgoHours >= 24))
+const unreadCount = computed(() => (notifications.value ?? []).filter(item => !item.read).length)
+const readCount = computed(() => (notifications.value ?? []).length - unreadCount.value)
 
-async function markRead(id: string) {
-  await useApiFetch(`/api/dashboard/notifications/${id}/read`, { method: 'PATCH' })
-  await refresh()
+/** The list and the header badge always change together. */
+const refreshAll = () => Promise.all([refresh(), refreshNuxtData(UNREAD_NOTIFICATIONS_KEY)])
+
+async function run(request: () => Promise<unknown>, failureKey = 'ui.errors.generic') {
+  try {
+    await request()
+    await refreshAll()
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t(failureKey)))
+  }
 }
 
-async function markAllRead() {
-  const unread = (notifications.value ?? []).filter(item => !item.read)
-  await Promise.all(unread.map(item => useApiFetch(`/api/dashboard/notifications/${item.id}/read`, { method: 'PATCH' })))
-  await refresh()
+const markRead = (id: string) => run(() => useApiFetch(`/api/dashboard/notifications/${id}/read`, { method: 'PATCH' }))
+const markAllRead = () => run(() => useApiFetch('/api/dashboard/notifications/read-all', { method: 'PATCH' }))
+const remove = (id: string) => run(() => useApiFetch(`/api/dashboard/notifications/${id}`, { method: 'DELETE' }))
+
+async function clearRead() {
+  const confirmed = await confirm({
+    title: t('dashboard.notificationsPage.clearConfirm.title'),
+    message: t('dashboard.notificationsPage.clearConfirm.message'),
+    confirmLabel: t('dashboard.notificationsPage.clearRead'),
+    tone: 'danger',
+  })
+  if (confirmed) await run(() => useApiFetch('/api/dashboard/notifications', { method: 'DELETE' }))
 }
 
 useSeoMeta({
@@ -67,12 +101,22 @@ useSeoMeta({
           {{ t('dashboard.notificationsPage.subtitle') }}
         </p>
       </div>
-      <UiButton
-        variant="ghost"
-        @click="markAllRead"
-      >
-        {{ t('dashboard.notificationsPage.markAllRead') }}
-      </UiButton>
+      <div class="flex gap-2">
+        <UiButton
+          variant="ghost"
+          :disabled="unreadCount === 0"
+          @click="markAllRead"
+        >
+          {{ t('dashboard.notificationsPage.markAllRead') }}
+        </UiButton>
+        <UiButton
+          variant="ghost"
+          :disabled="readCount === 0"
+          @click="clearRead"
+        >
+          {{ t('dashboard.notificationsPage.clearRead') }}
+        </UiButton>
+      </div>
     </div>
 
     <DashboardFilterTabs
@@ -90,6 +134,7 @@ useSeoMeta({
           :key="item.id"
           :item="item"
           @read="markRead"
+          @remove="remove"
         />
       </template>
 
@@ -102,6 +147,7 @@ useSeoMeta({
           :key="item.id"
           :item="item"
           @read="markRead"
+          @remove="remove"
         />
       </template>
 
@@ -111,6 +157,19 @@ useSeoMeta({
       >
         {{ t('dashboard.notificationsPage.empty') }}
       </p>
+
+      <div
+        v-if="hasMore"
+        class="mt-3 flex justify-center"
+      >
+        <UiButton
+          variant="ghost"
+          :disabled="status === 'pending'"
+          @click="showMore"
+        >
+          {{ t('dashboard.notificationsPage.showMore') }}
+        </UiButton>
+      </div>
     </div>
   </div>
 </template>

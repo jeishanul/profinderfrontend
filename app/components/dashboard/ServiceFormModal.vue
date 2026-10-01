@@ -9,6 +9,10 @@ const props = defineProps<{
   open: boolean
   categories: ServiceCategory[]
   service: ServiceListing | null
+  /** The save request is in flight. */
+  submitting?: boolean
+  /** Server validation errors, keyed by field name (`apiFieldErrors`). */
+  errors?: Record<string, string>
 }>()
 
 export interface ServiceFormSubmitPayload {
@@ -56,8 +60,10 @@ watch(() => props.open, (isOpen) => {
 })
 
 const categoryOptions = computed(() =>
-  props.categories.map(category => ({ value: category.id, label: t(`marketplace.categories.${category.id}.label`) })),
+  props.categories.map(category => ({ value: category.id, label: category.name })),
 )
+
+const fieldError = (field: string) => props.errors?.[field] ?? ''
 
 const isValid = computed(() =>
   form.title.trim().length > 0
@@ -106,6 +112,12 @@ function handleSubmit() {
           id="service-form-title"
           v-model="form.title"
         />
+        <p
+          v-if="fieldError('title')"
+          class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+        >
+          {{ fieldError('title') }}
+        </p>
       </div>
 
       <div>
@@ -119,6 +131,12 @@ function handleSubmit() {
           :options="categoryOptions"
           :placeholder="t('dashboard.services.form.categoryPlaceholder')"
         />
+        <p
+          v-if="fieldError('categoryId')"
+          class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+        >
+          {{ fieldError('categoryId') }}
+        </p>
       </div>
 
       <div>
@@ -132,6 +150,12 @@ function handleSubmit() {
           rows="3"
           class="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
         />
+        <p
+          v-if="fieldError('description')"
+          class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+        >
+          {{ fieldError('description') }}
+        </p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -145,6 +169,12 @@ function handleSubmit() {
             v-model="form.durationLabel"
             :placeholder="t('dashboard.services.form.durationPlaceholder')"
           />
+          <p
+            v-if="fieldError('durationLabel')"
+            class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+          >
+            {{ fieldError('durationLabel') }}
+          </p>
         </div>
         <div>
           <label
@@ -165,8 +195,22 @@ function handleSubmit() {
               @update:model-value="form.priceType = $event === 'flat' ? 'flat' : 'hourly'"
             />
           </div>
+          <p
+            v-if="fieldError('priceAmount') || fieldError('priceType')"
+            class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+          >
+            {{ fieldError('priceAmount') || fieldError('priceType') }}
+          </p>
         </div>
       </div>
+
+      <p
+        v-if="fieldError('form')"
+        role="alert"
+        class="text-sm font-semibold text-red-600 dark:text-red-400"
+      >
+        {{ fieldError('form') }}
+      </p>
 
       <div class="mt-2 flex justify-end gap-2.5">
         <UiButton
@@ -179,7 +223,7 @@ function handleSubmit() {
         <UiButton
           type="submit"
           variant="primary"
-          :disabled="!isValid"
+          :disabled="!isValid || submitting"
         >
           {{ service ? t('dashboard.services.form.save') : t('dashboard.services.form.create') }}
         </UiButton>

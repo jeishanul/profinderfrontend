@@ -4,7 +4,7 @@ import type {
   GalleryItem,
   GalleryTab,
   PagedResult,
-  ProviderProfile,
+  ProviderSummary,
   ServiceCategory,
   Testimonial,
 } from '#shared/types/marketplace'
@@ -26,8 +26,9 @@ const quickTiles = computed(() => [
 ])
 
 const { data: categories } = await useApi<ServiceCategory[]>('/categories')
-const { data: providersPage } = await useApi<PagedResult<ProviderProfile>>('/providers', {
-  query: { perPage: 8 },
+// "Top-rated pros": verified, best-rated first — not just whoever signed up last.
+const { data: providersPage } = await useApi<PagedResult<ProviderSummary>>('/providers', {
+  query: { perPage: 8, sort: 'rating', verifiedOnly: true },
 })
 const { data: testimonials } = await useApi<Testimonial[]>('/testimonials')
 const { data: faqItems } = await useApi<FaqItem[]>('/faq')

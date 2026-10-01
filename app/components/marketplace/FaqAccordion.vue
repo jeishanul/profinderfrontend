@@ -61,7 +61,10 @@ function toggle(id: string) {
       </div>
     </div>
 
-    <div class="mt-7 flex justify-center">
+    <div
+      v-if="items.length > INITIAL_VISIBLE"
+      class="mt-7 flex justify-center"
+    >
       <UiButton
         variant="ghost"
         @click="showAll = !showAll"

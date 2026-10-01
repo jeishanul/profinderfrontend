@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { KycState } from '#shared/types/dashboard'
+
 // Shared chrome for every logged-in panel page (this `dashboard` layout,
 // not the URL — each page below sets its own top-level route, e.g. /profile,
 // /messages): sidebar navigation (desktop) / horizontal nav (mobile), and a
@@ -32,7 +34,40 @@ const isKycTabActive = computed(() => isOnProfilePage.value && route.query.tab =
 const isProfileTabActive = computed(() => isOnProfilePage.value && route.query.tab !== 'kyc')
 
 const isProvider = computed(() => session.activeRole.value === 'provider')
+
+// Drives the sidebar's verification badge — only the provider nav shows it,
+// so don't ask the server on consumer pages.
+const { data: kyc } = useApi<KycState>('/dashboard/kyc', {
+  key: 'dashboard-kyc',
+  lazy: true,
+  server: false,
+  immediate: isProvider.value,
+})
+watch(isProvider, (provider) => {
+  if (provider && !kyc.value) refreshNuxtData('dashboard-kyc')
+})
 const isConsumer = computed(() => session.activeRole.value === 'consumer')
+
+// --- Shared booking UI ---------------------------------------------------------
+// One booking drawer + one "book again" request form for the whole panel; any
+// page opens them through `useBookingDrawer()` / `useBookAgain()`. A
+// `?booking=<id>` in the URL (from a notification or a chat thread) opens the
+// drawer directly, and closing it clears the param so a refresh doesn't reopen it.
+const bookingDrawer = useBookingDrawer()
+const bookAgain = useBookAgain()
+const reviewForm = useReviewForm()
+
+watch(() => route.query.booking, (value) => {
+  if (typeof value === 'string' && value) bookingDrawer.open(value)
+}, { immediate: true })
+
+function closeBookingDrawer() {
+  bookingDrawer.close()
+  if (route.query.booking) {
+    const { booking: _booking, ...rest } = route.query
+    navigateTo({ path: route.path, query: rest }, { replace: true })
+  }
+}
 
 const { unreadMessages, unreadNotifications } = useUnreadCounts()
 const firstName = computed(() => session.name.value.split(' ')[0] ?? '')
@@ -71,8 +106,14 @@ function linkClass(path: string) {
   return linkClassActive(isActive(path))
 }
 
-function handleLogout() {
-  session.logout()
+async function handleLogout() {
+  try {
+    await session.logout()
+  }
+  catch {
+    // The server session may already be gone; either way this device is signed out.
+    session.clearLocal()
+  }
   navigateTo(localePath('/'))
 }
 </script>
@@ -84,13 +125,7 @@ function handleLogout() {
         to="/"
         class="flex items-center gap-2.5 px-2 pt-1.5 pb-5 font-display font-bold text-brand-700 dark:text-brand-500"
       >
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
-          <UiIcon
-            name="leaf"
-            :size="19"
-          />
-        </span>
-        <span class="text-lg">{{ t('brand.name') }}</span>
+        <AppBrand size="sm" />
       </NuxtLinkLocale>
 
       <div class="px-3 pb-1 text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40">
@@ -152,6 +187,7 @@ function handleLogout() {
             />{{ t('dashboard.sidebar.kyc') }}
           </span>
           <UiTag
+            v-if="kyc && !kyc.isVerified"
             variant="danger"
             size="sm"
             class="shrink-0"
@@ -292,9 +328,11 @@ function handleLogout() {
           <span class="mx-1 h-6 w-px shrink-0 bg-black/10 dark:bg-white/10" />
           <UiThemeToggle />
           <span class="flex items-center gap-2 py-1 pr-1 pl-1 text-sm font-semibold">
-            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 font-display text-xs font-bold text-white">
-              {{ session.initials.value }}
-            </span>
+            <UiAvatar
+              :name="session.name.value"
+              :src="session.user.value?.avatarUrl"
+              size-class="h-9 w-9 rounded-full"
+            />
             {{ firstName }}
           </span>
         </div>
@@ -308,10 +346,37 @@ function handleLogout() {
         class="flex-1 px-5 py-6 sm:px-8 sm:py-8 md:pb-8"
         :class="bottomNavHidden ? 'pb-6' : 'pb-20'"
       >
+        <DashboardEmailVerifyBanner />
         <slot />
       </main>
     </div>
 
+    <DashboardBookingDrawer
+      v-if="bookingDrawer.openId.value"
+      :key="bookingDrawer.openId.value"
+      :booking-id="bookingDrawer.openId.value"
+      :start-cancelling="bookingDrawer.startCancelling.value"
+      @close="closeBookingDrawer"
+    />
+    <DashboardReviewFormModal
+      v-if="reviewForm.target.value"
+      :key="reviewForm.target.value.review?.id ?? reviewForm.target.value.bookingId"
+      :target="reviewForm.target.value"
+      @close="reviewForm.close"
+    />
+    <MarketplaceJobRequestModal
+      v-if="bookAgain.target.value"
+      :open="true"
+      :provider-id="bookAgain.target.value.providerId"
+      :provider-name="bookAgain.target.value.providerName"
+      :services="bookAgain.target.value.services"
+      :service-id="bookAgain.target.value.serviceId"
+      :initial-address="bookAgain.target.value.address"
+      @close="bookAgain.close"
+    />
+
+    <!-- Also mounted here: an expired session mid-use (a 401) must be able to ask for a login. -->
+    <MarketplaceAuthModal />
     <AppBottomNav />
     <AppMoreMenu />
   </div>

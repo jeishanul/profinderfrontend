@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { ProviderProfile, ServiceCategory } from '#shared/types/marketplace'
+import type { ProviderSummary, ServiceCategory } from '#shared/types/marketplace'
 
 // Auto-imported as <MarketplaceFeaturedProviders />.
 const props = defineProps<{
-  providers: ProviderProfile[]
+  providers: ProviderSummary[]
   categories: ServiceCategory[]
 }>()
 
@@ -33,13 +33,19 @@ const visibleProviders = computed(() => (showAll.value ? props.providers : props
       />
     </div>
 
-    <div class="mt-9 flex justify-center">
+    <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
       <UiButton
         variant="ghost"
         @click="showAll = !showAll"
       >
         {{ showAll ? t('marketplace.featuredProviders.showFewer') : t('marketplace.featuredProviders.viewMore') }}
       </UiButton>
+      <NuxtLinkLocale
+        :to="{ path: '/browse', query: { sort: 'rating' } }"
+        :class="linkButtonClass('ghost')"
+      >
+        {{ t('marketplace.featuredProviders.browseAll') }}
+      </NuxtLinkLocale>
     </div>
   </section>
 </template>

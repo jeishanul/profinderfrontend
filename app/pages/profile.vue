@@ -11,16 +11,27 @@ definePageMeta({
 })
 
 const { t, locale } = useI18n()
+const { symbol } = useSiteSettings()
+const localePath = useLocalePath()
+const toast = useToast()
+const { confirm } = useConfirm()
 
-const { data: profile, refresh: refreshProfile } = await useApi<ProviderProfileDetail>('/dashboard/profile', {
+const { data: profile, error: profileError, refresh: refreshProfile } = await useApi<ProviderProfileDetail>('/dashboard/profile', {
   key: 'dashboard-profile',
 })
+
+// Only providers have a profile to edit — everyone else is sent to the
+// explicit "Become a provider" onboarding instead of getting one by accident.
+if (profileError.value && apiErrorStatus(profileError.value) === 404) {
+  await navigateTo(localePath('/become-a-provider'), { replace: true })
+}
 const { data: summary, refresh: refreshSummary } = await useApi<DashboardSummary>('/dashboard/summary', {
   key: 'dashboard-summary-provider',
   query: { role: 'provider' },
 })
 const { data: categories } = await useApi<ServiceCategory[]>('/categories', {
-  key: 'categories',
+  key: 'categories-with-skills',
+  query: { include: 'skills' },
   default: () => [],
 })
 
@@ -59,29 +70,35 @@ const form = reactive({
   categoryId: null as string | null,
   yearsExperience: 0,
   hourlyRateUsd: 0,
-  minVisitFeeUsd: 0,
+  minVisitFeeUsd: null as number | null,
+  responseTimeHours: 24,
+  serviceAreaKm: null as number | null,
 })
 
 const photoUrl = ref<string | null>(null)
 const coverPhotoUrl = ref<string | null>(null)
 const skillIds = ref<string[]>([])
+const availableDays = ref<string[]>([])
 const recentWorkPhotos = ref<RecentWorkPhoto[]>([])
 
 function syncFormFromProfile() {
   if (!profile.value) return
   form.fullName = profile.value.fullName
-  form.headline = profile.value.headline
-  form.bio = profile.value.bio
-  form.phone = profile.value.phone
+  form.headline = profile.value.headline ?? ''
+  form.bio = profile.value.bio ?? ''
+  form.phone = profile.value.phone ?? ''
   form.email = profile.value.email
   form.provinceCode = profile.value.provinceCode
   form.cityCode = profile.value.cityCode
   form.barangay = profile.value.barangay
-  form.address = profile.value.address
+  form.address = profile.value.address ?? ''
   form.categoryId = profile.value.categoryId
   form.yearsExperience = profile.value.yearsExperience
   form.hourlyRateUsd = profile.value.hourlyRateUsd
   form.minVisitFeeUsd = profile.value.minVisitFeeUsd
+  form.responseTimeHours = profile.value.responseTimeHours
+  form.serviceAreaKm = profile.value.serviceAreaKm
+  availableDays.value = [...profile.value.availableDays]
   photoUrl.value = profile.value.photoUrl
   coverPhotoUrl.value = profile.value.coverPhotoUrl
   skillIds.value = [...profile.value.skillIds]
@@ -91,20 +108,28 @@ function syncFormFromProfile() {
 watch(profile, syncFormFromProfile, { immediate: true })
 
 const categoryOptions = computed(() =>
-  (categories.value ?? []).map(category => ({ value: category.id, label: t(`marketplace.categories.${category.id}.label`) })),
+  (categories.value ?? []).map(category => ({ value: category.id, label: category.name })),
 )
 
-const ALL_SKILL_IDS = [
-  'wiring', 'fault-fixing', 'panel-upgrades', 'deep-clean', 'move-out-clean', 'leak-repair',
-  'fittings', 'interior-painting', 'texture-finish', 'furniture-repair', 'custom-fittings',
-  'ac-servicing', 'ac-installation', 'fridge-repair', 'washer-repair', 'landscaping', 'garden-upkeep',
-] as const
+// Skills belong to a category; only the selected category's active skills
+// can be added (the server enforces the same rule).
+const categorySkills = computed(() =>
+  (categories.value ?? []).find(category => category.id === form.categoryId)?.skills ?? [],
+)
+
+const skillLabel = (id: string) => categorySkills.value.find(skill => skill.id === id)?.name ?? id
 
 const skillOptions = computed(() =>
-  ALL_SKILL_IDS
-    .filter(id => !skillIds.value.includes(id))
-    .map(id => ({ value: id, label: t(`marketplace.skills.${id}`) })),
+  categorySkills.value
+    .filter(skill => !skillIds.value.includes(skill.id))
+    .map(skill => ({ value: skill.id, label: skill.name })),
 )
+
+// Switching category drops skills that don't belong to the new one.
+watch(() => form.categoryId, () => {
+  const allowed = new Set(categorySkills.value.map(skill => skill.id))
+  skillIds.value = skillIds.value.filter(id => allowed.has(id))
+})
 
 const skillToAdd = ref<string | null>(null)
 
@@ -119,10 +144,6 @@ function removeSkill(id: string) {
 }
 
 const ALL_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
-const availableDays = ref<string[]>([])
-watch(profile, (value) => {
-  if (value) availableDays.value = [...value.availableDays]
-}, { immediate: true })
 
 function toggleDay(day: string) {
   availableDays.value = availableDays.value.includes(day)
@@ -139,26 +160,50 @@ const avatarInput = useTemplateRef('avatarInput')
 const coverInput = useTemplateRef('coverInput')
 const recentWorkInput = useTemplateRef('recentWorkInput')
 
-async function onAvatarChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  const input = event.target as HTMLInputElement
-  if (!file) return
+// Mirrors the server's `image|max:5120` rule so a too-large file is rejected
+// before it is uploaded rather than after a slow failed request.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+/** Validates + uploads one image; returns the parsed response, or null (with a toast) on failure. */
+async function uploadImage<T>(endpoint: string, file: File): Promise<T | null> {
+  if (!file.type.startsWith('image/')) {
+    toast.error(t('dashboard.profile.errors.notAnImage'))
+    return null
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    toast.error(t('dashboard.profile.errors.imageTooLarge'))
+    return null
+  }
   const body = new FormData()
   body.append('file', file)
-  const result = await useApiFetch<{ url: string }>('/api/dashboard/profile/avatar', { method: 'POST', body })
-  photoUrl.value = result.url
+  try {
+    return await useApiFetch<T>(endpoint, { method: 'POST', body })
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('dashboard.profile.errors.upload')))
+    return null
+  }
+}
+
+async function onAvatarChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
   input.value = ''
+  if (!file) return
+  const result = await uploadImage<{ url: string }>('/api/dashboard/profile/avatar', file)
+  if (!result) return
+  photoUrl.value = result.url
+  // Header/menus read the avatar from the session user.
+  await useSession().fetchUser()
 }
 
 async function onCoverChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
   const input = event.target as HTMLInputElement
-  if (!file) return
-  const body = new FormData()
-  body.append('file', file)
-  const result = await useApiFetch<{ url: string }>('/api/dashboard/profile/cover', { method: 'POST', body })
-  coverPhotoUrl.value = result.url
+  const file = input.files?.[0]
   input.value = ''
+  if (!file) return
+  const result = await uploadImage<{ url: string }>('/api/dashboard/profile/cover', file)
+  if (result) coverPhotoUrl.value = result.url
 }
 
 async function onRecentWorkChange(event: Event) {
@@ -166,17 +211,27 @@ async function onRecentWorkChange(event: Event) {
   const file = input.files?.[0]
   input.value = ''
   if (!file || recentWorkPhotos.value.length >= 6) return
-  const body = new FormData()
-  body.append('file', file)
-  const result = await useApiFetch<{ id: string, url: string }>('/api/dashboard/profile/work-photos', { method: 'POST', body })
-  recentWorkPhotos.value = [...recentWorkPhotos.value, { id: String(result.id), url: result.url }]
+  const result = await uploadImage<{ id: string, url: string }>('/api/dashboard/profile/work-photos', file)
+  if (result) recentWorkPhotos.value = [...recentWorkPhotos.value, { id: String(result.id), url: result.url }]
 }
 
 async function removeRecentWork(index: number) {
   const photo = recentWorkPhotos.value[index]
   if (!photo) return
-  await useApiFetch(`/api/dashboard/profile/work-photos/${photo.id}`, { method: 'DELETE' })
-  recentWorkPhotos.value = recentWorkPhotos.value.filter((_, i) => i !== index)
+  const confirmed = await confirm({
+    title: t('dashboard.profile.removePhotoConfirm.title'),
+    message: t('dashboard.profile.removePhotoConfirm.message'),
+    confirmLabel: t('dashboard.profile.removePhoto'),
+    tone: 'danger',
+  })
+  if (!confirmed) return
+  try {
+    await useApiFetch(`/api/dashboard/profile/work-photos/${photo.id}`, { method: 'DELETE' })
+    recentWorkPhotos.value = recentWorkPhotos.value.filter((_, i) => i !== index)
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('dashboard.profile.errors.upload')))
+  }
 }
 
 const memberSinceLabel = computed(() => {
@@ -184,30 +239,55 @@ const memberSinceLabel = computed(() => {
   return new Intl.DateTimeFormat(locale.value, { month: 'long', year: 'numeric' }).format(new Date(profile.value.memberSince))
 })
 
+/** Parses a typed money amount, keeping decimals ("12.50"); empty input is `null`. */
+function parseMoney(value: string): number | null {
+  const cleaned = value.replace(/[^\d.]/g, '')
+  if (cleaned === '' || cleaned === '.') return null
+  const amount = Number.parseFloat(cleaned)
+  return Number.isFinite(amount) ? amount : null
+}
+
 const justSaved = ref(false)
+const isSaving = ref(false)
+const fieldErrors = ref<Record<string, string>>({})
+
 async function handleSave() {
-  await useApiFetch('/api/dashboard/profile', {
-    method: 'PUT',
-    body: {
-      fullName: form.fullName,
-      headline: form.headline,
-      bio: form.bio,
-      phone: form.phone,
-      categoryId: form.categoryId,
-      skillIds: skillIds.value,
-      yearsExperience: form.yearsExperience,
-      hourlyRateUsd: form.hourlyRateUsd,
-      minVisitFeeUsd: form.minVisitFeeUsd,
-      availableDays: availableDays.value,
-      provinceCode: form.provinceCode,
-      cityCode: form.cityCode,
-      barangay: form.barangay,
-      address: form.address,
-    },
-  })
-  await refreshProfile()
-  justSaved.value = true
-  setTimeout(() => (justSaved.value = false), 2500)
+  isSaving.value = true
+  fieldErrors.value = {}
+  try {
+    await useApiFetch('/api/dashboard/profile', {
+      method: 'PUT',
+      body: {
+        fullName: form.fullName,
+        headline: form.headline || null,
+        bio: form.bio || null,
+        phone: form.phone || null,
+        ...(form.categoryId ? { categoryId: form.categoryId } : {}),
+        skillIds: skillIds.value,
+        yearsExperience: form.yearsExperience,
+        hourlyRateUsd: form.hourlyRateUsd,
+        minVisitFeeUsd: form.minVisitFeeUsd,
+        responseTimeHours: form.responseTimeHours,
+        serviceAreaKm: form.serviceAreaKm,
+        availableDays: availableDays.value,
+        provinceCode: form.provinceCode,
+        cityCode: form.cityCode,
+        barangay: form.barangay,
+        address: form.address || null,
+      },
+    })
+    await refreshProfile()
+    justSaved.value = true
+    setTimeout(() => (justSaved.value = false), 2500)
+  }
+  catch (error) {
+    fieldErrors.value = apiFieldErrors(error)
+    const firstFieldError = Object.values(fieldErrors.value)[0]
+    toast.error(firstFieldError ?? apiErrorMessage(error, t('dashboard.profile.errors.save')))
+  }
+  finally {
+    isSaving.value = false
+  }
 }
 
 useSeoMeta({
@@ -420,15 +500,11 @@ useSeoMeta({
                 <label
                   for="profile-address"
                   class="mb-2 block text-xs font-bold"
-                >{{ t('dashboard.profile.fields.address') }} <span
-                  class="text-red-600 dark:text-red-400"
-                  aria-hidden="true"
-                >*</span></label>
+                >{{ t('dashboard.profile.fields.address') }}</label>
                 <UiInput
                   id="profile-address"
                   v-model="form.address"
                   icon="map-pin"
-                  required
                   :placeholder="t('dashboard.profile.fields.addressPlaceholder')"
                 />
               </div>
@@ -456,7 +532,7 @@ useSeoMeta({
                 :key="skillId"
                 variant="primary"
               >
-                {{ t(`marketplace.skills.${skillId}`) }}
+                {{ skillLabel(skillId) }}
                 <button
                   type="button"
                   :aria-label="t('dashboard.profile.removeSkill')"
@@ -473,7 +549,7 @@ useSeoMeta({
               <UiSelectSearch
                 v-model="skillToAdd"
                 :options="skillOptions"
-                :placeholder="t('dashboard.profile.addSkillPlaceholder')"
+                :placeholder="categorySkills.length ? t('dashboard.profile.addSkillPlaceholder') : t('dashboard.profile.pickCategoryFirst')"
                 class="max-w-xs flex-1"
               />
               <UiButton
@@ -499,9 +575,16 @@ useSeoMeta({
                 >{{ t('dashboard.profile.fields.hourlyRate') }}</label>
                 <UiInput
                   id="profile-hourly-rate"
-                  :model-value="`$${form.hourlyRateUsd}`"
-                  @update:model-value="(v) => (form.hourlyRateUsd = Number(v.replace(/\D/g, '')) || 0)"
+                  :model-value="`${symbol}${form.hourlyRateUsd}`"
+                  inputmode="decimal"
+                  @update:model-value="(v) => (form.hourlyRateUsd = parseMoney(v) ?? 0)"
                 />
+                <p
+                  v-if="fieldErrors.hourlyRateUsd"
+                  class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+                >
+                  {{ fieldErrors.hourlyRateUsd }}
+                </p>
                 <p class="mt-1.5 text-xs text-black/50 dark:text-white/50">
                   {{ t('dashboard.profile.fields.hourlyRateHelp') }}
                 </p>
@@ -513,8 +596,10 @@ useSeoMeta({
                 >{{ t('dashboard.profile.fields.minVisitFee') }}</label>
                 <UiInput
                   id="profile-min-visit-fee"
-                  :model-value="`$${form.minVisitFeeUsd}`"
-                  @update:model-value="(v) => (form.minVisitFeeUsd = Number(v.replace(/\D/g, '')) || 0)"
+                  :model-value="form.minVisitFeeUsd === null ? '' : `${symbol}${form.minVisitFeeUsd}`"
+                  inputmode="decimal"
+                  placeholder="—"
+                  @update:model-value="(v) => (form.minVisitFeeUsd = parseMoney(v))"
                 />
               </div>
               <div>
@@ -524,10 +609,29 @@ useSeoMeta({
                 >{{ t('dashboard.profile.fields.responseTime') }}</label>
                 <UiInput
                   id="profile-response-time"
-                  :model-value="`${profile.responseTimeHours}h`"
-                  disabled
-                  class="opacity-60"
+                  :model-value="String(form.responseTimeHours)"
+                  inputmode="numeric"
+                  @update:model-value="(v) => (form.responseTimeHours = Math.min(168, Math.max(1, Number(v.replace(/\D/g, '')) || 1)))"
                 />
+                <p class="mt-1.5 text-xs text-black/50 dark:text-white/50">
+                  {{ t('dashboard.profile.fields.responseTimeHelp') }}
+                </p>
+              </div>
+              <div>
+                <label
+                  for="profile-service-area"
+                  class="mb-2 block text-xs font-bold"
+                >{{ t('dashboard.profile.fields.serviceArea') }}</label>
+                <UiInput
+                  id="profile-service-area"
+                  :model-value="form.serviceAreaKm === null ? '' : String(form.serviceAreaKm)"
+                  inputmode="numeric"
+                  placeholder="—"
+                  @update:model-value="(v) => (form.serviceAreaKm = v.replace(/\D/g, '') === '' ? null : Math.min(500, Number(v.replace(/\D/g, ''))))"
+                />
+                <p class="mt-1.5 text-xs text-black/50 dark:text-white/50">
+                  {{ t('dashboard.profile.fields.serviceAreaHelp') }}
+                </p>
               </div>
             </div>
             <span class="mb-2 block text-xs font-bold">{{ t('dashboard.profile.fields.availability') }}</span>
@@ -618,6 +722,7 @@ useSeoMeta({
             </UiButton>
             <UiButton
               variant="primary"
+              :disabled="isSaving"
               @click="handleSave"
             >
               {{ t('dashboard.profile.save') }}

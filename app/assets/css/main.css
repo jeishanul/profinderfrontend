@@ -20,7 +20,7 @@
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 
-  /* Primary: FindPeople green. Contrast checked against WCAG 2.1 (see
+  /* Primary: ProFinder green. Contrast checked against WCAG 2.1 (see
      CLAUDE.md Accessibility section) — brand-600 on white ~5.42:1,
      brand-700 ~8.16:1, brand-500 on black ~5.73:1. */
   --color-brand-50: oklch(0.97 0.03 152);

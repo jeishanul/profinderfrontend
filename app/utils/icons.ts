@@ -69,3 +69,11 @@ export const ICONS = {
 } as const
 
 export type IconName = keyof typeof ICONS
+
+/**
+ * An admin-typed icon name (a CMS field) if it is one we actually have, else
+ * `fallback` — an unknown name must degrade to a default icon, not to nothing.
+ */
+export function knownIcon(name: string | null | undefined, fallback: IconName): IconName {
+  return name && name in ICONS ? (name as IconName) : fallback
+}

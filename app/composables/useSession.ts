@@ -23,12 +23,16 @@ interface SessionState {
  * framing: that rule centralizes *data-fetching*, not one-shot mutations,
  * which this composable already centralizes on its own.
  *
- * `activeRole` (the Provider/Consumer switch on the dashboard) is tracked
- * separately via `useLocalStorage`, not `useState` — it's a durable UI
- * preference, not login state, so unlike the rest of this session it's
- * expected to survive a reload. It only changes which widgets/nav items are
- * emphasized, never which routes are reachable while authenticated. Defaults
- * to 'consumer' since most people who sign up are consumers, not providers.
+ * `activeRole` (the Provider/Consumer switch on the dashboard) is stored in
+ * a cookie (`pf_role`), not `useState`/localStorage: it's a durable UI
+ * preference that must survive a reload AND be readable during SSR, so the
+ * server renders the right panel on the first paint instead of always
+ * "consumer" and then flipping. It only changes which widgets/nav items are
+ * emphasized, never which routes are reachable while authenticated.
+ *
+ * The role is only ever 'provider' for users who actually have a provider
+ * profile (`AuthUser.isProvider`) — a stale cookie from another account or a
+ * deleted profile can't put a consumer into the provider panel.
  */
 export function useSession() {
   const state = useState<SessionState>('session', () => ({
@@ -36,7 +40,23 @@ export function useSession() {
     status: 'idle',
   }))
 
-  const activeRole = useLocalStorage<UserRole>('findpeople-active-role', 'consumer')
+  const roleCookie = useCookie<UserRole>('pf_role', {
+    default: () => 'consumer',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax',
+  })
+  // `useState` is the reactive source of truth shared by every component;
+  // separate `useCookie()` refs don't sync with each other synchronously, so
+  // the cookie is only the persistence layer (seeded from it, written to it).
+  const storedRole = useState<UserRole>('active-role', () => roleCookie.value ?? 'consumer')
+
+  const activeRole = computed<UserRole>({
+    get: () => (state.value.user?.isProvider ? storedRole.value : 'consumer'),
+    set: (role) => {
+      storedRole.value = role
+      roleCookie.value = role
+    },
+  })
 
   async function fetchUser() {
     state.value = { ...state.value, status: 'loading' }
@@ -61,10 +81,10 @@ export function useSession() {
   }
 
   /** Returns a `TwoFactorChallenge` instead of the user when 2FA is enabled — the caller must follow up with `completeTwoFactorChallenge`. */
-  async function login(identifier: string, password: string) {
+  async function login(identifier: string, password: string, options: { remember?: boolean, reactivate?: boolean } = {}) {
     const result = await useApiFetch<AuthUser | TwoFactorChallenge>('/api/auth/login', {
       method: 'POST',
-      body: { identifier, password },
+      body: { identifier, password, remember: options.remember ?? true, reactivate: options.reactivate ?? false },
     })
     if ('twoFactorRequired' in result) return result
     state.value = { user: result, status: 'ready' }
@@ -80,10 +100,10 @@ export function useSession() {
     return user
   }
 
-  async function register(fullName: string, email: string, password: string) {
+  async function register(fullName: string, email: string, password: string, acceptTerms: boolean) {
     const user = await useApiFetch<AuthUser>('/api/auth/register', {
       method: 'POST',
-      body: { fullName, email, password },
+      body: { fullName, email, password, acceptTerms },
     })
     state.value = { user, status: 'ready' }
     return user
@@ -91,7 +111,7 @@ export function useSession() {
 
   async function logout() {
     await useApiFetch('/api/auth/logout', { method: 'POST' })
-    state.value = { user: null, status: 'ready' }
+    clearLocal()
   }
 
   /** Clears local state only — for when the server has already told us the
@@ -99,15 +119,22 @@ export function useSession() {
    * there's nothing left to invalidate server-side. */
   function clearLocal() {
     state.value = { user: null, status: 'ready' }
+    // Per-user client state must not leak into the next login in this tab
+    // (saved-provider hearts would otherwise show the previous account's).
+    useState<string[]>('saved-provider-ids').value = []
+    useState<boolean>('saved-provider-ids-loaded').value = false
   }
 
   function setActiveRole(role: UserRole) {
+    // Ignore attempts to enter the provider panel without a provider profile.
+    if (role === 'provider' && !state.value.user?.isProvider) return
     activeRole.value = role
   }
 
   return {
     user: computed(() => state.value.user),
     isAuthenticated: computed(() => state.value.user !== null),
+    isProvider: computed(() => state.value.user?.isProvider === true),
     name: computed(() => state.value.user?.name ?? ''),
     initials: computed(() => (state.value.user ? initialsFor(state.value.user.name) : '')),
     status: computed(() => state.value.status),

@@ -37,8 +37,8 @@ export default defineNuxtConfig({
   // --- SEO (@nuxtjs/seo: site-config, robots, sitemap, og-image, schema-org, seo-utils) ---
   site: {
     url: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
-    name: 'FindPeople',
-    description: 'FindPeople',
+    name: 'ProFinder',
+    description: 'ProFinder',
     defaultLocale: 'en',
     indexable: process.env.NUXT_SITE_INDEXABLE === 'true',
   },
@@ -66,9 +66,15 @@ export default defineNuxtConfig({
     '/messages': { ssr: false, robots: false },
     '/notifications': { ssr: false, robots: false },
     '/services': { ssr: false, robots: false },
-    '/earnings': { ssr: false, robots: false },
     '/saved-providers': { ssr: false, robots: false },
     '/settings': { ssr: false, robots: false },
+    '/become-a-provider': { ssr: false, robots: false },
+    // Friendly short URLs for the admin-managed pages (Terms, Privacy, About, Contact).
+    '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
+    '/terms': { redirect: '/legal/terms-of-service' },
+    '/privacy': { redirect: '/legal/privacy-policy' },
+    '/about': { redirect: '/legal/about' },
+    '/contact': { redirect: '/legal/contact' },
   },
 
   devServer: {
@@ -150,6 +156,13 @@ export default defineNuxtConfig({
   // 3. crossOriginOpenerPolicy false kora hoyeche IP origin warning bondho korte.
   security: {
     csrf: true,
+    // The defaults (150 / 5 min / IP) are within reach of one idle messages tab (thread poll every 10 s, inbox
+    // and badges every 30 s) and shared NATs. Generous globally; login/register/OTP are throttled by Laravel
+    // per account/IP and get a tighter cap on /api/auth/** below.
+    rateLimiter: {
+      tokensPerInterval: 600,
+      interval: 300000,
+    },
     corsHandler: {
       origin: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
     },

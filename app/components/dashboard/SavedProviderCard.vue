@@ -13,8 +13,11 @@ defineEmits<{
   remove: [id: string]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { money } = useSiteSettings()
+const categoryLabel = useCategoryLabel()
 const localePath = useLocalePath()
+const bookAgain = useBookAgain()
 
 const TONE_CLASS: Record<'primary' | 'accent' | 'neutral', string> = {
   primary: 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100',
@@ -22,20 +25,38 @@ const TONE_CLASS: Record<'primary' | 'accent' | 'neutral', string> = {
   neutral: 'bg-black/5 text-black/60 dark:bg-white/10 dark:text-white/60',
 }
 
+const toast = useToast()
+
 async function messageProvider() {
-  const conversation = await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
-    method: 'POST',
-    body: { providerId: Number(props.provider.id) },
-  })
-  await navigateTo(localePath({ path: '/messages', query: { conversation: conversation.id } }))
+  try {
+    const conversation = await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
+      method: 'POST',
+      body: { providerId: Number(props.provider.id) },
+    })
+    await navigateTo(localePath({ path: '/messages', query: { conversation: conversation.id } }))
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('dashboard.savedProviders.errors.message')))
+  }
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-3 rounded-2xl border border-black/10 p-5 dark:border-white/10">
     <div class="flex items-start justify-between gap-2.5">
-      <div class="flex items-center gap-3">
+      <NuxtLinkLocale
+        :to="`/providers/${provider.id}`"
+        class="flex items-center gap-3 rounded-lg hover:opacity-80"
+        :aria-label="t('dashboard.savedProviders.viewProfile', { name: provider.name })"
+      >
+        <img
+          v-if="provider.avatarUrl"
+          :src="provider.avatarUrl"
+          :alt="provider.name"
+          class="h-13 w-13 shrink-0 rounded-full object-cover"
+        >
         <span
+          v-else
           class="flex h-13 w-13 shrink-0 items-center justify-center rounded-full font-display text-[17px] font-bold"
           :class="TONE_CLASS[tone]"
         >
@@ -52,10 +73,10 @@ async function messageProvider() {
             />
           </div>
           <div class="text-xs text-black/60 dark:text-white/60">
-            {{ t(`marketplace.categories.${provider.categoryId}.label`) }}
+            {{ categoryLabel(provider.categoryId, provider.categoryName) }}
           </div>
         </div>
-      </div>
+      </NuxtLinkLocale>
       <button
         type="button"
         class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-700 transition-colors hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
@@ -80,12 +101,14 @@ async function messageProvider() {
         />
         <span class="font-bold text-black dark:text-white">{{ provider.rating.toFixed(1) }}</span> ({{ provider.reviewCount }})
       </span>
-      <span>{{ provider.lastBookedLabel }}</span>
+      <span>{{ provider.lastBookedAt
+        ? t('dashboard.savedProviders.bookedOn', { date: formatDate(provider.lastBookedAt, locale) })
+        : t('dashboard.savedProviders.neverBooked') }}</span>
     </div>
 
     <div class="flex items-center justify-between border-t border-black/10 pt-3 dark:border-white/10">
       <div class="text-[15px] font-bold">
-        {{ t('marketplace.provider.estimate', { rate: provider.hourlyRateUsd }) }}
+        {{ t('marketplace.provider.estimate', { rate: money(provider.hourlyRateUsd) }) }}
       </div>
       <div class="flex gap-2">
         <UiButton
@@ -95,12 +118,14 @@ async function messageProvider() {
         >
           {{ t('dashboard.savedProviders.message') }}
         </UiButton>
-        <NuxtLinkLocale
-          to="/browse"
-          :class="linkButtonClass('primary', 'sm')"
+        <UiButton
+          size="sm"
+          :disabled="!provider.verified"
+          :title="provider.verified ? undefined : t('marketplace.provider.pendingVerification')"
+          @click="bookAgain.requestFrom(provider.id, provider.name)"
         >
           {{ t('dashboard.savedProviders.bookNow') }}
-        </NuxtLinkLocale>
+        </UiButton>
       </div>
     </div>
   </div>

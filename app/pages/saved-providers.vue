@@ -8,26 +8,44 @@ definePageMeta({
 
 const { t } = useI18n()
 
-const { data: providers, refresh } = await useApi<SavedProvider[]>('/dashboard/saved-providers', {
-  key: 'dashboard-saved-providers',
-  default: () => [],
-})
+const toast = useToast()
+const saved = useSavedProviders()
 
-const visibleProviders = computed(() => providers.value ?? [])
+const list = await usePagedList<SavedProvider>('/dashboard/saved-providers', {
+  key: 'dashboard-saved-providers',
+  perPage: 12,
+})
+const visibleProviders = list.items
+await saved.ensureLoaded()
 
 const TONES = ['primary', 'accent', 'neutral'] as const
 function toneFor(index: number) {
   return TONES[index % TONES.length] ?? 'primary'
 }
 
+// Un-saving goes through the shared state, so hearts elsewhere agree, and is undoable.
 async function remove(id: string) {
+  const provider = visibleProviders.value.find(item => item.id === id)
   try {
-    await useApiFetch(`/api/dashboard/saved-providers/${id}`, { method: 'DELETE' })
-    await refresh()
+    await saved.unsave(id)
+    await list.refresh()
   }
   catch (error) {
-    console.error('Failed to unsave provider', error)
+    toast.error(apiErrorMessage(error, t('dashboard.savedProviders.errors.remove')))
+    return
   }
+  toast.success(t('dashboard.savedProviders.removed', { name: provider?.name ?? '' }), {
+    label: t('dashboard.savedProviders.undo'),
+    run: async () => {
+      try {
+        await saved.save(id)
+        await list.refresh()
+      }
+      catch (error) {
+        toast.error(apiErrorMessage(error, t('dashboard.savedProviders.errors.restore')))
+      }
+    },
+  })
 }
 
 useSeoMeta({
@@ -49,7 +67,7 @@ useSeoMeta({
     </div>
 
     <p class="text-sm font-semibold text-black/60 dark:text-white/60">
-      {{ t('dashboard.savedProviders.count', { count: visibleProviders.length }) }}
+      {{ t('dashboard.savedProviders.count', { count: list.meta.value?.total ?? 0 }) }}
     </p>
 
     <div
@@ -79,5 +97,14 @@ useSeoMeta({
         {{ t('dashboard.savedProviders.browse') }}
       </NuxtLinkLocale>
     </div>
+
+    <DashboardLoadMore
+      :shown="visibleProviders.length"
+      :total="list.meta.value?.total ?? 0"
+      :has-more="list.hasMore.value"
+      :loading="list.loadingMore.value"
+      :failed="list.loadMoreFailed.value"
+      @more="list.loadMore()"
+    />
   </div>
 </template>

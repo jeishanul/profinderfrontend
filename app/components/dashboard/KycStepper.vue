@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { KycState, KycStepId, KycStepStatus } from '#shared/types/dashboard'
+import type { KycState, KycStep, KycStepId, KycStepStatus } from '#shared/types/dashboard'
 
 // Auto-imported as <DashboardKycStepper/>. The full 3-step identity
 // verification flow on the profile page — mandatory before a provider can
@@ -16,6 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const toast = useToast()
 
 const STEP_ORDER: KycStepId[] = ['identity', 'selfie', 'address']
 
@@ -25,28 +26,41 @@ const orderedSteps = computed(() =>
     .filter(step => step !== undefined),
 )
 
-function bodyFor(id: KycStepId, status: KycStepStatus) {
-  if (status === 'verified') return t(`dashboard.profile.kyc.steps.${id}.verifiedBody`)
-  if (status === 'in_review') return t(`dashboard.profile.kyc.steps.${id}.inReviewBody`)
-  return t(`dashboard.profile.kyc.steps.${id}.pendingBody`)
+function bodyFor(step: KycStep) {
+  if (step.status === 'verified') return t(`dashboard.profile.kyc.steps.${step.id}.verifiedBody`)
+  if (step.status === 'in_review') return t(`dashboard.profile.kyc.steps.${step.id}.inReviewBody`)
+  if (step.status === 'rejected') {
+    return step.rejectionReason
+      ? t('dashboard.profile.kyc.rejectedBody', { reason: step.rejectionReason })
+      : t('dashboard.profile.kyc.rejectedNoReason')
+  }
+  return t(`dashboard.profile.kyc.steps.${step.id}.pendingBody`)
 }
 
-function statusLabel(status: KycStepStatus) {
-  if (status === 'verified') return t('dashboard.profile.kyc.statusVerified')
-  if (status === 'in_review') return t('dashboard.profile.kyc.statusInReview')
-  return t('dashboard.profile.kyc.statusNotStarted')
+const STATUS_LABEL_KEY: Record<KycStepStatus, string> = {
+  verified: 'statusVerified',
+  in_review: 'statusInReview',
+  not_started: 'statusNotStarted',
+  rejected: 'statusRejected',
 }
 
-const STATUS_VARIANT: Record<KycStepStatus, 'primary' | 'accent' | 'neutral'> = {
+const statusLabel = (status: KycStepStatus) => t(`dashboard.profile.kyc.${STATUS_LABEL_KEY[status]}`)
+
+/** A step takes an upload until it's in review or approved — a rejected one must be resubmittable. */
+const canUpload = (step: KycStep) => step.status === 'not_started' || step.status === 'rejected'
+
+const STATUS_VARIANT: Record<KycStepStatus, 'primary' | 'accent' | 'neutral' | 'danger'> = {
   verified: 'primary',
   in_review: 'accent',
   not_started: 'neutral',
+  rejected: 'danger',
 }
 
 const STEP_CIRCLE_CLASS: Record<KycStepStatus, string> = {
   verified: 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100',
   in_review: 'bg-accent-50 text-accent-700 dark:bg-accent-700/20 dark:text-accent-100',
   not_started: 'bg-black/5 text-black/40 dark:bg-white/10 dark:text-white/40',
+  rejected: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 }
 
 // --- File picking, one slot per upload — `previewUrl` is a local blob: URL
@@ -72,10 +86,23 @@ function pick(file: File): PickedFile {
   return { file, previewUrl: URL.createObjectURL(file) }
 }
 
-function fileFrom(event: Event): File | null {
+// Same limits the server enforces, checked before a slow upload that would be refused.
+const MAX_BYTES = 8 * 1024 * 1024
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+function fileFrom(event: Event, allowPdf = false): File | null {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0] ?? null
   input.value = ''
+  if (!file) return null
+  if (!IMAGE_TYPES.includes(file.type) && !(allowPdf && file.type === 'application/pdf')) {
+    toast.error(t(allowPdf ? 'dashboard.profile.kyc.errors.typeWithPdf' : 'dashboard.profile.kyc.errors.type'))
+    return null
+  }
+  if (file.size > MAX_BYTES) {
+    toast.error(t('dashboard.profile.kyc.errors.tooLarge'))
+    return null
+  }
   return file
 }
 
@@ -96,7 +123,7 @@ function onSelfieChange(event: Event) {
   if (file) selfiePhoto.value = pick(file)
 }
 function onAddressChange(event: Event) {
-  const file = fileFrom(event)
+  const file = fileFrom(event, true)
   if (file) addressDocument.value = pick(file)
 }
 
@@ -112,6 +139,21 @@ const STEP_FILE: Record<KycStepId, () => PickedFile | null> = {
 
 const isSubmitting = ref(false)
 
+/** After a successful upload, forget the picked files so a later resubmit starts clean. */
+function resetStep(stepId: KycStepId) {
+  if (stepId === 'identity') {
+    nidNumber.value = ''
+    nidFront.value = null
+    nidBack.value = null
+  }
+  else if (stepId === 'selfie') {
+    selfiePhoto.value = null
+  }
+  else {
+    addressDocument.value = null
+  }
+}
+
 async function submitStep(stepId: KycStepId) {
   const picked = STEP_FILE[stepId]()
   if (!picked) return
@@ -124,7 +166,12 @@ async function submitStep(stepId: KycStepId) {
       if (nidBack.value) body.append('back', nidBack.value.file)
     }
     await useApiFetch(`/api/dashboard/kyc/${stepId}`, { method: 'POST', body })
+    toast.success(t('dashboard.profile.kyc.submitted'))
+    resetStep(stepId)
     emit('submitted')
+  }
+  catch (error) {
+    toast.error(Object.values(apiFieldErrors(error))[0] ?? apiErrorMessage(error, t('dashboard.profile.kyc.errors.submit')))
   }
   finally {
     isSubmitting.value = false
@@ -134,7 +181,10 @@ async function submitStep(stepId: KycStepId) {
 
 <template>
   <div class="flex flex-col gap-5">
-    <div class="flex items-center gap-4 rounded-2xl border border-red-600/30 bg-red-50 p-5 dark:bg-red-900/10">
+    <div
+      v-if="!kyc.isVerified"
+      class="flex items-center gap-4 rounded-2xl border border-red-600/30 bg-red-50 p-5 dark:bg-red-900/10"
+    >
       <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
         <UiIcon
           name="alert-triangle"
@@ -180,13 +230,16 @@ async function submitStep(stepId: KycStepId) {
               {{ statusLabel(step.status) }}
             </UiTag>
           </div>
-          <p class="mt-1 text-[13px] text-black/60 dark:text-white/60">
-            {{ bodyFor(step.id, step.status) }}
+          <p
+            class="mt-1 text-[13px]"
+            :class="step.status === 'rejected' ? 'font-semibold text-red-700 dark:text-red-300' : 'text-black/60 dark:text-white/60'"
+          >
+            {{ bodyFor(step) }}
           </p>
 
           <!-- Identity: NID number + front/back photo uploads -->
           <div
-            v-if="step.status === 'not_started' && step.id === 'identity'"
+            v-if="canUpload(step) && step.id === 'identity'"
             class="mt-3 flex flex-col gap-3"
           >
             <div>
@@ -266,7 +319,7 @@ async function submitStep(stepId: KycStepId) {
 
           <!-- Selfie / address: a single photo or document upload -->
           <div
-            v-else-if="step.status === 'not_started'"
+            v-else-if="canUpload(step)"
             class="mt-3 flex flex-col items-center gap-2 rounded-xl border border-dashed border-black/20 p-6 text-black/40 dark:border-white/20 dark:text-white/40"
             :class="(step.id === 'selfie' ? selfiePhoto : addressDocument) && 'border-solid border-brand-500 text-black dark:text-white'"
           >
@@ -318,7 +371,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="nidFrontInput"
       type="file"
-      accept="image/*"
+      accept="image/jpeg,image/png,image/webp"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.nidFront')"
       @change="onNidFrontChange"
@@ -326,7 +379,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="nidBackInput"
       type="file"
-      accept="image/*"
+      accept="image/jpeg,image/png,image/webp"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.nidBack')"
       @change="onNidBackChange"
@@ -334,7 +387,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="selfieInput"
       type="file"
-      accept="image/*"
+      accept="image/jpeg,image/png,image/webp"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.selfieUpload')"
       @change="onSelfieChange"
@@ -342,7 +395,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="addressInput"
       type="file"
-      accept="image/*,application/pdf"
+      accept="image/jpeg,image/png,image/webp,application/pdf"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.addressUpload')"
       @change="onAddressChange"

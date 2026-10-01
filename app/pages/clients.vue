@@ -1,48 +1,42 @@
 <script setup lang="ts">
-import type { BookingStatus, ClientServed } from '#shared/types/dashboard'
+import type { ClientListMeta, ClientServed } from '#shared/types/dashboard'
 
 // Reached from Home's quick tiles or the More sheet, never a bottom-nav tab
 // — mobile gets a back button instead of the tab bar (see `UiBackButton`).
 definePageMeta({
   layout: 'dashboard',
-  middleware: 'auth',
+  middleware: ['auth', 'provider'],
   hideBottomNav: true,
 })
 
 const { t } = useI18n()
-
-const { data: clients } = await useApi<ClientServed[]>('/dashboard/clients', {
-  key: 'dashboard-clients',
-  default: () => [],
-})
-
-const allClients = computed(() => clients.value ?? [])
+const { money } = useSiteSettings()
 
 const filter = ref<string>('all')
 const search = ref('')
+const debouncedSearch = refDebounced(search, 300)
 
+const list = await usePagedList<ClientServed, ClientListMeta>('/dashboard/clients', {
+  key: 'dashboard-clients',
+  query: computed(() => ({
+    status: filter.value === 'all' ? undefined : filter.value,
+    q: debouncedSearch.value.trim() || undefined,
+  })),
+})
+
+// Chip counts and headline numbers come from the server, so they cover the whole history, not just what is loaded.
 const filterOptions = computed(() => {
-  const list = allClients.value
-  const countFor = (status: BookingStatus | 'all') =>
-    status === 'all' ? list.length : list.filter(client => client.status === status).length
-
-  return [
-    { value: 'all', label: t('dashboard.clients.filters.all'), count: countFor('all') },
-    { value: 'completed', label: t('dashboard.clients.filters.completed'), count: countFor('completed') },
-    { value: 'upcoming', label: t('dashboard.clients.filters.upcoming'), count: countFor('upcoming') },
-    { value: 'cancelled', label: t('dashboard.clients.filters.cancelled'), count: countFor('cancelled') },
-  ]
+  const counts = list.meta.value?.counts
+  return (['all', 'upcoming', 'in_progress', 'completed', 'cancelled'] as const).map(value => ({
+    value,
+    label: t(`dashboard.clients.filters.${value}`),
+    count: counts?.[value] ?? 0,
+  }))
 })
 
-const filteredClients = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  return allClients.value
-    .filter(client => filter.value === 'all' || client.status === filter.value)
-    .filter(client => !query || client.clientName.toLowerCase().includes(query))
-})
-
-const totalEarned = computed(() => allClients.value.reduce((sum, client) => sum + client.amountUsd, 0))
-const repeatCount = computed(() => allClients.value.filter(client => client.repeatClient).length)
+const totalEarned = computed(() => list.meta.value?.totals.earned ?? 0)
+const clientsServedCount = computed(() => list.meta.value?.totals.clientsServed ?? 0)
+const repeatCount = computed(() => list.meta.value?.totals.repeatClients ?? 0)
 
 useSeoMeta({
   title: t('dashboard.clients.title'),
@@ -64,7 +58,7 @@ useSeoMeta({
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <DashboardStatCard
         :label="t('dashboard.clients.summary.total')"
-        :value="String(allClients.length)"
+        :value="String(clientsServedCount)"
       />
       <DashboardStatCard
         :label="t('dashboard.clients.summary.repeat')"
@@ -72,7 +66,7 @@ useSeoMeta({
       />
       <DashboardStatCard
         :label="t('dashboard.clients.summary.earned')"
-        :value="`$${totalEarned.toLocaleString()}`"
+        :value="money(totalEarned)"
       />
     </div>
 
@@ -90,7 +84,16 @@ useSeoMeta({
     </div>
 
     <div class="rounded-2xl border border-black/10 p-5 sm:p-6 dark:border-white/10">
-      <DashboardClientsTable :clients="filteredClients" />
+      <DashboardClientsTable :clients="list.items.value" />
     </div>
+
+    <DashboardLoadMore
+      :shown="list.items.value.length"
+      :total="list.meta.value?.total ?? 0"
+      :has-more="list.hasMore.value"
+      :loading="list.loadingMore.value"
+      :failed="list.loadMoreFailed.value"
+      @more="list.loadMore()"
+    />
   </div>
 </template>

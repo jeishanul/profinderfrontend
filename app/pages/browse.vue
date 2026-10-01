@@ -1,42 +1,114 @@
 <script setup lang="ts">
-import type { PagedResult, ProviderProfile, ServiceCategory } from '#shared/types/marketplace'
+import type { PagedResult, ProviderSummary, ServiceCategory } from '#shared/types/marketplace'
 
 const { t, locale } = useI18n()
 const route = useRoute()
-const localePath = useLocalePath()
 
-const { data: categories } = await useApi<ServiceCategory[]>('/categories')
+// With skills, so the sidebar can offer them once a single category is chosen.
+const { data: categories } = await useApi<ServiceCategory[]>('/categories', {
+  key: 'categories-with-skills',
+  query: { include: 'skills' },
+})
 
 // Loaded once here (a page, safe for top-level await) so every
 // <MarketplaceProviderCard/> below can read `isSaved` synchronously.
 await useSavedProviders().ensureLoaded()
 
-function parseCategoryIds(value: unknown): string[] {
-  return typeof value === 'string' && value ? value.split(',').filter(Boolean) : []
+const SORTS = ['recommended', 'rating', 'reviews', 'price_asc', 'price_desc', 'newest'] as const
+type Sort = (typeof SORTS)[number]
+
+interface Filters {
+  q: string
+  sort: Sort
+  categories: string[]
+  skills: string[]
+  availableDay: string | null
+  province: string | null
+  city: string | null
+  barangay: string | null
+  minRating: number
+  verifiedOnly: boolean
+  minPrice: number
+  maxPrice: number
+  page: number
 }
 
-// The top search bar (service + location) was removed from this page — it
-// duplicated the landing page's hero search and, per the request, filtering
-// happens through the sidebar only now. Service selection here is
-// multi-select (see `MarketplaceProviderFilterSidebar`).
-const filters = reactive({
-  categories: parseCategoryIds(route.query.categories),
-  province: typeof route.query.province === 'string' ? route.query.province : null as string | null,
-  city: typeof route.query.city === 'string' ? route.query.city : null as string | null,
-  barangay: typeof route.query.barangay === 'string' ? route.query.barangay : null as string | null,
-  minRating: route.query.minRating ? Number(route.query.minRating) : 0,
-  verifiedOnly: route.query.verifiedOnly === 'true',
-  minPrice: route.query.minPrice ? Number(route.query.minPrice) : PRICE_MIN,
-  maxPrice: route.query.maxPrice ? Number(route.query.maxPrice) : PRICE_MAX,
-  page: route.query.page ? Number(route.query.page) : 1,
+const list = (value: unknown) => (typeof value === 'string' && value ? value.split(',').filter(Boolean) : [])
+const text = (value: unknown) => (typeof value === 'string' && value ? value : null)
+
+/** The URL is the source of truth: every filter lives in it, so links, back/forward and reloads all agree. */
+function fromQuery(query: typeof route.query): Filters {
+  const sort = text(query.sort) as Sort | null
+  return {
+    q: text(query.q) ?? '',
+    sort: sort && SORTS.includes(sort) ? sort : 'recommended',
+    categories: list(query.categories),
+    skills: list(query.skills),
+    availableDay: text(query.availableDay),
+    province: text(query.province),
+    city: text(query.city),
+    barangay: text(query.barangay),
+    minRating: query.minRating ? Number(query.minRating) : 0,
+    verifiedOnly: query.verifiedOnly === 'true',
+    minPrice: query.minPrice ? Number(query.minPrice) : PRICE_MIN,
+    maxPrice: query.maxPrice ? Number(query.maxPrice) : PRICE_MAX,
+    page: query.page ? Math.max(1, Number(query.page)) : 1,
+  }
+}
+
+function toQuery(f: Filters) {
+  return {
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.sort !== 'recommended' ? { sort: f.sort } : {}),
+    ...(f.categories.length > 0 ? { categories: f.categories.join(',') } : {}),
+    ...(f.skills.length > 0 ? { skills: f.skills.join(',') } : {}),
+    ...(f.availableDay ? { availableDay: f.availableDay } : {}),
+    ...(f.province ? { province: f.province } : {}),
+    ...(f.city ? { city: f.city } : {}),
+    ...(f.barangay ? { barangay: f.barangay } : {}),
+    ...(f.minRating ? { minRating: String(f.minRating) } : {}),
+    ...(f.verifiedOnly ? { verifiedOnly: 'true' } : {}),
+    ...(f.minPrice > PRICE_MIN ? { minPrice: String(f.minPrice) } : {}),
+    ...(f.maxPrice < PRICE_MAX ? { maxPrice: String(f.maxPrice) } : {}),
+    ...(f.page > 1 ? { page: String(f.page) } : {}),
+  }
+}
+
+const filters = reactive<Filters>(fromQuery(route.query))
+
+// A link followed while already on /browse (footer category, back/forward)
+// changes the URL but not this component — pull the change in.
+watch(() => route.query, (query) => {
+  Object.assign(filters, fromQuery(query))
+  searchInput.value = filters.q
 })
+
+// Any filter change other than the page itself starts again from page 1.
+watch(() => JSON.stringify({ ...filters, page: 0 }), () => {
+  filters.page = 1
+})
+// ...and every change is reflected in the URL.
+watch(() => JSON.stringify(filters), () => {
+  navigateTo({ path: route.path, query: toQuery(filters) }, { replace: true })
+})
+
+// Search is debounced so typing doesn't refetch on every keystroke.
+const searchInput = ref(filters.q)
+const commitSearch = useDebounceFn((value: string) => {
+  filters.q = value.trim()
+}, 300)
+watch(searchInput, value => commitSearch(value))
 
 const activeCategories = computed<ServiceCategory[]>(
   () => (categories.value ?? []).filter(category => filters.categories.includes(category.id)),
 )
 
 const providerQuery = computed(() => ({
-  categories: filters.categories.length > 0 ? filters.categories : undefined,
+  q: filters.q || undefined,
+  sort: filters.sort !== 'recommended' ? filters.sort : undefined,
+  categories: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
+  skills: filters.skills.length > 0 ? filters.skills.join(',') : undefined,
+  availableDay: filters.availableDay ?? undefined,
   province: filters.province ?? undefined,
   city: filters.city ?? undefined,
   barangay: filters.barangay ?? undefined,
@@ -48,7 +120,7 @@ const providerQuery = computed(() => ({
   perPage: 6,
 }))
 
-const { data: providersPage } = await useApi<PagedResult<ProviderProfile>>('/providers', {
+const { data: providersPage } = await useApi<PagedResult<ProviderSummary>>('/providers', {
   query: providerQuery,
   key: 'browse-providers',
 })
@@ -72,45 +144,34 @@ const locationTitle = computed(() => {
   return t('marketplace.browse.anywhere')
 })
 
-function syncUrl() {
-  navigateTo(localePath({
-    path: '/browse',
-    query: {
-      ...(filters.categories.length > 0 ? { categories: filters.categories.join(',') } : {}),
-      ...(filters.province ? { province: filters.province } : {}),
-      ...(filters.city ? { city: filters.city } : {}),
-      ...(filters.barangay ? { barangay: filters.barangay } : {}),
-      ...(filters.minRating ? { minRating: String(filters.minRating) } : {}),
-      ...(filters.verifiedOnly ? { verifiedOnly: 'true' } : {}),
-      ...(filters.minPrice > PRICE_MIN ? { minPrice: String(filters.minPrice) } : {}),
-      ...(filters.maxPrice < PRICE_MAX ? { maxPrice: String(filters.maxPrice) } : {}),
-      ...(filters.page > 1 ? { page: String(filters.page) } : {}),
-    },
-  }), { replace: true })
-}
-
-// Below `lg` (where the sidebar collapses to full-width-if-shown), filters
-// live in a bottom sheet instead — the 2026 mobile pattern (see CLAUDE.md's
-// native-feel redesign notes): a desktop sidebar never ports to a native app.
+// Below `md`, filters live in a bottom sheet instead of a sidebar. The sheet
+// edits a *draft* copy and only commits on "Apply" — changing a checkbox
+// behind a half-open sheet shouldn't reshuffle the results under it. (The
+// desktop sidebar edits `filters` directly and applies live.)
 const filterSheetOpen = ref(false)
+const draft = reactive<Filters>(fromQuery({}))
 
-function applyFilters() {
-  filters.page = 1
+watch(filterSheetOpen, (open) => {
+  if (open) Object.assign(draft, { ...filters, categories: [...filters.categories], skills: [...filters.skills] })
+})
+
+function applyDraft() {
+  Object.assign(filters, { ...draft, q: filters.q, sort: filters.sort, page: 1 })
   filterSheetOpen.value = false
-  syncUrl()
 }
 
-function handleReset() {
-  filters.page = 1
-  syncUrl()
+function resetDraft() {
+  Object.assign(draft, fromQuery({}), { q: filters.q, sort: filters.sort })
 }
+
+const pages = computed(() => pageNumbers(providersPage.value?.page ?? 1, providersPage.value?.totalPages ?? 1))
 
 function goToPage(page: number) {
   filters.page = page
-  syncUrl()
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-const categoryLabelList = computed(() => activeCategories.value.map(category => t(`marketplace.categories.${category.id}.label`)))
+const categoryLabelList = computed(() => activeCategories.value.map(category => category.name))
 
 const pageTitle = computed(() => categoryLabelList.value.length > 0
   ? t('marketplace.browse.titleWithCategory', {
@@ -172,14 +233,38 @@ useSchemaOrg([defineWebPage()])
           v-model:verified-only="filters.verifiedOnly"
           v-model:min-price="filters.minPrice"
           v-model:max-price="filters.maxPrice"
+          v-model:skill-ids="filters.skills"
+          v-model:available-day="filters.availableDay"
           :categories="categories ?? []"
+          :show-apply="false"
           class="sticky top-28"
-          @apply="applyFilters"
-          @reset="handleReset"
         />
       </div>
 
       <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <UiInput
+            v-model="searchInput"
+            icon="search"
+            class="flex-1"
+            :placeholder="t('marketplace.browse.searchPlaceholder')"
+            :aria-label="t('marketplace.browse.searchPlaceholder')"
+          />
+          <select
+            v-model="filters.sort"
+            :aria-label="t('marketplace.browse.sortLabel')"
+            class="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+          >
+            <option
+              v-for="option in SORTS"
+              :key="option"
+              :value="option"
+            >
+              {{ t(`marketplace.browse.sort.${option}`) }}
+            </option>
+          </select>
+        </div>
+
         <template v-if="providersPage && providersPage.items.length">
           <MarketplaceProviderCard
             v-for="provider in providersPage.items"
@@ -196,9 +281,10 @@ useSchemaOrg([defineWebPage()])
           {{ t('marketplace.browse.noResults') }}
         </p>
 
-        <div
+        <nav
           v-if="providersPage && providersPage.totalPages > 1"
-          class="mt-2 flex items-center justify-center gap-2"
+          class="mt-2 flex items-center justify-center gap-1.5"
+          :aria-label="t('marketplace.browse.pagination')"
         >
           <button
             type="button"
@@ -213,9 +299,26 @@ useSchemaOrg([defineWebPage()])
               :size="15"
             />
           </button>
-          <span class="px-3 text-sm text-black/60 dark:text-white/60">
-            {{ t('marketplace.browse.pageOf', { page: providersPage.page, totalPages: providersPage.totalPages }) }}
-          </span>
+          <template
+            v-for="(entry, index) in pages"
+            :key="entry ?? `gap-${index}`"
+          >
+            <span
+              v-if="entry === null"
+              class="px-1 text-black/40 dark:text-white/40"
+              aria-hidden="true"
+            >…</span>
+            <button
+              v-else
+              type="button"
+              class="h-10 min-w-10 rounded-full px-3 text-sm font-bold transition-colors"
+              :class="entry === providersPage.page ? 'bg-brand-600 text-white' : 'border border-black/10 hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10'"
+              :aria-current="entry === providersPage.page ? 'page' : undefined"
+              @click="goToPage(entry)"
+            >
+              {{ entry }}
+            </button>
+          </template>
           <button
             type="button"
             class="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 disabled:opacity-40 dark:border-white/10"
@@ -228,7 +331,7 @@ useSchemaOrg([defineWebPage()])
               :size="15"
             />
           </button>
-        </div>
+        </nav>
       </div>
     </div>
 
@@ -245,19 +348,21 @@ useSchemaOrg([defineWebPage()])
           {{ t('marketplace.filters.heading') }}
         </h2>
         <MarketplaceProviderFilterSidebar
-          v-model:category-ids="filters.categories"
-          v-model:province="filters.province"
-          v-model:city="filters.city"
-          v-model:barangay="filters.barangay"
-          v-model:min-rating="filters.minRating"
-          v-model:verified-only="filters.verifiedOnly"
-          v-model:min-price="filters.minPrice"
-          v-model:max-price="filters.maxPrice"
+          v-model:category-ids="draft.categories"
+          v-model:province="draft.province"
+          v-model:city="draft.city"
+          v-model:barangay="draft.barangay"
+          v-model:min-rating="draft.minRating"
+          v-model:verified-only="draft.verifiedOnly"
+          v-model:min-price="draft.minPrice"
+          v-model:max-price="draft.maxPrice"
+          v-model:skill-ids="draft.skills"
+          v-model:available-day="draft.availableDay"
           :categories="categories ?? []"
           id-prefix="browse-filter-sheet"
           bare
-          @apply="applyFilters"
-          @reset="handleReset"
+          @apply="applyDraft"
+          @reset="resetDraft"
         />
       </div>
     </UiBottomSheet>
