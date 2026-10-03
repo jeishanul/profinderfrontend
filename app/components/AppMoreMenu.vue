@@ -220,6 +220,10 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
           </UiButton>
         </div>
       </template>
+
+      <div class="mt-6 border-t border-black/10 pt-2 dark:border-white/10">
+        <AppFooterCompact />
+      </div>
     </div>
   </UiBottomSheet>
 </template>

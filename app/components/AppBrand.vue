@@ -21,19 +21,19 @@ const name = computed(() => settings.value.siteName ?? t('brand.name'))
 <template>
   <span class="flex items-center gap-2.5">
     <template v-if="settings.logoUrl">
-      <img
+      <NuxtImg
         :src="settings.logoUrl"
         :alt="name"
         class="w-auto"
         :class="[size === 'md' ? 'h-10' : 'h-9', settings.logoDarkUrl ? 'dark:hidden' : '']"
-      >
-      <img
+      />
+      <NuxtImg
         v-if="settings.logoDarkUrl"
         :src="settings.logoDarkUrl"
         :alt="name"
         class="hidden w-auto dark:block"
         :class="size === 'md' ? 'h-10' : 'h-9'"
-      >
+      />
     </template>
     <template v-else>
       <span

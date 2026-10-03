@@ -10,7 +10,6 @@ import type { ProviderSummary } from '#shared/types/marketplace'
 const props = withDefaults(
   defineProps<{
     provider: ProviderSummary
-    categoryIcon: IconName
     variant?: 'card' | 'row'
   }>(),
   { variant: 'card' },
@@ -89,22 +88,12 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
         :size="16"
       />
     </button>
-    <img
-      v-if="provider.avatarUrl"
+    <UiAvatar
+      :name="provider.name"
       :src="provider.avatarUrl"
-      :alt="provider.name"
-      loading="lazy"
-      class="h-[76px] w-[76px] shrink-0 rounded-2xl object-cover"
-    >
-    <div
-      v-else
-      class="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100"
-    >
-      <UiIcon
-        :name="categoryIcon"
-        :size="32"
-      />
-    </div>
+      size-class="h-[76px] w-[76px] rounded-2xl"
+      text-class="text-xl"
+    />
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
         <span class="text-lg font-bold">{{ provider.name }}</span>
@@ -182,22 +171,12 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
     </button>
 
     <div class="flex items-center gap-3">
-      <img
-        v-if="provider.avatarUrl"
+      <UiAvatar
+        :name="provider.name"
         :src="provider.avatarUrl"
-        :alt="provider.name"
-        loading="lazy"
-        class="h-14 w-14 shrink-0 rounded-full object-cover"
-      >
-      <div
-        v-else
-        class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100"
-      >
-        <UiIcon
-          :name="categoryIcon"
-          :size="26"
-        />
-      </div>
+        size-class="h-14 w-14 rounded-full"
+        text-class="text-base"
+      />
       <div class="min-w-0">
         <div class="flex items-center gap-1.5">
           <span class="truncate font-bold">{{ provider.name }}</span>

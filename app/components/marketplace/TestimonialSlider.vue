@@ -13,7 +13,10 @@ const active = computed<Testimonial | undefined>(() => props.testimonials[carous
 </script>
 
 <template>
-  <section class="bg-brand-50 py-20 dark:bg-brand-700/10">
+  <section
+    v-if="testimonials.length > 0"
+    class="bg-brand-50 py-20 dark:bg-brand-700/10"
+  >
     <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-10">
       <h2 class="mb-11 text-center font-display text-3xl font-bold sm:text-4xl">
         {{ t('marketplace.testimonials.heading') }}
@@ -33,12 +36,14 @@ const active = computed<Testimonial | undefined>(() => props.testimonials[carous
         @focusin="carousel.pause()"
         @focusout="carousel.resume()"
       >
-        <img
+        <NuxtImg
           v-if="active.avatarUrl"
           :src="active.avatarUrl"
           :alt="active.reviewerName"
+          width="56"
+          height="56"
           class="mx-auto mb-4 h-14 w-14 rounded-full object-cover"
-        >
+        />
         <div
           class="mb-5 flex justify-center gap-1"
           role="img"

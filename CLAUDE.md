@@ -353,6 +353,13 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   page". It wraps `$csrfFetch` (adds the CSRF header) and sends a 401 back to the login modal.
 - Errors: show `apiErrorMessage(error, t('…fallback'))` (`utils/apiError.ts`) in a toast. Never swallow
   a failed action silently and never show raw server text without a translated fallback.
+- **Error shape**: the BFF re-throws Laravel's error body inside `createError({ data })`, so a failed
+  response is `{ statusCode, message, data: <Laravel body> }` — Laravel's own `errors`/`code`/`message`
+  live one level deeper, at `error.data.data`, not `error.data`. Always go through `utils/apiError.ts`'s
+  helpers (`apiErrorMessage`, `apiFieldErrors`, `apiErrorCode`) instead of reading `error.data` directly —
+  they already unwrap that nesting (and tolerate a flatter body from older mocks/direct Laravel calls).
+  `apiErrorCode(error)` reads Laravel's machine-readable `code` (`email_unverified`,
+  `account_deactivated`, `provider_unverified`, …) — use it instead of string-matching `message`.
 - Routes that call `readFormData` on the server (uploads) must be sent as `FormData`, not JSON.
 
 ### Feedback and confirmation
@@ -379,6 +386,10 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   be `provider` when `AuthUser.isProvider` is true, so a stale cookie can't expose provider UI. Gate UI
   on `session.isProvider` / `activeRole`, never on the raw cookie. It is a presentation preference, not
   authorization: the API enforces what each account may do.
+- **`middleware/provider.ts`** guards the provider-only pages (Services, Clients) at the route level —
+  apply it (`definePageMeta({ middleware: ['provider'] })`) to any new page a non-provider shouldn't be
+  able to open by URL. It runs after `auth` and redirects a signed-in non-provider to
+  `/become-a-provider` instead of letting them land on a page whose every action 404s.
 
 ### The booking flow (quote → booking, cash payments)
 
@@ -402,6 +413,12 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   `<DashboardLoadMore/>` under the list. Status chip counts and headline numbers come from `meta.counts` /
   `meta.totals` — never compute them from the loaded rows.
 - Search boxes on paged lists debounce (`refDebounced(search, 300)`) and send `q` to the server.
+- **Refreshing after a booking-affecting action** (a quote accepted/declined, a booking status change, a
+  review posted): call **`useRefreshBookingLists()`** (`composables/usePagedRefresh.ts`), not
+  `refreshNuxtData(BOOKING_DATA_KEYS)` directly. A paged list's `refreshNuxtData` would re-fetch only page
+  1 and drop every page loaded past it — `usePagedRefresh` keeps a per-list registry so a registered paged
+  list refreshes in place (all its loaded pages intact) while everything else still goes through
+  `refreshNuxtData`.
 - Pass new list params through the BFF with `pickListQuery(getQuery(event))` (`server/utils/apiProxy.ts`),
   which forwards only `page`, `perPage`, `q`, `status`, `archived`.
 - Public Browse keeps its filters in the URL (the URL is the source of truth) — see `pages/browse.vue`.

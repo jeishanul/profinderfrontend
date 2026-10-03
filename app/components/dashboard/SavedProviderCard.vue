@@ -49,12 +49,12 @@ async function messageProvider() {
         class="flex items-center gap-3 rounded-lg hover:opacity-80"
         :aria-label="t('dashboard.savedProviders.viewProfile', { name: provider.name })"
       >
-        <img
+        <NuxtImg
           v-if="provider.avatarUrl"
           :src="provider.avatarUrl"
           :alt="provider.name"
           class="h-13 w-13 shrink-0 rounded-full object-cover"
-        >
+        />
         <span
           v-else
           class="flex h-13 w-13 shrink-0 items-center justify-center rounded-full font-display text-[17px] font-bold"

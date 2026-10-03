@@ -15,12 +15,14 @@ const steps = computed(() => content.value.length > 0
       icon: knownIcon(item.icon, STEP_ICONS[index % STEP_ICONS.length]!),
       title: item.title ?? '',
       description: item.description ?? '',
+      imageUrl: item.imageUrl,
     }))
   : FALLBACK_IDS.map((id, index) => ({
       id,
       icon: STEP_ICONS[index]!,
       title: t(`marketplace.howItWorks.steps.${id}.title`),
       description: t(`marketplace.howItWorks.steps.${id}.description`),
+      imageUrl: null as string | null,
     })))
 
 const stepRefs = ref<Array<HTMLElement | null>>([])
@@ -57,7 +59,17 @@ onMounted(recalculate)
             name="fade"
             mode="out-in"
           >
+            <NuxtImg
+              v-if="steps[activeIndex]?.imageUrl"
+              :key="steps[activeIndex]?.id"
+              :src="steps[activeIndex]?.imageUrl!"
+              :alt="steps[activeIndex]?.title ?? ''"
+              width="440"
+              height="420"
+              class="h-full w-full object-cover"
+            />
             <UiIcon
+              v-else
               :key="steps[activeIndex]?.id"
               :name="steps[activeIndex]?.icon ?? 'search'"
               :size="72"

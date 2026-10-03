@@ -4,17 +4,40 @@ const { t } = useI18n()
 const { settings } = useSiteSettings()
 const requestUrl = useRequestURL()
 
-// What the QR code opens: the app listing if there is one, otherwise the site itself.
+// Nothing to download without at least one store link — showing the pitch
+// and a QR code that just opens the website was misleading.
+const hasAppLink = computed(() => Boolean(settings.value.appStoreUrl || settings.value.playStoreUrl))
 const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.playStoreUrl ?? requestUrl.origin)
+
+// An admin-uploaded screenshot for the phone mock, if one of the
+// `app_download` content items (the store badges) has an image attached.
+const content = useContentSection('app_download')
+const phoneImage = computed(() => content.value.find(item => item.imageUrl)?.imageUrl ?? null)
+
+const helplineHeading = computed(() => (settings.value.supportHours
+  ? t('marketplace.downloadApp.helpline.headingWithHours', { hours: settings.value.supportHours })
+  : t('marketplace.downloadApp.helpline.heading')))
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10">
+  <section
+    v-if="hasAppLink"
+    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10"
+  >
     <div class="grid items-center gap-12 lg:grid-cols-[400px_minmax(0,1fr)]">
       <div class="relative mx-auto h-[360px] w-[220px]">
         <div class="h-full w-full overflow-hidden rounded-[28px] bg-black/90 p-2 shadow-2xl">
           <div class="h-full w-full overflow-hidden rounded-[20px]">
+            <NuxtImg
+              v-if="phoneImage"
+              :src="phoneImage"
+              :alt="t('marketplace.downloadApp.heading')"
+              width="204"
+              height="344"
+              class="h-full w-full object-cover"
+            />
             <UiPlaceholderMedia
+              v-else
               icon="image"
               class="h-full"
             />
@@ -56,7 +79,7 @@ const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.pla
     >
       <div>
         <p class="text-lg font-bold">
-          {{ t('marketplace.downloadApp.helpline.heading') }}
+          {{ helplineHeading }}
         </p>
         <p class="mt-1.5 text-sm text-black/60 dark:text-white/60">
           {{ t('marketplace.downloadApp.helpline.description') }}

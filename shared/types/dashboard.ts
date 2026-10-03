@@ -4,6 +4,7 @@
  * `providerName`) are plain strings here. `categoryId` reuses the same ids
  * as `ServiceCategory` in `marketplace.ts` (`marketplace.categories.<id>.label`).
  */
+import type { Review } from './marketplace'
 
 export type UserRole = 'provider' | 'consumer'
 
@@ -148,6 +149,7 @@ export interface ActivityItem {
   amountUsd?: number
   ratingGiven?: number
   timeAgoHours: number
+  link?: string | null
 }
 
 export interface DashboardSummary {
@@ -164,6 +166,7 @@ export interface RecentWorkPhoto {
 }
 
 export interface ProviderProfileDetail {
+  id: string
   fullName: string
   headline: string | null
   bio: string | null
@@ -195,6 +198,9 @@ export interface ProviderProfileDetail {
   averageRating: number
   reviewCount: number
   clientsServed: number
+  reviews: Review[]
+  ratingBreakdown: { stars: number, count: number }[]
+  reviewsTotal: number
 }
 
 export type ConversationRole = 'client' | 'provider'
@@ -281,6 +287,9 @@ export interface ConversationMessage {
   quote?: Quote
   /** Job requests and system notices ("booking confirmed") — see `MessageMeta`. */
   meta?: MessageMeta | null
+  /** The sender removed it — the row stays (so the thread's shape doesn't shift for the other
+   * party), but `text`/`attachment`/`quote`/`meta` are all empty; render a placeholder instead. */
+  deleted?: boolean
 }
 
 export interface Conversation {
@@ -318,7 +327,6 @@ export type NotificationKind
     | 'job_request'
     | 'review_received'
     | 'order_completed'
-    | 'kyc_submitted'
     | 'refund_processed'
     | 'booking_reminder'
     | 'quote_received'

@@ -40,6 +40,8 @@ onUnmounted(() => {
   if (import.meta.client) document.body.style.overflow = ''
 })
 
+useFocusTrap(dialogRef, isOpen)
+
 onKeyStroke('Escape', () => isOpen.value && emit('close'))
 onKeyStroke('ArrowRight', () => isOpen.value && step(1))
 onKeyStroke('ArrowLeft', () => isOpen.value && step(-1))

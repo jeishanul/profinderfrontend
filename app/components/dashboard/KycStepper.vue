@@ -16,7 +16,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { settings } = useSiteSettings()
+const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const STEP_ORDER: KycStepId[] = ['identity', 'selfie', 'address']
 
@@ -46,8 +49,22 @@ const STATUS_LABEL_KEY: Record<KycStepStatus, string> = {
 
 const statusLabel = (status: KycStepStatus) => t(`dashboard.profile.kyc.${STATUS_LABEL_KEY[status]}`)
 
+/** A verified step normally hides its upload form — `requestReplace` opens it back up behind a confirm, since replacing it drops the verified badge until it's re-approved. */
+const replacingSteps = ref(new Set<KycStepId>())
+
 /** A step takes an upload until it's in review or approved — a rejected one must be resubmittable. */
-const canUpload = (step: KycStep) => step.status === 'not_started' || step.status === 'rejected'
+const canUpload = (step: KycStep) => step.status === 'not_started' || step.status === 'rejected' || replacingSteps.value.has(step.id)
+
+async function requestReplace(stepId: KycStepId) {
+  const confirmed = await confirm({
+    title: t('dashboard.profile.kyc.replaceConfirm.title'),
+    message: t('dashboard.profile.kyc.replaceConfirm.message'),
+    confirmLabel: t('dashboard.profile.kyc.replaceConfirm.confirmLabel'),
+    tone: 'danger',
+  })
+  if (!confirmed) return
+  replacingSteps.value = new Set([...replacingSteps.value, stepId])
+}
 
 const STATUS_VARIANT: Record<KycStepStatus, 'primary' | 'accent' | 'neutral' | 'danger'> = {
   verified: 'primary',
@@ -165,9 +182,13 @@ async function submitStep(stepId: KycStepId) {
       body.append('nidNumber', nidNumber.value)
       if (nidBack.value) body.append('back', nidBack.value.file)
     }
+    if (replacingSteps.value.has(stepId)) body.append('confirm', '1')
     await useApiFetch(`/api/dashboard/kyc/${stepId}`, { method: 'POST', body })
     toast.success(t('dashboard.profile.kyc.submitted'))
     resetStep(stepId)
+    const next = new Set(replacingSteps.value)
+    next.delete(stepId)
+    replacingSteps.value = next
     emit('submitted')
   }
   catch (error) {
@@ -196,7 +217,7 @@ async function submitStep(stepId: KycStepId) {
           {{ t('dashboard.profile.kyc.mandatoryTitle') }}
         </div>
         <div class="mt-0.5 text-[13px] text-black/60 dark:text-white/60">
-          {{ t('dashboard.profile.kyc.mandatoryBody') }}
+          {{ t('dashboard.profile.kyc.mandatoryBody', { site: siteName }) }}
         </div>
       </div>
     </div>
@@ -236,6 +257,15 @@ async function submitStep(stepId: KycStepId) {
           >
             {{ bodyFor(step) }}
           </p>
+
+          <UiButton
+            v-if="step.status === 'verified' && !canUpload(step)"
+            variant="ghost"
+            class="mt-2 px-3 py-1.5 text-xs"
+            @click="requestReplace(step.id)"
+          >
+            {{ t('dashboard.profile.kyc.replaceDocument') }}
+          </UiButton>
 
           <!-- Identity: NID number + front/back photo uploads -->
           <div

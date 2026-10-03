@@ -46,7 +46,10 @@ const galleryItemsByTab = computed(() => Object.fromEntries(
   GALLERY_TABS.map((tab, index) => [tab, galleryResponses[index]?.data.value ?? []]),
 ) as Record<GalleryTab, GalleryItem[]>)
 
+const lastSearch = useLastSearch()
+
 function handleHeroSearch({ category, province, city, barangay }: { category: string, province: string, city: string, barangay: string }) {
+  lastSearch.value = province ? { provinceCode: province } : null
   navigateTo(localePath({
     path: '/browse',
     query: {
@@ -58,9 +61,10 @@ function handleHeroSearch({ category, province, city, barangay }: { category: st
   }))
 }
 
+const { settings } = useSiteSettings()
 useSeoMeta({
-  title: t('home.seoTitle'),
-  description: t('home.seoDescription'),
+  title: () => settings.value.seoDefaultTitle ?? t('home.seoTitle'),
+  description: () => settings.value.seoDefaultDescription ?? t('home.seoDescription', { name: settings.value.siteName ?? t('brand.name') }),
 })
 defineOgImage('DefaultSatori', {
   title: t('home.seoTitle'),

@@ -10,6 +10,8 @@ const props = defineProps<{
 const { t } = useI18n()
 const { money } = useSiteSettings()
 const categoryLabel = useCategoryLabel()
+// `resolveComponent` so Nuxt can resolve the auto-imported link in a dynamic `:is`.
+const NuxtLinkLocale = resolveComponent('NuxtLinkLocale')
 
 const ICON_BY_KIND: Record<ActivityItem['kind'], IconName> = {
   new_booking: 'briefcase',
@@ -57,21 +59,27 @@ const rows = computed(() => props.items)
     <li
       v-for="(item, index) in rows"
       :key="item.id"
-      class="flex items-center gap-3.5 py-3"
       :class="index < rows.length - 1 && 'border-b border-black/10 dark:border-white/10'"
     >
-      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
-        <UiIcon
-          :name="iconFor(item)"
-          :size="16"
-        />
-      </span>
-      <span class="min-w-0 flex-1 text-sm font-semibold">
-        {{ textFor(item) }}
-      </span>
-      <span class="shrink-0 text-xs text-black/40 dark:text-white/40">
-        {{ timeFor(item) }}
-      </span>
+      <component
+        :is="item.link ? NuxtLinkLocale : 'div'"
+        :to="item.link ?? undefined"
+        class="flex items-center gap-3.5 py-3"
+        :class="item.link && 'rounded-lg transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'"
+      >
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
+          <UiIcon
+            :name="iconFor(item)"
+            :size="16"
+          />
+        </span>
+        <span class="min-w-0 flex-1 text-sm font-semibold">
+          {{ textFor(item) }}
+        </span>
+        <span class="shrink-0 text-xs text-black/40 dark:text-white/40">
+          {{ timeFor(item) }}
+        </span>
+      </component>
     </li>
   </ul>
 </template>

@@ -15,13 +15,13 @@ withDefaults(
 </script>
 
 <template>
-  <img
+  <NuxtImg
     v-if="src"
     :src="src"
     :alt="name"
     class="shrink-0 object-cover"
     :class="sizeClass"
-  >
+  />
   <span
     v-else
     class="flex shrink-0 items-center justify-center bg-brand-600 font-display font-bold text-white"

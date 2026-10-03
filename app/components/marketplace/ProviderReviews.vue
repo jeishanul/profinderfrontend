@@ -51,6 +51,38 @@ function report(reviewId: string) {
   }
   reportTarget.value = reviewId
 }
+
+// --- The reviewed provider's own, one-time public reply ---------------------------------
+// Keyed by review id — in principle more than one of the provider's own reviews can be
+// awaiting a reply at once, so each needs its own draft/error/submitting state.
+const replyDrafts = reactive<Record<string, string>>({})
+const replyErrors = reactive<Record<string, string>>({})
+const isReplying = ref<string | null>(null)
+
+async function sendReply(reviewId: string) {
+  const text = (replyDrafts[reviewId] ?? '').trim()
+  if (text.length < 2) {
+    replyErrors[reviewId] = t('dashboard.bookingDrawer.reply.tooShort')
+    return
+  }
+  isReplying.value = reviewId
+  replyErrors[reviewId] = ''
+  try {
+    const updated = await useApiFetch<{ providerReply: string | null }>(`/api/dashboard/reviews/${reviewId}/reply`, { method: 'POST', body: { reply: text } })
+    // `providerReply` becomes non-null, so the `v-if` above this form takes over —
+    // no need to also flip `canReply`, the reply form just stops rendering for this row.
+    const target = reviews.value.find(review => review.id === reviewId)
+    if (target) target.providerReply = updated.providerReply
+    replyDrafts[reviewId] = ''
+    toast.success(t('dashboard.bookingDrawer.reply.sent'))
+  }
+  catch (error) {
+    replyErrors[reviewId] = Object.values(apiFieldErrors(error))[0] ?? apiErrorMessage(error, t('dashboard.bookingDrawer.reply.failed'))
+  }
+  finally {
+    isReplying.value = null
+  }
+}
 </script>
 
 <template>
@@ -109,21 +141,11 @@ function report(reviewId: string) {
         class="rounded-2xl border border-black/10 bg-white/70 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-black/30"
       >
         <div class="flex items-center gap-2.5">
-          <img
-            v-if="review.reviewerAvatarUrl"
+          <UiAvatar
+            :name="review.reviewerName"
             :src="review.reviewerAvatarUrl"
-            :alt="review.reviewerName"
-            class="h-9 w-9 rounded-full object-cover"
-          >
-          <div
-            v-else
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100"
-          >
-            <UiIcon
-              name="user"
-              :size="16"
-            />
-          </div>
+            size-class="h-9 w-9 rounded-full"
+          />
           <div>
             <p class="text-sm font-bold">
               {{ review.reviewerName }}
@@ -162,6 +184,41 @@ function report(reviewId: string) {
           </p>
           {{ review.providerReply }}
         </div>
+        <form
+          v-else-if="review.canReply"
+          class="mt-3 flex flex-col gap-2"
+          @submit.prevent="sendReply(review.id)"
+        >
+          <label
+            :for="`review-reply-${review.id}`"
+            class="text-xs font-bold"
+          >{{ t('dashboard.bookingDrawer.reply.label') }}</label>
+          <textarea
+            :id="`review-reply-${review.id}`"
+            v-model="replyDrafts[review.id]"
+            rows="2"
+            maxlength="1000"
+            :placeholder="t('dashboard.bookingDrawer.reply.placeholder')"
+            class="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+          />
+          <p class="text-xs text-black/50 dark:text-white/50">
+            {{ t('dashboard.bookingDrawer.reply.help') }}
+          </p>
+          <p
+            v-if="replyErrors[review.id]"
+            class="text-xs text-red-600 dark:text-red-400"
+          >
+            {{ replyErrors[review.id] }}
+          </p>
+          <UiButton
+            type="submit"
+            size="sm"
+            class="self-start"
+            :disabled="isReplying === review.id"
+          >
+            {{ t('dashboard.bookingDrawer.reply.send') }}
+          </UiButton>
+        </form>
         <button
           type="button"
           class="mt-3 text-xs text-black/40 underline hover:text-black/70 dark:text-white/40 dark:hover:text-white/70"

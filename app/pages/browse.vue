@@ -76,15 +76,26 @@ function toQuery(f: Filters) {
 
 const filters = reactive<Filters>(fromQuery(route.query))
 
+// Set while `fromQuery` is applying an external route change (a link that
+// sets a filter AND a page at once, back/forward, a footer category link) so
+// the page-reset watcher below doesn't stomp on an explicit page from that
+// same link — it previously always won, landing every such link on page 1.
+let applyingRouteChange = false
+
 // A link followed while already on /browse (footer category, back/forward)
 // changes the URL but not this component — pull the change in.
 watch(() => route.query, (query) => {
+  applyingRouteChange = true
   Object.assign(filters, fromQuery(query))
   searchInput.value = filters.q
+  nextTick(() => {
+    applyingRouteChange = false
+  })
 })
 
 // Any filter change other than the page itself starts again from page 1.
 watch(() => JSON.stringify({ ...filters, page: 0 }), () => {
+  if (applyingRouteChange) return
   filters.page = 1
 })
 // ...and every change is reflected in the URL.
@@ -143,6 +154,12 @@ const locationTitle = computed(() => {
   if (filters.province) return allProvinces.value?.find(p => p.code === filters.province)?.name ?? t('marketplace.browse.anywhere')
   return t('marketplace.browse.anywhere')
 })
+
+// Remembers the province for the homepage's "Featured" section (see `useLastSearch`).
+const lastSearch = useLastSearch()
+watch(() => filters.province, (province) => {
+  lastSearch.value = province ? { provinceCode: province } : null
+}, { immediate: true })
 
 // Below `md`, filters live in a bottom sheet instead of a sidebar. The sheet
 // edits a *draft* copy and only commits on "Apply" — changing a checkbox
@@ -270,7 +287,6 @@ useSchemaOrg([defineWebPage()])
             v-for="provider in providersPage.items"
             :key="provider.id"
             :provider="provider"
-            :category-icon="getCategoryIcon(categories ?? [], provider.categoryId)"
             variant="row"
           />
         </template>

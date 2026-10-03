@@ -1,29 +1,24 @@
 <script setup lang="ts">
 // Auto-imported as <MarketplaceTrustStats />.
-const { t } = useI18n()
-
-const FALLBACK: Array<{ id: string, icon: IconName, value: string }> = [
-  { id: 'pros', icon: 'users', value: '12,000+' },
-  { id: 'categories', icon: 'briefcase', value: '40+' },
-  { id: 'satisfaction', icon: 'star', value: '98%' },
-]
 const DEFAULT_ICONS: IconName[] = ['users', 'briefcase', 'star']
 
-// The admin's figures (which can be live counts — see `ContentTokens` on the
-// backend), else the built-in ones.
+// Only the admin's real figures (which can be live counts — see
+// `ContentTokens` on the backend) — no hardcoded "12,000+ pros" fallback
+// numbers that would show on a brand-new install with zero real providers.
 const content = useContentSection('trust_stats')
-const stats = computed(() => content.value.length > 0
-  ? content.value.map((item, index) => ({
-      id: `cms-${index}`,
-      icon: knownIcon(item.icon, DEFAULT_ICONS[index % DEFAULT_ICONS.length]!),
-      value: item.value ?? '',
-      label: item.title ?? '',
-    }))
-  : FALLBACK.map(stat => ({ ...stat, label: t(`marketplace.trustStats.${stat.id}`) })))
+const stats = computed(() => content.value.map((item, index) => ({
+  id: `cms-${index}`,
+  icon: knownIcon(item.icon, DEFAULT_ICONS[index % DEFAULT_ICONS.length]!),
+  value: item.value ?? '',
+  label: item.title ?? '',
+})))
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-24 lg:px-10">
+  <section
+    v-if="stats.length > 0"
+    class="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-24 lg:px-10"
+  >
     <div class="grid gap-6 rounded-3xl border border-black/10 bg-white/60 px-8 py-8 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:grid-cols-3">
       <div
         v-for="(stat, index) in stats"

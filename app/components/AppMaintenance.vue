@@ -14,7 +14,7 @@ useSeoMeta({ title: t('maintenance.title'), robots: 'noindex, nofollow' })
       {{ t('maintenance.title') }}
     </h1>
     <p class="max-w-md text-black/60 dark:text-white/60">
-      {{ t('maintenance.body') }}
+      {{ t('maintenance.body', { name: settings.siteName ?? t('brand.name') }) }}
     </p>
     <a
       v-if="settings.contactEmail"

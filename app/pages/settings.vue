@@ -11,6 +11,7 @@ definePageMeta({
 
 const { t } = useI18n()
 const session = useSession()
+const toast = useToast()
 const localePath = useLocalePath()
 // `resolveComponent` so Nuxt can resolve the auto-imported link in a dynamic `:is`.
 const NuxtLinkLocale = resolveComponent('NuxtLinkLocale')
@@ -29,12 +30,15 @@ const { data: account, refresh: refreshAccount } = await useApi<AccountSettings>
 const bookingRequests = ref(true)
 const messages = ref(true)
 const marketing = ref(false)
+/** The last snapshot confirmed saved by the server — what a failed save reverts to. */
+let savedPreferences = { bookingRequests: true, messages: true, marketing: false }
 
 watch(account, (value) => {
   if (!value) return
   bookingRequests.value = value.notificationPreferences.bookingRequests
   messages.value = value.notificationPreferences.messages
   marketing.value = value.notificationPreferences.marketing
+  savedPreferences = { ...value.notificationPreferences }
 }, { immediate: true })
 
 // --- Two-factor authentication — turning it on opens the QR-code setup flow
@@ -78,19 +82,50 @@ async function confirmDisableTwoFactor() {
 }
 
 // Notification toggles auto-save on change — there's no separate "save" step
-// in this section's UI, so each flip is its own PUT.
-watch([bookingRequests, messages, marketing], ([bookingRequestsValue, messagesValue, marketingValue]) => {
+// in this section's UI. Debounced so a quick double-flip sends one request,
+// not two (which could otherwise race and land out of order); an `epoch`
+// guards against an in-flight request's result applying after a newer one
+// already landed. Failure reverts the toggle and surfaces a toast — this used
+// to be fire-and-forget with no error handling or revert at all.
+const notificationSaveState = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+let notificationSaveEpoch = 0
+let savedIndicatorTimeout: ReturnType<typeof setTimeout> | undefined
+
+const saveNotificationPreferences = useDebounceFn(async () => {
   if (!account.value) return
-  useApiFetch('/api/dashboard/account', {
-    method: 'PUT',
-    body: {
-      notificationPreferences: {
-        bookingRequests: bookingRequestsValue,
-        messages: messagesValue,
-        marketing: marketingValue,
-      },
-    },
-  })
+  const epoch = ++notificationSaveEpoch
+  const next = {
+    bookingRequests: bookingRequests.value,
+    messages: messages.value,
+    marketing: marketing.value,
+  }
+  notificationSaveState.value = 'saving'
+  try {
+    await useApiFetch('/api/dashboard/account', {
+      method: 'PUT',
+      body: { notificationPreferences: next },
+    })
+    if (epoch !== notificationSaveEpoch) return
+    savedPreferences = next
+    notificationSaveState.value = 'saved'
+    clearTimeout(savedIndicatorTimeout)
+    savedIndicatorTimeout = setTimeout(() => {
+      if (notificationSaveState.value === 'saved') notificationSaveState.value = 'idle'
+    }, 2000)
+  }
+  catch (error) {
+    if (epoch !== notificationSaveEpoch) return
+    bookingRequests.value = savedPreferences.bookingRequests
+    messages.value = savedPreferences.messages
+    marketing.value = savedPreferences.marketing
+    notificationSaveState.value = 'error'
+    toast.error(apiErrorMessage(error, t('dashboard.settings.notifications.saveError')))
+  }
+}, 300)
+
+watch([bookingRequests, messages, marketing], () => {
+  if (!account.value) return
+  saveNotificationPreferences()
 })
 
 const isPasswordModalOpen = ref(false)
@@ -288,9 +323,15 @@ useSeoMeta({
           </div>
         </div>
 
-        <p class="mb-2 px-1 text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40">
-          {{ t('dashboard.settings.notifications.heading') }}
-        </p>
+        <div class="mb-2 flex items-center justify-between gap-2 px-1">
+          <p class="text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40">
+            {{ t('dashboard.settings.notifications.heading') }}
+          </p>
+          <span
+            v-if="notificationSaveState === 'saved'"
+            class="text-[11px] font-semibold text-brand-600 dark:text-brand-300"
+          >{{ t('dashboard.settings.notifications.saved') }}</span>
+        </div>
         <div class="mb-5 flex flex-col rounded-2xl border border-black/10 dark:border-white/10">
           <div class="flex items-center gap-3 border-b border-black/10 px-4 py-3.5 dark:border-white/10">
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
@@ -500,9 +541,15 @@ useSeoMeta({
         </section>
 
         <section class="rounded-2xl border border-black/10 p-5 sm:p-6 dark:border-white/10">
-          <h2 class="mb-1 font-display text-[15px] font-bold">
-            {{ t('dashboard.settings.notifications.heading') }}
-          </h2>
+          <div class="mb-1 flex items-center justify-between gap-2">
+            <h2 class="font-display text-[15px] font-bold">
+              {{ t('dashboard.settings.notifications.heading') }}
+            </h2>
+            <span
+              v-if="notificationSaveState === 'saved'"
+              class="text-xs font-semibold text-brand-600 dark:text-brand-300"
+            >{{ t('dashboard.settings.notifications.saved') }}</span>
+          </div>
           <div class="flex items-center justify-between gap-4 border-b border-black/10 py-3.5 dark:border-white/10">
             <div class="text-[13.5px] font-semibold">
               {{ t('dashboard.settings.notifications.bookingRequests') }}

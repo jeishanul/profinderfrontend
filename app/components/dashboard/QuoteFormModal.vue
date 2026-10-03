@@ -27,7 +27,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const { symbol } = useSiteSettings()
+const { symbol, money } = useSiteSettings()
 const titleId = useId()
 
 const EXPIRY_OPTIONS = [24, 48, 72, 168] as const
@@ -90,7 +90,7 @@ function parseWholeNumber(value: string) {
 function handleSubmit() {
   localError.value = ''
   if (basePriceUsd.value <= 0) {
-    localError.value = t('dashboard.messages.quote.errors.price')
+    localError.value = t('dashboard.messages.quote.errors.price', { amount: money(0) })
     return
   }
   if (baseHours.value < 1) {
@@ -148,7 +148,7 @@ const firstServerError = computed(() => Object.values(props.errors ?? {})[0] ?? 
             id="quote-base-price"
             :model-value="basePriceUsd ? `${symbol}${basePriceUsd}` : ''"
             inputmode="decimal"
-            :placeholder="t('dashboard.messages.quote.basePricePlaceholder')"
+            :placeholder="t('dashboard.messages.quote.basePricePlaceholder', { symbol })"
             @update:model-value="(v) => (basePriceUsd = parseAmount(v))"
           />
         </div>
@@ -232,7 +232,7 @@ const firstServerError = computed(() => Object.values(props.errors ?? {})[0] ?? 
           id="quote-extra-rate"
           :model-value="extraHourlyRateUsd ? `${symbol}${extraHourlyRateUsd}` : ''"
           inputmode="decimal"
-          :placeholder="t('dashboard.messages.quote.extraRatePlaceholder')"
+          :placeholder="t('dashboard.messages.quote.extraRatePlaceholder', { symbol })"
           @update:model-value="(v) => (extraHourlyRateUsd = parseAmount(v))"
         />
         <p class="mt-1.5 text-xs text-black/50 dark:text-white/50">

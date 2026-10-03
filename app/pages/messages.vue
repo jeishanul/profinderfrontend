@@ -14,15 +14,19 @@ const session = useSession()
 const toast = useToast()
 const { confirm, prompt } = useConfirm()
 
+const search = ref('')
+const debouncedSearch = refDebounced(search, 300)
+
 // Inbox rows only carry the newest message; the open thread is loaded on its
 // own (see `useConversationThread`) and kept fresh by the polling below.
 const inbox = await usePagedList<Conversation>('/dashboard/conversations', {
   key: 'dashboard-conversations',
+  query: computed(() => ({ q: debouncedSearch.value || undefined })),
   perPage: 30,
 })
 const archived = usePagedList<Conversation>('/dashboard/conversations', {
   key: 'dashboard-conversations-archived',
-  query: { archived: 1 },
+  query: computed(() => ({ archived: 1, q: debouncedSearch.value || undefined })),
   perPage: 30,
   lazy: true,
   server: false,
@@ -53,7 +57,6 @@ const { data: kyc } = useApi<KycState>('/dashboard/kyc', {
 const providerVerified = computed(() => kyc.value ? kyc.value.isVerified : undefined)
 
 const view = ref<'inbox' | 'archived'>('inbox')
-const search = ref('')
 const activeId = ref('')
 const threadRef = useTemplateRef('threadRef')
 const thread = useConversationThread()
@@ -83,14 +86,10 @@ watch(mobileThreadOpen, (open) => {
 })
 onUnmounted(() => bottomNav.show())
 
+// The server already filters by `q` (name or last message, not just this page's rows).
 const currentList = computed(() => view.value === 'archived' ? archived.items.value : inbox.items.value)
 
 const currentPager = computed(() => (view.value === 'archived' ? archived : inbox))
-
-const filteredConversations = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  return currentList.value.filter(conversation => !query || conversation.personName.toLowerCase().includes(query))
-})
 
 /** The open thread's header row: the fresh copy from the thread fetch, else the list row. */
 const activeConversation = computed<Conversation | undefined>(() =>
@@ -397,7 +396,7 @@ useSeoMeta({
         </div>
         <div class="flex-1 overflow-y-auto px-2 pb-3">
           <DashboardConversationList
-            :conversations="filteredConversations"
+            :conversations="currentList"
             :active-id="activeId"
             :archived-view="view === 'archived'"
             :searching="search.trim().length > 0"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SwipeActionItem } from '~/components/ui/SwipeAction.vue'
 import type { Conversation } from '#shared/types/dashboard'
 
 // Auto-imported as <DashboardConversationList/>. The left column of the
@@ -14,7 +15,7 @@ const props = defineProps<{
   searching?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   select: [id: string]
   archive: [id: string]
   unarchive: [id: string]
@@ -57,6 +58,14 @@ function rowClass(conversation: Conversation) {
       : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.06]',
   ]
 }
+
+function swipeActions(conversation: Conversation): SwipeActionItem[] {
+  return [
+    props.archivedView
+      ? { label: t('dashboard.messages.unarchive'), icon: 'check', onAction: () => emit('unarchive', conversation.id) }
+      : { label: t('dashboard.messages.archive'), icon: 'x', onAction: () => emit('archive', conversation.id) },
+  ]
+}
 </script>
 
 <template>
@@ -64,9 +73,7 @@ function rowClass(conversation: Conversation) {
     <UiSwipeAction
       v-for="(conversation, index) in conversations"
       :key="conversation.id"
-      :action-label="archivedView ? t('dashboard.messages.unarchive') : t('dashboard.messages.archive')"
-      :action-icon="archivedView ? 'check' : 'x'"
-      @action="archivedView ? $emit('unarchive', conversation.id) : $emit('archive', conversation.id)"
+      :actions="swipeActions(conversation)"
     >
       <button
         type="button"

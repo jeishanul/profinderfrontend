@@ -10,13 +10,14 @@ export const PRICE_STEP = 50
 
 /**
  * `ServiceCategory.icon` is a plain string on the wire (shared types can't
- * depend on the app's icon set) — this asserts it's one of ours for display.
+ * depend on the app's icon set) and admin-typed, so it can be null or an
+ * unrecognised name — this degrades to `fallback` rather than rendering blank.
  */
-export function asIconName(icon: string): IconName {
-  return icon as IconName
+export function asIconName(icon: string | null | undefined, fallback: IconName = 'briefcase'): IconName {
+  return knownIcon(icon, fallback)
 }
 
 /** Looks up a category's icon for display alongside a provider card/row. */
 export function getCategoryIcon(categories: ServiceCategory[], categoryId: string): IconName {
-  return asIconName(categories.find(category => category.id === categoryId)?.icon ?? 'briefcase')
+  return asIconName(categories.find(category => category.id === categoryId)?.icon)
 }

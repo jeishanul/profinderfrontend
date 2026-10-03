@@ -5,6 +5,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const isDev = import.meta.dev
 
 useSeoMeta({ title: t('errors.seoTitle'), robots: 'noindex, nofollow' })
 
@@ -20,8 +21,14 @@ function handleError() {
         {{ props.error.statusCode }}
       </p>
       <h1 class="text-2xl font-bold">
-        {{ props.error.statusMessage || t('errors.somethingWrong') }}
+        {{ props.error.statusCode === 404 ? t('errors.notFound') : t('errors.somethingWrong') }}
       </h1>
+      <p
+        v-if="isDev && props.error.statusMessage"
+        class="max-w-md text-xs text-black/40 dark:text-white/40"
+      >
+        {{ props.error.statusMessage }}
+      </p>
       <UiButton @click="handleError">
         {{ t('errors.goHome') }}
       </UiButton>

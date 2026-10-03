@@ -16,13 +16,17 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const session = useSession()
+const { uploadImage } = useImageUpload()
 
 const fullName = ref('')
 const phone = ref('')
 const email = ref('')
-const verification = useEmailVerification()
+const authModal = useAuthModal()
 const errors = ref<Record<string, string>>({})
 const isSaving = ref(false)
+const avatarInput = useTemplateRef('avatarInput')
+const isUploadingAvatar = ref(false)
 
 // Re-seed from the latest account data each time the modal opens, so a
 // cancelled edit never leaks into the next open.
@@ -33,6 +37,22 @@ watch(() => props.open, (isOpen) => {
   email.value = props.account.email
   errors.value = {}
 })
+
+async function onAvatarChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  isUploadingAvatar.value = true
+  try {
+    const result = await uploadImage<{ url: string }>('/api/dashboard/profile/avatar', file)
+    // Header/menus read the avatar from the session user.
+    if (result) await session.fetchUser()
+  }
+  finally {
+    isUploadingAvatar.value = false
+  }
+}
 
 async function submit() {
   if (!fullName.value.trim()) {
@@ -57,7 +77,10 @@ async function submit() {
     toast.success(t('dashboard.settings.account.saved'))
     emit('saved')
     emit('close')
-    if (emailChanged) await verification.start()
+    // The server already mailed a code for the new address (`AccountController::update`) —
+    // just open the verify step, don't call `verification.start()` (it would send a second
+    // code, invalidating the first and burning the send-rate limit).
+    if (emailChanged) authModal.open('verify-email')
   }
   catch (error) {
     errors.value = apiFieldErrors(error)
@@ -85,6 +108,34 @@ async function submit() {
       class="flex flex-col gap-4"
       @submit.prevent="submit"
     >
+      <div class="flex flex-col items-center gap-2.5">
+        <UiAvatar
+          :name="session.name.value"
+          :src="session.user.value?.avatarUrl"
+          size-class="h-20 w-20 rounded-full"
+          text-class="text-2xl"
+        />
+        <UiButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          :disabled="isUploadingAvatar"
+          @click="avatarInput?.click()"
+        >
+          <UiIcon
+            name="camera"
+            :size="14"
+          />{{ t('dashboard.profile.changePhoto') }}
+        </UiButton>
+        <input
+          ref="avatarInput"
+          type="file"
+          accept="image/*"
+          class="hidden"
+          :aria-label="t('dashboard.profile.changePhoto')"
+          @change="onAvatarChange"
+        >
+      </div>
       <div>
         <label
           for="personal-full-name"

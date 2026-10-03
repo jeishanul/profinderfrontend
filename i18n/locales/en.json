@@ -67,7 +67,7 @@
       "emailPlaceholder": "you{'@'}example.com",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Create a password",
-      "terms": "I agree to ProFinder's {tos} and {privacy}.",
+      "terms": "I agree to {name}'s {tos} and {privacy}.",
       "confirmPasswordLabel": "Confirm password",
       "confirmPasswordPlaceholder": "Re-enter your password",
       "termsRequiredError": "Please accept the Terms of Service and Privacy Policy to continue.",
@@ -155,7 +155,7 @@
   },
   "maintenance": {
     "title": "We'll be right back",
-    "body": "ProFinder is down for scheduled maintenance. Please check back shortly."
+    "body": "{name} is down for scheduled maintenance. Please check back shortly."
   },
   "legal": {
     "notFound": "Page not found",
@@ -194,7 +194,7 @@
   },
   "home": {
     "seoTitle": "Trusted local pros, on demand",
-    "seoDescription": "ProFinder connects you with verified, background-checked local professionals for house cleaning, AC service, electrical, plumbing and more."
+    "seoDescription": "{name} connects you with verified, background-checked local professionals for house cleaning, AC service, electrical, plumbing and more."
   },
   "errors": {
     "seoTitle": "Error",
@@ -268,9 +268,10 @@
       "submit": "Search"
     },
     "hero": {
-      "trustBadge": "Trusted by 12,000+ verified pros",
+      "trustBadge": "Trusted by verified pros",
       "regionLabel": "Featured service highlight",
       "goToSlide": "Go to slide {number}",
+      "learnMore": "Learn more",
       "slides": {
         "general": {
           "headline": "Home services, done right by pros near you.",
@@ -285,11 +286,6 @@
           "sub": "Book trusted, rated cleaning pros for a one-time deep clean or a regular routine."
         }
       }
-    },
-    "trustStats": {
-      "pros": "Verified professionals",
-      "categories": "Service categories",
-      "satisfaction": "Job satisfaction rate"
     },
     "howItWorks": {
       "eyebrow": "How it works",
@@ -322,7 +318,8 @@
     },
     "featuredProviders": {
       "browseAll": "Browse all providers",
-      "heading": "Top-rated pros near you",
+      "heading": "Top-rated pros",
+      "headingWithLocation": "Top-rated pros near {province}",
       "subheading": "A sample of the professionals available in your area.",
       "viewMore": "View more pros",
       "showFewer": "Show fewer pros"
@@ -336,25 +333,6 @@
       "save": "Save provider",
       "unsave": "Remove from saved providers",
       "pendingVerification": "This provider is still completing verification and can't take booking requests yet. You can message them in the meantime."
-    },
-    "skills": {
-      "wiring": "Wiring",
-      "fault-fixing": "Fault fixing",
-      "panel-upgrades": "Panel upgrades",
-      "deep-clean": "Deep clean",
-      "move-out-clean": "Move-out clean",
-      "leak-repair": "Leak repair",
-      "fittings": "Fittings",
-      "interior-painting": "Interior painting",
-      "texture-finish": "Texture finish",
-      "furniture-repair": "Furniture repair",
-      "custom-fittings": "Custom fittings",
-      "ac-servicing": "AC servicing",
-      "ac-installation": "AC installation",
-      "fridge-repair": "Fridge repair",
-      "washer-repair": "Washer repair",
-      "landscaping": "Landscaping",
-      "garden-upkeep": "Garden upkeep"
     },
     "whyChooseUs": {
       "eyebrow": "Why choose us",
@@ -381,41 +359,18 @@
     },
     "testimonials": {
       "heading": "What customers are saying",
-      "goTo": "Go to testimonial {number}",
-      "quotes": {
-        "tanvir-r": {
-          "quote": "Found a great electrician within the hour. ProFinder made comparing pros ridiculously easy.",
-          "role": "Homeowner, Banani"
-        },
-        "farzana-h": {
-          "quote": "Booked a deep clean before guests arrived. The pro was punctual, thorough, and the price matched the quote exactly.",
-          "role": "Homeowner, Gulshan"
-        },
-        "imran-k": {
-          "quote": "Used ProFinder to find an AC technician for our office. Quick response, fair pricing.",
-          "role": "Small business owner"
-        },
-        "nadia-s": {
-          "quote": "Love that I can see real reviews before booking. No more guessing who to trust.",
-          "role": "Homeowner, Dhanmondi"
-        },
-        "shafiq-m": {
-          "quote": "I manage repairs across three rental units through ProFinder now. Saves me hours every month.",
-          "role": "Landlord"
-        }
-      }
+      "goTo": "Go to testimonial {number}"
     },
     "downloadApp": {
       "eyebrow": "Download our app",
       "heading": "Any service, any time, anywhere.",
-      "description": "Give us your mobile number and we'll text you a link to download the ProFinder app.",
-      "phonePlaceholder": "Type your mobile number",
-      "cta": "Get the app",
+      "description": "Get the app for the same booking experience as the website, right on your phone.",
       "qrHint": "Scan the QR code to download directly to your phone.",
       "googlePlay": "Google Play",
       "appStore": "App Store",
       "helpline": {
-        "heading": "Can't find your service? Let us know — we're here 24/7.",
+        "heading": "Can't find your service? Let us know.",
+        "headingWithHours": "Can't find your service? Let us know. {hours}.",
         "description": "Call or email us anytime — we usually reply within the hour.",
         "requestService": "Request a service"
       }
@@ -424,37 +379,7 @@
       "heading": "Frequently asked questions",
       "subheading": "Everything you need to know before your first booking.",
       "showMore": "Show more questions",
-      "showFewer": "Show fewer questions",
-      "items": {
-        "trust": {
-          "question": "How do I know a service pro is trustworthy?",
-          "answer": "Every professional on ProFinder completes ID verification and a background check before they can accept jobs, and their public rating reflects real completed work."
-        },
-        "cost": {
-          "question": "How much does it cost to use ProFinder?",
-          "answer": "Browsing and requesting quotes is completely free. Professionals pay a small service fee only when they complete a paid job."
-        },
-        "coverage-area": {
-          "question": "Which areas does ProFinder currently serve?",
-          "answer": "We're live across Dhaka and expanding to more cities soon."
-        },
-        "unhappy": {
-          "question": "What happens if I'm not happy with the service?",
-          "answer": "Reach out to our support team within 48 hours of the job and we'll help make it right, including arranging a redo with the provider."
-        },
-        "payments": {
-          "question": "How do payments work?",
-          "answer": "ProFinder doesn't process payments. The rate you see is a starting estimate — you and the provider agree on a final price directly, and you pay them in cash once the job is complete."
-        },
-        "recurring": {
-          "question": "Can I book the same pro for recurring service?",
-          "answer": "Yes — after your first job, you can rebook the same professional directly from your history."
-        },
-        "mobile-app": {
-          "question": "Is there a ProFinder mobile app?",
-          "answer": "Yes, the ProFinder app is available on Android and iOS with the same booking experience as the website."
-        }
-      }
+      "showFewer": "Show fewer questions"
     },
     "filters": {
       "skills": "Skills",
@@ -496,7 +421,7 @@
     },
     "providerProfile": {
       "seoTitle": "{name} — {category}",
-      "seoDescription": "View {name}'s profile, ratings, skills and reviews on ProFinder.",
+      "seoDescription": "View {name}'s profile, ratings, skills and reviews on {site}.",
       "verifiedPro": "Verified pro",
       "contactProvider": "Contact provider",
       "requestQuote": "Request a quote",
@@ -541,67 +466,6 @@
         "responseTimeValue": "< {hours} hr",
         "repeatClients": "Repeat clients"
       }
-    },
-    "providers": {
-      "rahim-karim": {
-        "bio": "Experienced electrician with 8 years across residential and small commercial jobs — wiring, panel upgrades, fault diagnosis and safety inspections. I show up on time, explain the work clearly, and leave the space clean."
-      },
-      "anika-sultana": {
-        "bio": "Detail-oriented cleaning professional specializing in deep cleans and move-out turnarounds. I bring my own eco-friendly supplies and follow a consistent room-by-room checklist."
-      },
-      "farhan-ahmed": {
-        "bio": "Plumber with 6 years of experience fixing leaks, replacing fittings and handling small emergency call-outs. Upfront pricing before any work starts."
-      },
-      "mim-tabassum": {
-        "bio": "Interior painter focused on clean lines and durable finishes. I protect furniture and floors on every job and clean up fully before I leave."
-      },
-      "karim-hossain": {
-        "bio": "Carpenter handling furniture repair and custom fittings for homes and small offices. I measure twice and build things that last."
-      },
-      "nusrat-jahan": {
-        "bio": "AC servicing and installation specialist. I carry common parts on-site so most repairs are finished in a single visit."
-      },
-      "emon-rahman": {
-        "bio": "Appliance repair technician covering fridges and washing machines. Honest diagnosis first — I'll tell you if a repair isn't worth it."
-      },
-      "priya-das": {
-        "bio": "Gardener and landscaper who keeps small home gardens tidy year-round, from seasonal planting to regular upkeep."
-      }
-    },
-    "reviews": {
-      "rahim-karim-review-1": {
-        "comment": "Fixed a recurring breaker trip that two other electricians couldn't diagnose. Explained everything clearly and priced fairly."
-      },
-      "rahim-karim-review-2": {
-        "comment": "Punctual and tidy. Installed three new outlets in an afternoon. Would book again for future work."
-      },
-      "anika-sultana-review-1": {
-        "comment": "Best deep clean we've had. Every corner of the kitchen looked brand new."
-      },
-      "anika-sultana-review-2": {
-        "comment": "Showed up on time and worked through a long checklist without cutting corners."
-      },
-      "farhan-ahmed-review-1": {
-        "comment": "Fixed an emergency leak on a Sunday evening. Fair pricing, no surprises."
-      },
-      "farhan-ahmed-review-2": {
-        "comment": "Replaced our kitchen fittings quickly and left everything spotless."
-      },
-      "mim-tabassum-review-1": {
-        "comment": "Beautiful, even finish on our living room walls. Very tidy work."
-      },
-      "karim-hossain-review-1": {
-        "comment": "Repaired a wobbly dining table so well it feels sturdier than new."
-      },
-      "nusrat-jahan-review-1": {
-        "comment": "Serviced two AC units in under an hour each. Cooling noticeably better."
-      },
-      "emon-rahman-review-1": {
-        "comment": "Diagnosed our washer issue in minutes and had the part on hand."
-      },
-      "priya-das-review-1": {
-        "comment": "Our small garden has never looked better. Reliable and easy to schedule."
-      }
     }
   },
   "dashboard": {
@@ -630,7 +494,7 @@
       "becomeProvider": "Become a provider"
     },
     "dualRoleBanner": {
-      "title": "Every ProFinder account can both offer and book services",
+      "title": "Every {site} account can both offer and book services",
       "body": "Switching your view swaps between your provider and consumer panels — Browse Services is always one click away, however you're set.",
       "cta": "Browse services"
     },
@@ -903,7 +767,8 @@
       "subtitle": "Manage how clients see you, and verify your identity to start accepting bookings",
       "tabs": {
         "details": "Profile details",
-        "kyc": "KYC verification · required"
+        "kyc": "KYC verification · required",
+        "reviews": "Reviews"
       },
       "changePhoto": "Change photo",
       "addCoverPhoto": "Add cover photo",
@@ -962,7 +827,7 @@
       "saved": "Saved",
       "kyc": {
         "mandatoryTitle": "Verification is mandatory before you can accept bookings",
-        "mandatoryBody": "ProFinder verifies every service provider's identity to keep clients safe. You can't accept bookings until all three steps are approved.",
+        "mandatoryBody": "{site} verifies every service provider's identity to keep clients safe. You can't accept bookings until all three steps are approved.",
         "statusVerified": "Verified",
         "statusInReview": "In review",
         "statusNotStarted": "Not started",
@@ -1006,6 +871,12 @@
         "submitStep": "Submit for review",
         "dropzone": "Drag a file here, or",
         "browseFiles": "Browse files",
+        "replaceDocument": "Replace document",
+        "replaceConfirm": {
+          "title": "Replace a verified document?",
+          "message": "Sending a new document removes your verified status until it's approved again.",
+          "confirmLabel": "Replace document"
+        },
         "complianceNote": "Your documents are encrypted and only used for identity verification, per our Trust & Safety policy."
       }
     },
@@ -1068,6 +939,8 @@
       "attachFile": "Attach a file",
       "messageOptions": "Message options",
       "deleteMessage": "Delete message",
+      "reportMessage": "Report message",
+      "messageDeleted": "Message deleted",
       "removeAttachment": "Remove attachment",
       "statusSent": "Sent",
       "statusDelivered": "Delivered",
@@ -1086,18 +959,18 @@
       "system": {
         "bookingCreated": "Booking confirmed for {when}.",
         "quoteDeclined": "The client declined this quote.",
-        "adminNotice": "ProFinder support",
+        "adminNotice": "{site} support",
         "quoteDeclinedReason": "Reason: {reason}"
       },
       "quote": {
         "formTitle": "Send a quote",
         "formSubtitle": "A structured price for this job — shown as a card in the chat with Accept/Decline.",
         "basePriceLabel": "Base price",
-        "basePricePlaceholder": "e.g. $50",
+        "basePricePlaceholder": "e.g. {symbol}50",
         "baseHoursLabel": "Base hours",
         "baseHoursPlaceholder": "e.g. 3",
         "extraRateLabel": "Extra hourly rate",
-        "extraRatePlaceholder": "e.g. $10",
+        "extraRatePlaceholder": "e.g. {symbol}10",
         "extraRateHelp": "Charged per hour for any work beyond the base hours above.",
         "noteLabel": "Note (optional)",
         "notePlaceholder": "What's included, materials, etc.",
@@ -1157,7 +1030,7 @@
         "acceptedToast": "Booked! You'll find it under My Purchases.",
         "declinedToast": "Quote declined.",
         "errors": {
-          "price": "Enter a price above $0.",
+          "price": "Enter a price above {amount}.",
           "hours": "Enter the base hours (a whole number, at least 1).",
           "date": "Choose a date and time in the future.",
           "send": "Couldn't send the quote. Please try again.",
@@ -1242,10 +1115,10 @@
       },
       "account_reactivated": {
         "title": "Your account is active again",
-        "body": "You can use ProFinder as normal."
+        "body": "You can use {site} as normal."
       },
       "admin_notice": {
-        "title": "A message from ProFinder support",
+        "title": "A message from {site} support",
         "body": "Open the conversation to read it."
       },
       "booking_updated": {
@@ -1262,7 +1135,7 @@
       },
       "provider_profile_removed": {
         "title": "Your provider profile was removed",
-        "body": "It is no longer shown on ProFinder. Contact support if you think this is a mistake."
+        "body": "It is no longer shown on {site}. Contact support if you think this is a mistake."
       },
       "provider_profile_restored": {
         "title": "Your provider profile is back",
@@ -1270,7 +1143,7 @@
       },
       "report_resolved": {
         "title": "We took action on your report",
-        "body": "Thanks for helping keep ProFinder safe."
+        "body": "Thanks for helping keep {site} safe."
       },
       "report_dismissed": {
         "title": "We reviewed your report",
@@ -1295,10 +1168,6 @@
       "order_completed": {
         "title": "Your job with {name} is complete",
         "body": "{category} — you can leave a review now."
-      },
-      "kyc_submitted": {
-        "title": "KYC selfie submitted for review",
-        "body": "We'll email you within 24 hours with the result."
       },
       "refund_processed": {
         "title": "Refund processed",
@@ -1444,7 +1313,9 @@
         "heading": "Notification preferences",
         "bookingRequests": "New booking requests",
         "messages": "Messages",
-        "marketing": "Product tips & marketing"
+        "marketing": "Product tips & marketing",
+        "saved": "Saved",
+        "saveError": "Couldn't save that change. Please try again."
       },
       "language": {
         "heading": "Language & region",

@@ -130,6 +130,12 @@ useSeoMeta({
             <h2 class="font-display text-base font-bold">
               {{ t('dashboard.overview.activity.heading') }}
             </h2>
+            <NuxtLinkLocale
+              to="/notifications"
+              :class="linkButtonClass('ghost', 'sm')"
+            >
+              {{ t('dashboard.table.viewAll') }}
+            </NuxtLinkLocale>
           </div>
           <DashboardActivityFeed :items="summary.activity" />
         </div>

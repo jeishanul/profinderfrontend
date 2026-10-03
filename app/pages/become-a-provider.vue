@@ -258,7 +258,7 @@ useSeoMeta({
               id="bp-rate"
               :model-value="form.hourlyRateUsd ? `${symbol}${form.hourlyRateUsd}` : ''"
               inputmode="decimal"
-              placeholder="$"
+              :placeholder="symbol"
               @update:model-value="(v) => (form.hourlyRateUsd = parseMoney(v))"
             />
             <p class="mt-1.5 text-xs text-black/50 dark:text-white/50">

@@ -41,13 +41,23 @@ const { data: categories } = await useApi<ServiceCategory[]>('/categories', {
 const route = useRoute()
 const router = useRouter()
 
-const activeTab = computed<'details' | 'kyc'>(() => (route.query.tab === 'kyc' ? 'kyc' : 'details'))
+const activeTab = computed<'details' | 'kyc' | 'reviews'>(() => {
+  if (route.query.tab === 'kyc') return 'kyc'
+  if (route.query.tab === 'reviews') return 'reviews'
+  return 'details'
+})
 
-function setTab(tab: 'details' | 'kyc') {
+function setTab(tab: 'details' | 'kyc' | 'reviews') {
   const query = { ...route.query }
-  if (tab === 'kyc') query.tab = 'kyc'
-  else delete query.tab
+  if (tab === 'details') delete query.tab
+  else query.tab = tab
   router.replace({ query })
+}
+
+/** The sidebar's KYC badge (`layouts/dashboard.vue`) reads a separate, independently-keyed fetch — refreshing just the summary leaves it stale after a new submission. */
+function onKycSubmitted() {
+  refreshSummary()
+  refreshNuxtData('dashboard-kyc')
 }
 
 // Editable copy of the fetched profile — "Save changes" PUTs this to
@@ -160,30 +170,7 @@ const avatarInput = useTemplateRef('avatarInput')
 const coverInput = useTemplateRef('coverInput')
 const recentWorkInput = useTemplateRef('recentWorkInput')
 
-// Mirrors the server's `image|max:5120` rule so a too-large file is rejected
-// before it is uploaded rather than after a slow failed request.
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
-
-/** Validates + uploads one image; returns the parsed response, or null (with a toast) on failure. */
-async function uploadImage<T>(endpoint: string, file: File): Promise<T | null> {
-  if (!file.type.startsWith('image/')) {
-    toast.error(t('dashboard.profile.errors.notAnImage'))
-    return null
-  }
-  if (file.size > MAX_IMAGE_BYTES) {
-    toast.error(t('dashboard.profile.errors.imageTooLarge'))
-    return null
-  }
-  const body = new FormData()
-  body.append('file', file)
-  try {
-    return await useApiFetch<T>(endpoint, { method: 'POST', body })
-  }
-  catch (error) {
-    toast.error(apiErrorMessage(error, t('dashboard.profile.errors.upload')))
-    return null
-  }
-}
+const { uploadImage } = useImageUpload()
 
 async function onAvatarChange(event: Event) {
   const input = event.target as HTMLInputElement
@@ -326,9 +313,26 @@ useSeoMeta({
       >
         {{ t('dashboard.profile.tabs.kyc') }}
       </button>
+      <button
+        type="button"
+        class="border-b-2 pb-3 text-sm font-bold transition-colors"
+        :class="activeTab === 'reviews' ? 'border-brand-600 text-black dark:text-white' : 'border-transparent text-black/40 dark:text-white/40'"
+        @click="setTab('reviews')"
+      >
+        {{ t('dashboard.profile.tabs.reviews') }}
+      </button>
     </div>
 
-    <template v-if="activeTab === 'details' && profile">
+    <MarketplaceProviderReviews
+      v-if="activeTab === 'reviews' && profile"
+      :provider-id="profile.id"
+      :rating="profile.averageRating"
+      :total="profile.reviewsTotal"
+      :breakdown="profile.ratingBreakdown"
+      :initial-reviews="profile.reviews"
+    />
+
+    <template v-else-if="activeTab === 'details' && profile">
       <div class="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
         <div
           class="relative flex h-36 items-end justify-end bg-black/5 p-3 dark:bg-white/10"
@@ -357,12 +361,12 @@ useSeoMeta({
 
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
         <div class="flex flex-col items-center gap-3.5 rounded-2xl border border-black/10 p-5 text-center sm:p-6 dark:border-white/10">
-          <img
+          <NuxtImg
             v-if="photoUrl"
             :src="photoUrl"
             :alt="form.fullName"
             class="h-24 w-24 rounded-full object-cover"
-          >
+          />
           <span
             v-else
             class="flex h-24 w-24 items-center justify-center rounded-full bg-brand-600 font-display text-3xl font-bold text-white"
@@ -664,11 +668,11 @@ useSeoMeta({
                 :key="photo.id"
                 class="group relative aspect-[4/3] overflow-hidden rounded-xl"
               >
-                <img
+                <NuxtImg
                   :src="photo.url"
                   :alt="t('dashboard.profile.sections.recentWork')"
                   class="h-full w-full object-cover"
-                >
+                />
                 <button
                   type="button"
                   class="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
@@ -735,7 +739,7 @@ useSeoMeta({
     <DashboardKycStepper
       v-else-if="activeTab === 'kyc' && summary"
       :kyc="summary.kyc"
-      @submitted="refreshSummary"
+      @submitted="onKycSubmitted"
     />
   </div>
 </template>

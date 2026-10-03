@@ -12,7 +12,12 @@ const slug = String(route.params.slug)
 const { data: page, error } = await useApi<StaticPageContent>(`/pages/${slug}`, { key: `page-${slug}` })
 
 if (error.value || !page.value) {
-  throw createError({ statusCode: 404, statusMessage: t('legal.notFound'), fatal: true })
+  const status = apiErrorStatus(error.value) ?? 404
+  throw createError({
+    statusCode: status,
+    statusMessage: status === 404 ? t('legal.notFound') : t('errors.somethingWrong'),
+    fatal: true,
+  })
 }
 
 useSeoMeta({

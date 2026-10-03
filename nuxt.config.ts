@@ -1,5 +1,13 @@
 import tailwindcss from '@tailwindcss/vite'
 
+// Every deployed environment (staging, production) must set this explicitly — see the
+// production guard below. The `http://localhost:3838` fallback only exists so `npm run dev`
+// works out of the box on a fresh checkout; it must never reach a real deployment.
+if (!process.env.NUXT_PUBLIC_SITE_URL && process.env.NODE_ENV === 'production') {
+  throw new Error('NUXT_PUBLIC_SITE_URL must be set in production (site URL, CORS origin and i18n base URL all depend on it).')
+}
+const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3838'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 
@@ -36,7 +44,7 @@ export default defineNuxtConfig({
 
   // --- SEO (@nuxtjs/seo: site-config, robots, sitemap, og-image, schema-org, seo-utils) ---
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
+    url: siteUrl,
     name: 'ProFinder',
     description: 'ProFinder',
     defaultLocale: 'en',
@@ -125,7 +133,7 @@ export default defineNuxtConfig({
 
   // --- i18n configuration ---
   i18n: {
-    baseUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
+    baseUrl: siteUrl,
     defaultLocale: 'en',
     strategy: 'prefix_except_default',
     locales: [
@@ -142,6 +150,11 @@ export default defineNuxtConfig({
   image: {
     quality: 80,
     format: ['avif', 'webp'],
+    // Avatars, cover photos and CMS images are served from the Laravel backend's
+    // own `storage/` disk (see `asset('storage/...')` on resources there), not
+    // this app's origin — `@nuxt/image` refuses to optimise a remote host it
+    // doesn't know about otherwise.
+    domains: [new URL(process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000').hostname],
   },
 
   robots: {
@@ -164,7 +177,7 @@ export default defineNuxtConfig({
       interval: 300000,
     },
     corsHandler: {
-      origin: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
+      origin: siteUrl,
     },
     headers: {
       strictTransportSecurity: false,
@@ -179,5 +192,11 @@ export default defineNuxtConfig({
 
   seo: {
     automaticTwitterTags: false,
+  },
+
+  // Provider profiles and legal pages are dynamic (not file-based routes),
+  // so the sitemap can't discover them on its own — see `server/api/__sitemap__/urls.ts`.
+  sitemap: {
+    sources: ['/api/__sitemap__/urls'],
   },
 })

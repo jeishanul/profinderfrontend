@@ -20,6 +20,11 @@ const reasons = computed(() => content.value.length > 0
     }))
   : FALLBACK.map(reason => ({ ...reason, label: t(`marketplace.whyChooseUs.reasons.${reason.id}`) })))
 
+// The first item with an image supplies the visual alongside the points —
+// admins can attach one via the content editor; otherwise a placeholder.
+const featuredImage = computed(() => content.value.find(item => item.imageUrl)?.imageUrl ?? null)
+const featuredDescription = computed(() => content.value.find(item => item.description)?.description ?? null)
+
 const toneClasses: Record<'primary' | 'accent', string> = {
   primary: 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100',
   accent: 'bg-accent-50 text-accent-700 dark:bg-accent-700/20 dark:text-accent-100',
@@ -63,10 +68,18 @@ const toneClasses: Record<'primary' | 'accent', string> = {
       </div>
 
       <div class="relative min-h-64 overflow-hidden rounded-3xl">
+        <NuxtImg
+          v-if="featuredImage"
+          :src="featuredImage"
+          :alt="t('marketplace.whyChooseUs.heading')"
+          width="560"
+          height="380"
+          class="h-full w-full object-cover"
+        />
         <UiPlaceholderMedia
+          v-else
           icon="user"
           tone="accent"
-          label="560 x 380"
         />
         <div class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-brand-700 py-4 text-sm font-bold text-white">
           <UiIcon
@@ -77,5 +90,11 @@ const toneClasses: Record<'primary' | 'accent', string> = {
         </div>
       </div>
     </div>
+    <p
+      v-if="featuredDescription"
+      class="mt-6 max-w-2xl text-black/60 dark:text-white/60"
+    >
+      {{ featuredDescription }}
+    </p>
   </section>
 </template>

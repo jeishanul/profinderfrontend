@@ -71,11 +71,12 @@ export function useSession() {
     // client-side. Also skips `useApiFetch`'s CSRF wrapper: this is a GET,
     // never CSRF-checked server-side, and that wrapper crashes when called
     // from middleware during SSR. A "not logged in" response has an empty
-    // body (H3 sends `null` as a bodyless 204), which ofetch resolves to
-    // `undefined` rather than `null` — normalize so `isAuthenticated`
-    // (`!== null`) is never fooled by that into treating "no user" as
-    // "someone's logged in".
-    const user = (await useRequestFetch()<AuthUser | null>('/api/auth/me')) ?? null
+    // body (H3 sends `null` as a bodyless 204), which ofetch can resolve to
+    // `undefined` or `""` depending on the server/runtime rather than
+    // `null` — normalize so `isAuthenticated` (`!== null`) is never fooled
+    // by that into treating "no user" as "someone's logged in".
+    const raw = await useRequestFetch()<AuthUser | null>('/api/auth/me')
+    const user = raw && typeof raw === 'object' ? raw : null
     state.value = { user, status: 'ready' }
     return user
   }
@@ -91,10 +92,10 @@ export function useSession() {
     return result
   }
 
-  async function completeTwoFactorChallenge(challengeToken: string, code: string) {
+  async function completeTwoFactorChallenge(challengeToken: string, code: string, remember = true) {
     const user = await useApiFetch<AuthUser>('/api/auth/two-factor/challenge', {
       method: 'POST',
-      body: { challengeToken, code },
+      body: { challengeToken, code, remember },
     })
     state.value = { user, status: 'ready' }
     return user

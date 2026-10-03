@@ -17,7 +17,10 @@ const CUSTOMER_LINKS = [
 const { data: categories } = useApi<ServiceCategory[]>('/categories', { key: 'footer-categories', lazy: true, default: () => [] })
 const { data: legalPages } = useApi<{ slug: string, title: string }[]>('/pages', { key: 'footer-pages', lazy: true, default: () => [] })
 
-const popularCategories = computed(() => [...(categories.value ?? [])].sort((a, b) => b.providerCount - a.providerCount).slice(0, 4))
+const popularCategories = computed(() => [...(categories.value ?? [])]
+  .filter(category => category.providerCount > 0)
+  .sort((a, b) => b.providerCount - a.providerCount)
+  .slice(0, 6))
 
 // Only the social networks the admin actually filled in (a dead "#" icon is worse than none).
 const socialLinks = computed(() => [

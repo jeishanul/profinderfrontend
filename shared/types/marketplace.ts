@@ -9,7 +9,7 @@ export interface ServiceCategory {
   /** Admin-editable in the backend CMS — used directly now instead of an
    * i18n lookup, since admins can add categories with no matching i18n key. */
   name: string
-  icon: string
+  icon: string | null
   providerCount: number
   /** Only present when requested with `?include=skills`. */
   skills?: { id: string, name: string }[]
@@ -50,11 +50,12 @@ export interface Review {
   reviewerName: string
   rating: number
   comment: string | null
-  postedDaysAgo: number
-  /** ISO instant — prefer this over `postedDaysAgo` for display. */
+  /** ISO instant. */
   postedAt: string
   reviewerAvatarUrl: string | null
   providerReply: string | null
+  /** True only for the reviewed provider, viewing their own list, when they haven't replied yet. */
+  canReply: boolean
 }
 
 export interface ProviderSummary {
@@ -67,7 +68,6 @@ export interface ProviderSummary {
   categoryName: string
   skills: { id: string, name: string }[]
   categoryId: string
-  skillIds: string[]
   rating: number
   reviewCount: number
   ratePerHour: number
@@ -138,24 +138,6 @@ export interface GalleryItem {
   imageUrl: string | null
 }
 
-export interface ProviderQuery {
-  /** Matches a provider whose category is any of these — the /browse filter
-   * sidebar's service picker is multi-select. */
-  categories?: string[]
-  minRating?: number
-  verifiedOnly?: boolean
-  minRate?: number
-  maxRate?: number
-  /** Philippines location filters — service-only matches nationwide,
-   * +province narrows to that province, +province+city narrows further
-   * (per the client spec doc's three documented search behaviors). */
-  province?: string
-  city?: string
-  barangay?: string
-  page?: number
-  perPage?: number
-}
-
 /**
  * A single admin-managed item within a homepage content section (hero
  * slides, trust stats, how-it-works steps, why-choose-us points, app-download
@@ -172,7 +154,7 @@ export interface ContentItem {
   linkUrl: string | null
 }
 
-export type ContentSectionKey = 'hero_slides' | 'trust_stats' | 'how_it_works' | 'why_choose_us' | 'app_download'
+export type ContentSectionKey = 'hero_badge' | 'hero_slides' | 'trust_stats' | 'how_it_works' | 'why_choose_us' | 'app_download'
 
 export interface PagedResult<T> {
   items: T[]

@@ -23,6 +23,8 @@ const slides = computed(() => content.value.length > 0
       id: `cms-${index}`,
       headline: item.title ?? '',
       sub: item.description ?? '',
+      eyebrow: item.subtitle,
+      linkUrl: item.linkUrl,
       imageUrl: item.imageUrl,
       icon: knownIcon(item.icon, DEFAULT_ICONS[index % DEFAULT_ICONS.length]!),
       tone: TONES[index % TONES.length]!,
@@ -31,10 +33,17 @@ const slides = computed(() => content.value.length > 0
       id,
       headline: t(`marketplace.hero.slides.${id}.headline`),
       sub: t(`marketplace.hero.slides.${id}.sub`),
+      eyebrow: null as string | null,
+      linkUrl: null as string | null,
       imageUrl: null as string | null,
       icon: DEFAULT_ICONS[index]!,
       tone: TONES[index]!,
     })))
+
+// The admin's single trust-badge item (a live "Trusted by {N}+ pros" figure
+// — see `ContentTokens` on the backend), else the built-in copy.
+const badgeContent = useContentSection('hero_badge')
+const trustBadgeText = computed(() => badgeContent.value[0]?.title ?? t('marketplace.hero.trustBadge'))
 
 const carousel = useCarousel(() => slides.value.length, { intervalMs: 5000 })
 const activeSlide = computed(() => slides.value[carousel.index.value] ?? slides.value[0]!)
@@ -76,7 +85,13 @@ observe(searchAnchor)
               name="shield-check"
               :size="14"
             />
-            {{ t('marketplace.hero.trustBadge') }}
+            {{ trustBadgeText }}
+          </p>
+          <p
+            v-if="activeSlide.eyebrow"
+            class="mb-1.5 text-xs font-semibold tracking-wide text-brand-700 uppercase dark:text-brand-100"
+          >
+            {{ activeSlide.eyebrow }}
           </p>
           <h1 class="text-3xl font-bold leading-tight sm:text-4xl md:text-[44px]">
             {{ activeSlide.headline }}
@@ -84,15 +99,28 @@ observe(searchAnchor)
           <p class="mt-4 max-w-md text-base leading-relaxed text-black/60 dark:text-white/60 md:text-lg">
             {{ activeSlide.sub }}
           </p>
+          <a
+            v-if="activeSlide.linkUrl"
+            :href="activeSlide.linkUrl"
+            class="mt-5 inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700"
+          >
+            {{ t('marketplace.hero.learnMore') }}
+            <UiIcon
+              name="arrow-right"
+              :size="16"
+            />
+          </a>
         </div>
 
         <div class="absolute right-10 top-1/2 hidden h-56 w-56 -translate-y-1/2 items-center justify-center rounded-full bg-white/50 text-brand-700 dark:bg-black/20 dark:text-brand-100 md:flex">
-          <img
+          <NuxtImg
             v-if="activeSlide.imageUrl"
             :src="activeSlide.imageUrl"
             :alt="activeSlide.headline"
+            width="224"
+            height="224"
             class="h-full w-full rounded-full object-cover"
-          >
+          />
           <UiIcon
             v-else
             :name="activeSlide.icon"

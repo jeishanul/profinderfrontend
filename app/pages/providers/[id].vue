@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProviderProfile, ServiceCategory } from '#shared/types/marketplace'
+import type { ProviderProfile } from '#shared/types/marketplace'
 
 // Drill-down/detail screen: mobile gets a floating back button over the
 // banner plus its own sticky Message/Book action bar instead of the app
@@ -9,7 +9,8 @@ definePageMeta({
 })
 
 const { t, locale } = useI18n()
-const { money } = useSiteSettings()
+const { money, settings } = useSiteSettings()
+const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
 const route = useRoute()
 const router = useRouter()
 const localePath = useLocalePath()
@@ -24,10 +25,13 @@ function goBack() {
 const { data: provider, error } = await useApi<ProviderProfile>(`/providers/${route.params.id}`)
 
 if (error.value || !provider.value) {
-  throw createError({ statusCode: 404, statusMessage: t('marketplace.providerProfile.notFound'), fatal: true })
+  const status = apiErrorStatus(error.value) ?? 404
+  throw createError({
+    statusCode: status,
+    statusMessage: status === 404 ? t('marketplace.providerProfile.notFound') : t('errors.somethingWrong'),
+    fatal: true,
+  })
 }
-
-const { data: categories } = await useApi<ServiceCategory[]>('/categories')
 
 const savedProviders = useSavedProviders()
 await savedProviders.ensureLoaded()
@@ -96,7 +100,6 @@ async function handleToggleSave() {
     isSaving.value = false
   }
 }
-const categoryIcon = computed(() => getCategoryIcon(categories.value ?? [], provider.value!.categoryId))
 const categoryLabel = computed(() => provider.value!.categoryName)
 
 // Skip parts the provider left empty instead of rendering ", , ".
@@ -152,30 +155,58 @@ const pageTitle = computed(() => t('marketplace.providerProfile.seoTitle', {
 
 useSeoMeta({
   title: pageTitle,
-  description: t('marketplace.providerProfile.seoDescription', { name: provider.value!.name }),
+  description: t('marketplace.providerProfile.seoDescription', { name: provider.value!.name, site: siteName.value }),
 })
 defineOgImage('MarketplaceSatori', {
   title: provider.value!.name,
   eyebrow: categoryLabel,
-  description: t('marketplace.providerProfile.seoDescription', { name: provider.value!.name }),
+  description: t('marketplace.providerProfile.seoDescription', { name: provider.value!.name, site: siteName.value }),
 })
-useSchemaOrg([defineWebPage()])
+const schemaDescription = computed(() => {
+  const text = provider.value!.headline ?? provider.value!.bio ?? ''
+  return text.length > 155 ? `${text.slice(0, 154)}…` : text
+})
+
+useSchemaOrg([
+  defineWebPage(),
+  defineLocalBusiness({
+    name: provider.value!.name,
+    image: provider.value!.avatarUrl ?? undefined,
+    description: schemaDescription,
+    address: {
+      addressLocality: provider.value!.cityName,
+      addressRegion: provider.value!.provinceName,
+      addressCountry: 'PH',
+    },
+    ...(provider.value!.reviewCount > 0
+      ? { aggregateRating: { ratingValue: provider.value!.rating, reviewCount: provider.value!.reviewCount } }
+      : {}),
+  }),
+  defineBreadcrumb({
+    itemListElement: [
+      { name: t('nav.home'), item: '/' },
+      { name: t('nav.browse'), item: '/browse' },
+      { name: provider.value!.name },
+    ],
+  }),
+])
 </script>
 
 <template>
   <div v-if="provider">
     <div class="relative mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-10">
       <div class="h-[220px] w-full overflow-hidden rounded-3xl">
-        <img
+        <NuxtImg
           v-if="provider.coverPhotoUrl"
           :src="provider.coverPhotoUrl"
           :alt="provider.name"
+          width="1152"
+          height="220"
           class="h-full w-full object-cover"
-        >
+        />
         <UiPlaceholderMedia
           v-else
           icon="image"
-          label="1152 x 220"
         />
       </div>
       <button
@@ -189,20 +220,27 @@ useSchemaOrg([defineWebPage()])
           :size="18"
         />
       </button>
+      <button
+        type="button"
+        class="absolute top-12 right-8 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm md:hidden dark:bg-black/70"
+        :aria-label="t('marketplace.providerProfile.share')"
+        @click="shareProfile"
+      >
+        <UiIcon
+          name="send"
+          :size="16"
+        />
+      </button>
     </div>
 
     <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
       <div class="-mt-16 flex flex-col items-start gap-5 pb-6 sm:flex-row sm:items-end">
-        <div class="h-[148px] w-[148px] shrink-0 overflow-hidden rounded-full border-4 border-white bg-brand-50 text-brand-700 shadow-lg dark:border-black dark:bg-brand-700/20 dark:text-brand-100">
-          <img
-            v-if="provider.avatarUrl"
+        <div class="h-[148px] w-[148px] shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg dark:border-black">
+          <UiAvatar
+            :name="provider.name"
             :src="provider.avatarUrl"
-            :alt="provider.name"
-            class="h-full w-full object-cover"
-          >
-          <UiPlaceholderMedia
-            v-else
-            :icon="categoryIcon"
+            size-class="h-full w-full rounded-full"
+            text-class="text-4xl"
           />
         </div>
         <div class="flex-1 pb-2">
@@ -539,6 +577,17 @@ useSchemaOrg([defineWebPage()])
           :size="18"
         />
       </UiButton>
+      <button
+        type="button"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/10 text-black/40 transition-colors hover:text-black dark:border-white/10 dark:text-white/40 dark:hover:text-white"
+        :aria-label="t('marketplace.providerProfile.share')"
+        @click="shareProfile"
+      >
+        <UiIcon
+          name="send"
+          :size="18"
+        />
+      </button>
       <button
         type="button"
         class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/10 transition-colors disabled:opacity-50 dark:border-white/10"

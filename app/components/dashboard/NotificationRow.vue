@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SwipeActionItem } from '~/components/ui/SwipeAction.vue'
 import type { NotificationItem } from '#shared/types/dashboard'
 
 // Auto-imported as <DashboardNotificationRow/>. One row in the notifications
@@ -14,7 +15,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { money } = useSiteSettings()
+const { money, settings } = useSiteSettings()
 const categoryLabel = useCategoryLabel()
 // `resolveComponent` (not a bare string in `:is`) so Nuxt can actually resolve the auto-imported link component.
 const NuxtLinkLocale = resolveComponent('NuxtLinkLocale')
@@ -26,7 +27,6 @@ const ICON_BY_KIND: Record<NotificationItem['kind'], IconName> = {
   job_request: 'briefcase',
   review_received: 'star',
   order_completed: 'check-circle',
-  kyc_submitted: 'shield-check',
   refund_processed: 'wallet',
   booking_reminder: 'calendar',
   quote_received: 'briefcase',
@@ -66,7 +66,6 @@ const TINT_BY_KIND: Record<NotificationItem['kind'], string> = {
   job_request: TINT.accent,
   review_received: TINT.brand,
   order_completed: TINT.neutral,
-  kyc_submitted: TINT.danger,
   refund_processed: TINT.accent,
   booking_reminder: TINT.neutral,
   quote_received: TINT.accent,
@@ -98,6 +97,7 @@ const params = computed(() => ({
   rating: props.item.ratingGiven ?? '',
   category: categoryLabel(props.item.categoryId),
   amount: money(props.item.amountUsd ?? 0),
+  site: settings.value.siteName ?? t('brand.name'),
 }))
 
 const title = computed(() => props.item.title || t(`dashboard.notificationsPage.${props.item.kind}.title`, params.value))
@@ -110,14 +110,21 @@ const timeLabel = computed(() => props.item.timeAgoHours < 24
 function onOpen() {
   if (!props.item.read) emit('read', props.item.id)
 }
+
+const swipeActions = computed<SwipeActionItem[]>(() => {
+  const actions: SwipeActionItem[] = []
+  if (!props.item.read) {
+    actions.push({ label: t('dashboard.notificationsPage.markRead'), icon: 'check', tone: 'neutral', onAction: () => emit('read', props.item.id) })
+  }
+  actions.push({ label: t('dashboard.notificationsPage.remove'), icon: 'trash', tone: 'danger', onAction: () => emit('remove', props.item.id) })
+  return actions
+})
 </script>
 
 <template>
   <UiSwipeAction
     class="mb-1.5 last:mb-0"
-    :action-label="t('dashboard.notificationsPage.markRead')"
-    action-icon="check"
-    @action="$emit('read', item.id)"
+    :actions="swipeActions"
   >
     <div class="relative">
       <component
@@ -125,7 +132,7 @@ function onOpen() {
         :to="item.link ?? undefined"
         class="flex gap-3.5 rounded-xl px-2 py-3.5"
         :class="!item.read && 'bg-brand-50 dark:bg-brand-700/10'"
-        @click="item.link && onOpen()"
+        @click="onOpen"
       >
         <span
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"

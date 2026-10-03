@@ -8,6 +8,8 @@
 // external app credentials this project doesn't have, so they're
 // deliberately not wired to anything.
 const { t } = useI18n()
+const { settings } = useSiteSettings()
+const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
 const authModal = useAuthModal()
 const session = useSession()
 
@@ -83,7 +85,7 @@ async function handleTwoFactorSubmit() {
   twoFactorLoading.value = true
   twoFactorError.value = ''
   try {
-    await session.completeTwoFactorChallenge(twoFactorChallengeToken.value, twoFactorCode.value)
+    await session.completeTwoFactorChallenge(twoFactorChallengeToken.value, twoFactorCode.value, login.remember)
     await authModal.complete()
   }
   catch {
@@ -601,22 +603,23 @@ async function skipVerification() {
             keypath="auth.register.terms"
             tag="span"
             class="leading-relaxed"
+            :name="siteName"
           >
             <template #tos>
-              <a
-                href="/legal/terms-of-service"
+              <NuxtLinkLocale
+                to="/legal/terms-of-service"
                 target="_blank"
                 rel="noopener"
                 class="font-semibold"
-              >{{ t('auth.register.termsTos') }}</a>
+              >{{ t('auth.register.termsTos') }}</NuxtLinkLocale>
             </template>
             <template #privacy>
-              <a
-                href="/legal/privacy-policy"
+              <NuxtLinkLocale
+                to="/legal/privacy-policy"
                 target="_blank"
                 rel="noopener"
                 class="font-semibold"
-              >{{ t('auth.register.termsPrivacy') }}</a>
+              >{{ t('auth.register.termsPrivacy') }}</NuxtLinkLocale>
             </template>
           </i18n-t>
         </label>

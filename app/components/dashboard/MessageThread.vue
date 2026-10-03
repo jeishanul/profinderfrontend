@@ -79,6 +79,8 @@ function openEditQuote(quote: Quote) {
 }
 
 const { t, locale } = useI18n()
+const { settings } = useSiteSettings()
+const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
 const categoryLabel = useCategoryLabel()
 
 const draft = ref('')
@@ -162,7 +164,13 @@ const latestBookingId = computed(() => {
 
 /** Quotes and system notices are part of a booking's record — they can't be deleted. */
 const isDeletable = (message: ConversationMessage) =>
-  message.fromMe && !message.quote && (!message.meta || message.meta.type === 'job_request')
+  !message.deleted && message.fromMe && !message.quote && (!message.meta || message.meta.type === 'job_request')
+
+/** Reportable: the other person's own words, not a quote or a system-generated notice. */
+const isReportable = (message: ConversationMessage) =>
+  !message.deleted && !message.fromMe && !message.quote && (!message.meta || message.meta.type === 'job_request')
+
+const reportTargetId = ref<string | null>(null)
 
 const lastSeenText = computed(() => props.conversation.lastSeenAt
   ? t('dashboard.messages.lastSeen', { when: formatRelativeDate(props.conversation.lastSeenAt, locale.value) })
@@ -347,9 +355,18 @@ function handleKeydown(event: KeyboardEvent) {
           />
         </button>
 
+        <!-- A removed message keeps its row (so the thread's shape doesn't shift for the
+             other party) but shows a placeholder instead of its original content. -->
+        <div
+          v-if="message.deleted"
+          class="max-w-[60%] rounded-2xl px-3.5 py-2.5 text-sm text-black/40 italic dark:text-white/40"
+          :class="message.fromMe ? 'rounded-br-md bg-black/5 dark:bg-white/5' : 'rounded-bl-md bg-black/5 dark:bg-white/5'"
+        >
+          {{ t('dashboard.messages.messageDeleted') }}
+        </div>
         <!-- System notices ("booking confirmed", "quote declined") sit centred, not in a bubble. -->
         <div
-          v-if="message.meta && message.meta.type !== 'job_request'"
+          v-else-if="message.meta && message.meta.type !== 'job_request'"
           class="mx-auto my-1.5 max-w-[80%] rounded-2xl bg-black/5 px-3.5 py-1.5 text-center text-xs font-semibold text-black/60 dark:bg-white/10 dark:text-white/60"
         >
           <template v-if="message.meta.type === 'booking_created'">
@@ -364,7 +381,7 @@ function handleKeydown(event: KeyboardEvent) {
             </button>
           </template>
           <template v-else-if="message.meta.type === 'admin_notice'">
-            <span class="font-bold">{{ t('dashboard.messages.system.adminNotice') }}:</span>
+            <span class="font-bold">{{ t('dashboard.messages.system.adminNotice', { site: siteName }) }}:</span>
             {{ message.text }}
           </template>
           <template v-else>
@@ -490,8 +507,27 @@ function handleKeydown(event: KeyboardEvent) {
             :size="14"
           />
         </button>
+        <button
+          v-else-if="isReportable(message)"
+          type="button"
+          class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-white"
+          :aria-label="t('dashboard.messages.reportMessage')"
+          @click="reportTargetId = message.id"
+        >
+          <UiIcon
+            name="alert-triangle"
+            :size="14"
+          />
+        </button>
       </div>
     </div>
+
+    <MarketplaceReportModal
+      :open="!!reportTargetId"
+      type="message"
+      :target-id="reportTargetId ?? ''"
+      @close="reportTargetId = null"
+    />
 
     <div
       v-if="pendingAttachment"
