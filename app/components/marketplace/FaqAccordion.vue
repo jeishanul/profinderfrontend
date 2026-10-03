@@ -20,7 +20,10 @@ function toggle(id: string) {
 </script>
 
 <template>
-  <section class="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-10">
+  <section
+    v-if="items.length > 0"
+    class="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-10"
+  >
     <div class="mb-11 text-center">
       <h2 class="font-display text-3xl font-bold sm:text-4xl">
         {{ t('marketplace.faq.heading') }}
@@ -54,14 +57,17 @@ function toggle(id: string) {
           class="grid overflow-hidden text-sm text-black/60 transition-all duration-300 dark:text-white/60"
           :class="openId === item.id ? 'mt-3 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'"
         >
-          <p class="min-h-0 leading-relaxed">
+          <p class="min-h-0 leading-relaxed whitespace-pre-line">
             {{ item.answer }}
           </p>
         </div>
       </div>
     </div>
 
-    <div class="mt-7 flex justify-center">
+    <div
+      v-if="items.length > INITIAL_VISIBLE"
+      class="mt-7 flex justify-center"
+    >
       <UiButton
         variant="ghost"
         @click="showAll = !showAll"

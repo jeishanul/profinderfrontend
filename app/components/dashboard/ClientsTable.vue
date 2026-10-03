@@ -11,8 +11,12 @@ const props = withDefaults(
   { limit: undefined },
 )
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { money } = useSiteSettings()
+const categoryLabel = useCategoryLabel()
 const localePath = useLocalePath()
+const toast = useToast()
+const drawer = useBookingDrawer()
 
 const rows = computed(() => (props.limit ? props.clients.slice(0, props.limit) : props.clients))
 
@@ -26,13 +30,26 @@ function avatarClass(index: number) {
   return AVATAR_TINTS[index % AVATAR_TINTS.length]
 }
 
-// Opens (or creates) a real conversation with this client.
+const serviceLabel = (client: ClientServed) => client.serviceTitle ?? categoryLabel(client.categoryId, client.categoryName)
+
+// Opens the thread this booking came from, or finds/creates one with the client.
+const messagingId = ref<string | null>(null)
 async function messageClient(client: ClientServed) {
-  const conversation = await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
-    method: 'POST',
-    body: { consumerUserId: Number(client.clientUserId) },
-  })
-  await navigateTo(localePath({ path: '/messages', query: { conversation: conversation.id } }))
+  if (messagingId.value) return
+  messagingId.value = client.id
+  try {
+    const conversationId = client.conversationId ?? (await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
+      method: 'POST',
+      body: { consumerUserId: Number(client.clientUserId) },
+    })).id
+    await navigateTo(localePath({ path: '/messages', query: { conversation: conversationId } }))
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('dashboard.table.messageFailed')))
+  }
+  finally {
+    messagingId.value = null
+  }
 }
 </script>
 
@@ -68,11 +85,17 @@ async function messageClient(client: ClientServed) {
                 </UiTag>
               </div>
               <div class="mt-0.5 text-xs font-normal text-black/60 dark:text-white/60">
-                {{ t(`marketplace.categories.${client.categoryId}.label`) }} &middot; {{ client.date }}
+                {{ serviceLabel(client) }} &middot; {{ formatDateTime(client.scheduledAt, locale) }}
               </div>
             </div>
           </div>
-          <DashboardStatusBadge :status="client.status" />
+          <div class="flex flex-col items-end gap-1.5">
+            <DashboardStatusBadge :status="client.status" />
+            <DashboardPaymentBadge
+              v-if="client.status !== 'cancelled'"
+              :status="client.paymentStatus"
+            />
+          </div>
         </div>
         <div class="mt-3.5 flex items-center justify-between gap-3 border-t border-black/10 pt-3 dark:border-white/10">
           <div class="flex items-center gap-3 text-sm">
@@ -88,15 +111,25 @@ async function messageClient(client: ClientServed) {
               />
               {{ client.rating.toFixed(1) }}
             </span>
-            <span class="font-semibold">${{ client.amountUsd }}</span>
+            <span class="font-semibold">{{ money(client.amountUsd) }}</span>
           </div>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            @click="messageClient(client)"
-          >
-            {{ t('dashboard.table.message') }}
-          </UiButton>
+          <div class="flex gap-2">
+            <UiButton
+              variant="secondary"
+              size="sm"
+              @click="drawer.open(client.id)"
+            >
+              {{ t('dashboard.table.details') }}
+            </UiButton>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              :disabled="messagingId === client.id"
+              @click="messageClient(client)"
+            >
+              {{ t('dashboard.table.message') }}
+            </UiButton>
+          </div>
         </div>
       </div>
     </div>
@@ -124,7 +157,7 @@ async function messageClient(client: ClientServed) {
               {{ t('dashboard.table.status') }}
             </th>
             <th class="pb-3 font-bold">
-              <span class="sr-only">{{ t('dashboard.table.message') }}</span>
+              <span class="sr-only">{{ t('dashboard.table.actions') }}</span>
             </th>
           </tr>
         </thead>
@@ -153,10 +186,10 @@ async function messageClient(client: ClientServed) {
               </div>
             </td>
             <td class="py-3.5 pr-3 text-black/60 dark:text-white/60">
-              {{ t(`marketplace.categories.${client.categoryId}.label`) }}
+              {{ serviceLabel(client) }}
             </td>
             <td class="py-3.5 pr-3 text-black/60 dark:text-white/60">
-              {{ client.date }}
+              {{ formatDateTime(client.scheduledAt, locale) }}
             </td>
             <td class="py-3.5 pr-3 text-black/60 dark:text-white/60">
               <span
@@ -174,19 +207,35 @@ async function messageClient(client: ClientServed) {
               <span v-else>—</span>
             </td>
             <td class="py-3.5 pr-3 font-semibold">
-              ${{ client.amountUsd }}
+              {{ money(client.amountUsd) }}
             </td>
             <td class="py-3.5 pr-3">
-              <DashboardStatusBadge :status="client.status" />
+              <div class="flex flex-wrap items-center gap-1.5">
+                <DashboardStatusBadge :status="client.status" />
+                <DashboardPaymentBadge
+                  v-if="client.status !== 'cancelled'"
+                  :status="client.paymentStatus"
+                />
+              </div>
             </td>
             <td class="py-3.5">
-              <UiButton
-                variant="ghost"
-                size="sm"
-                @click="messageClient(client)"
-              >
-                {{ t('dashboard.table.message') }}
-              </UiButton>
+              <div class="flex justify-end gap-2">
+                <UiButton
+                  variant="secondary"
+                  size="sm"
+                  @click="drawer.open(client.id)"
+                >
+                  {{ t('dashboard.table.details') }}
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="messagingId === client.id"
+                  @click="messageClient(client)"
+                >
+                  {{ t('dashboard.table.message') }}
+                </UiButton>
+              </div>
             </td>
           </tr>
         </tbody>

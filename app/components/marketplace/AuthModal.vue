@@ -8,14 +8,19 @@
 // external app credentials this project doesn't have, so they're
 // deliberately not wired to anything.
 const { t } = useI18n()
+const { settings } = useSiteSettings()
+const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
 const authModal = useAuthModal()
 const session = useSession()
-const localePath = useLocalePath()
 
 const titleId = useId()
 
-const login = reactive({ identifier: '', password: '' })
-const register = reactive({ fullName: '', email: '', password: '' })
+const toast = useToast()
+
+const login = reactive({ identifier: '', password: '', remember: true })
+const register = reactive({ fullName: '', email: '', password: '', confirmPassword: '', acceptTerms: false })
+// Set when the account was paused by its owner: offer to bring it back instead of just failing.
+const needsReactivation = ref(false)
 const showLoginPassword = ref(false)
 const showRegisterPassword = ref(false)
 const loginError = ref('')
@@ -80,9 +85,8 @@ async function handleTwoFactorSubmit() {
   twoFactorLoading.value = true
   twoFactorError.value = ''
   try {
-    await session.completeTwoFactorChallenge(twoFactorChallengeToken.value, twoFactorCode.value)
-    authModal.close()
-    await navigateTo(localePath('/dashboard'))
+    await session.completeTwoFactorChallenge(twoFactorChallengeToken.value, twoFactorCode.value, login.remember)
+    await authModal.complete()
   }
   catch {
     twoFactorError.value = t('auth.twoFactor.invalidError')
@@ -130,11 +134,22 @@ async function handleForgotPasswordSubmit() {
   }
 }
 
+const resendLoading = ref(false)
 async function handleResend() {
-  if (countdown.isActive.value) return
+  if (countdown.isActive.value || resendLoading.value) return
+  resendLoading.value = true
   otpCode.value = ''
-  await requestOtp()
-  countdown.start()
+  try {
+    await requestOtp()
+    countdown.start()
+    toast.info(t('auth.otp.resent'))
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('errors.somethingWrong')))
+  }
+  finally {
+    resendLoading.value = false
+  }
 }
 
 async function handleOtpSubmit() {
@@ -189,11 +204,12 @@ function continueToLogin() {
   authModal.setView('login')
 }
 
-async function handleLoginSubmit() {
+async function handleLoginSubmit(reactivate = false) {
   loginLoading.value = true
   loginError.value = ''
+  needsReactivation.value = false
   try {
-    const result = await session.login(login.identifier, login.password)
+    const result = await session.login(login.identifier, login.password, { remember: login.remember, reactivate })
     if ('twoFactorRequired' in result) {
       twoFactorChallengeToken.value = result.challengeToken
       twoFactorCode.value = ''
@@ -201,11 +217,24 @@ async function handleLoginSubmit() {
       authModal.setView('two-factor')
       return
     }
-    authModal.close()
-    await navigateTo(localePath('/dashboard'))
+    await authModal.complete()
   }
-  catch {
-    loginError.value = t('auth.login.invalidError')
+  catch (error) {
+    // The server says *why* (suspended, paused by the owner, wrong password) — show that, not one vague line.
+    const code = apiErrorCode(error)
+    if (code === 'account_deactivated') {
+      needsReactivation.value = true
+      loginError.value = t('auth.login.deactivatedError')
+    }
+    else if (code === 'account_suspended' || code === 'account_banned') {
+      loginError.value = t('auth.login.suspendedError')
+    }
+    else if (apiErrorStatus(error) === 429) {
+      loginError.value = t('auth.login.tooManyAttempts')
+    }
+    else {
+      loginError.value = t('auth.login.invalidError')
+    }
   }
   finally {
     loginLoading.value = false
@@ -213,19 +242,90 @@ async function handleLoginSubmit() {
 }
 
 async function handleRegisterSubmit() {
-  registerLoading.value = true
   registerError.value = ''
-  try {
-    await session.register(register.fullName, register.email, register.password)
-    authModal.close()
-    await navigateTo(localePath('/dashboard'))
+  if (!register.acceptTerms) {
+    registerError.value = t('auth.register.termsRequiredError')
+    return
   }
-  catch {
-    registerError.value = t('auth.register.failedError')
+  if (register.password !== register.confirmPassword) {
+    registerError.value = t('auth.register.passwordMismatchError')
+    return
+  }
+
+  registerLoading.value = true
+  try {
+    await session.register(register.fullName, register.email, register.password, register.acceptTerms)
+    // A code was just emailed; ask for it now (they can skip and do it later from the banner).
+    verifyCode.value = ''
+    verifyError.value = ''
+    verifyCountdown.start()
+    authModal.setView('verify-email')
+  }
+  catch (error) {
+    registerError.value = Object.values(apiFieldErrors(error))[0] ?? t('auth.register.failedError')
   }
   finally {
     registerLoading.value = false
   }
+}
+
+// --- Verify email (after sign-up, or reopened from the dashboard banner) ------
+
+// Opening this step from anywhere starts it clean, with the resend timer running
+// (a code has just been emailed by whoever opened it).
+watch(() => authModal.view.value, (view) => {
+  if (view !== 'verify-email') return
+  verifyCode.value = ''
+  verifyError.value = ''
+  if (!verifyCountdown.isActive.value) verifyCountdown.start()
+})
+
+const verifyCode = ref('')
+const verifyError = ref('')
+const verifyLoading = ref(false)
+const verifyResendLoading = ref(false)
+const verifyCountdown = useCountdown(RESEND_SECONDS)
+const verifyCountdownLabel = computed(() => {
+  const total = verifyCountdown.remaining.value
+  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, '0')}`
+})
+
+async function handleVerifySubmit() {
+  if (verifyCode.value.length !== 6) return
+  verifyLoading.value = true
+  verifyError.value = ''
+  try {
+    await useApiFetch('/api/auth/email/verify', { method: 'POST', body: { code: verifyCode.value } })
+    await session.fetchUser()
+    toast.success(t('auth.verifyEmail.verified'))
+    await authModal.complete()
+  }
+  catch {
+    verifyError.value = t('auth.otp.invalidError')
+  }
+  finally {
+    verifyLoading.value = false
+  }
+}
+
+async function handleVerifyResend() {
+  if (verifyCountdown.isActive.value || verifyResendLoading.value) return
+  verifyResendLoading.value = true
+  try {
+    await useApiFetch('/api/auth/email/send', { method: 'POST' })
+    verifyCountdown.start()
+    toast.info(t('auth.otp.resent'))
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('errors.somethingWrong')))
+  }
+  finally {
+    verifyResendLoading.value = false
+  }
+}
+
+async function skipVerification() {
+  await authModal.complete()
 }
 </script>
 
@@ -298,7 +398,7 @@ async function handleRegisterSubmit() {
 
       <form
         class="mt-6 flex flex-col gap-4"
-        @submit.prevent="handleLoginSubmit"
+        @submit.prevent="handleLoginSubmit(false)"
       >
         <div>
           <label
@@ -348,6 +448,16 @@ async function handleRegisterSubmit() {
         >
           {{ loginError }}
         </p>
+        <UiButton
+          v-if="needsReactivation"
+          type="button"
+          variant="secondary"
+          class="w-full justify-center"
+          :disabled="loginLoading"
+          @click="handleLoginSubmit(true)"
+        >
+          {{ t('auth.login.reactivate') }}
+        </UiButton>
 
         <div class="-mt-1 flex items-center justify-between">
           <label
@@ -356,6 +466,7 @@ async function handleRegisterSubmit() {
           >
             <input
               id="auth-login-remember"
+              v-model="login.remember"
               type="checkbox"
               class="h-[15px] w-[15px] accent-brand-600"
             >
@@ -462,31 +573,53 @@ async function handleRegisterSubmit() {
           </UiInput>
         </div>
 
+        <div>
+          <label
+            for="auth-register-confirm"
+            class="mb-2 block text-xs font-bold"
+          >{{ t('auth.register.confirmPasswordLabel') }}</label>
+          <UiInput
+            id="auth-register-confirm"
+            v-model="register.confirmPassword"
+            icon="lock"
+            :type="showRegisterPassword ? 'text' : 'password'"
+            autocomplete="new-password"
+            :placeholder="t('auth.register.confirmPasswordPlaceholder')"
+          />
+        </div>
+
         <label
           for="auth-register-terms"
           class="-mt-1 flex items-start gap-2 text-xs text-black/60 dark:text-white/60"
         >
           <input
             id="auth-register-terms"
+            v-model="register.acceptTerms"
             type="checkbox"
+            required
             class="mt-0.5 h-[15px] w-[15px] shrink-0 accent-brand-600"
           >
           <i18n-t
             keypath="auth.register.terms"
             tag="span"
             class="leading-relaxed"
+            :name="siteName"
           >
             <template #tos>
-              <a
-                href="#"
+              <NuxtLinkLocale
+                to="/legal/terms-of-service"
+                target="_blank"
+                rel="noopener"
                 class="font-semibold"
-              >{{ t('auth.register.termsTos') }}</a>
+              >{{ t('auth.register.termsTos') }}</NuxtLinkLocale>
             </template>
             <template #privacy>
-              <a
-                href="#"
+              <NuxtLinkLocale
+                to="/legal/privacy-policy"
+                target="_blank"
+                rel="noopener"
                 class="font-semibold"
-              >{{ t('auth.register.termsPrivacy') }}</a>
+              >{{ t('auth.register.termsPrivacy') }}</NuxtLinkLocale>
             </template>
           </i18n-t>
         </label>
@@ -617,6 +750,7 @@ async function handleRegisterSubmit() {
             v-else
             type="button"
             class="font-bold text-black dark:text-white"
+            :disabled="resendLoading"
             @click="handleResend"
           >
             {{ t('auth.otp.resend') }}
@@ -630,6 +764,64 @@ async function handleRegisterSubmit() {
         >
           {{ t('auth.otp.submit') }}
         </UiButton>
+      </form>
+    </template>
+
+    <template v-else-if="authModal.view.value === 'verify-email'">
+      <h2
+        :id="titleId"
+        class="text-2xl font-bold"
+      >
+        {{ t('auth.verifyEmail.heading') }}
+      </h2>
+      <p class="mt-1.5 text-sm text-black/60 dark:text-white/60">
+        {{ t('auth.verifyEmail.subheading', { email: session.user.value?.email ?? '' }) }}
+      </p>
+
+      <form
+        class="mt-6 flex flex-col gap-5"
+        @submit.prevent="handleVerifySubmit"
+      >
+        <UiOtpInput
+          v-model="verifyCode"
+          :aria-label="t('auth.otp.codeLabel')"
+          class="justify-center"
+        />
+
+        <p
+          v-if="verifyError"
+          class="-mt-2 text-center text-xs font-semibold text-red-600 dark:text-red-400"
+        >
+          {{ verifyError }}
+        </p>
+
+        <p class="text-center text-xs text-black/60 dark:text-white/60">
+          <span v-if="verifyCountdown.isActive.value">{{ t('auth.otp.resendCountdown', { time: verifyCountdownLabel }) }}</span>
+          <button
+            v-else
+            type="button"
+            class="font-bold text-black dark:text-white"
+            :disabled="verifyResendLoading"
+            @click="handleVerifyResend"
+          >
+            {{ t('auth.otp.resend') }}
+          </button>
+        </p>
+
+        <UiButton
+          type="submit"
+          class="w-full justify-center"
+          :disabled="verifyCode.length !== 6 || verifyLoading"
+        >
+          {{ t('auth.verifyEmail.submit') }}
+        </UiButton>
+        <button
+          type="button"
+          class="text-center text-xs font-semibold text-black/60 hover:text-black dark:text-white/60 dark:hover:text-white"
+          @click="skipVerification"
+        >
+          {{ t('auth.verifyEmail.skip') }}
+        </button>
       </form>
     </template>
 

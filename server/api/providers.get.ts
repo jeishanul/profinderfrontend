@@ -1,11 +1,11 @@
-import type { PagedResult, ProviderProfile } from '#shared/types/marketplace'
+import type { PagedResult, ProviderSummary } from '#shared/types/marketplace'
 
-export default defineEventHandler((event): Promise<PagedResult<ProviderProfile>> => {
+export default defineEventHandler((event): Promise<PagedResult<ProviderSummary>> => {
   const query = getQuery(event)
 
-  return callApi<PagedResult<ProviderProfile>>(event, '/providers', {
+  return callApi<PagedResult<ProviderSummary>>(event, '/providers', {
     query: {
-      categories: typeof query.categories === 'string' && query.categories ? query.categories : undefined,
+      categories: Array.isArray(query.categories) ? query.categories.join(',') : (query.categories || undefined),
       minRating: query.minRating,
       verifiedOnly: query.verifiedOnly,
       minRate: query.minRate,
@@ -13,6 +13,10 @@ export default defineEventHandler((event): Promise<PagedResult<ProviderProfile>>
       province: query.province,
       city: query.city,
       barangay: query.barangay,
+      q: query.q,
+      sort: query.sort,
+      skills: Array.isArray(query.skills) ? query.skills.join(',') : query.skills,
+      availableDay: query.availableDay,
       page: query.page,
       perPage: query.perPage,
     },

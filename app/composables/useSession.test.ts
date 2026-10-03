@@ -9,13 +9,15 @@ const FAKE_USER: AuthUser = {
   email: 'amara@example.com',
   avatarUrl: null,
   isProvider: false,
+  emailVerified: true,
 }
 
 // Matches the LocationPicker.test.ts convention: `registerEndpoint` spins up
 // a real mock Nitro handler `$fetch` actually hits, unlike stubbing the
 // global (auto-imports resolve to a fixed binding at transform time, so a
 // global stub never reaches the code under test).
-registerEndpoint('/api/auth/login', () => FAKE_USER)
+let loginUser: AuthUser = FAKE_USER
+registerEndpoint('/api/auth/login', () => loginUser)
 registerEndpoint('/api/auth/register', () => FAKE_USER)
 registerEndpoint('/api/auth/logout', () => ({ message: 'Logged out.' }))
 const meMock = vi.fn(() => null as AuthUser | null)
@@ -26,6 +28,9 @@ describe('useSession', () => {
   // between tests so one test's `setActiveRole()` can't leak into the next.
   beforeEach(() => {
     localStorage.clear()
+    loginUser = FAKE_USER
+    useCookie('pf_role').value = 'consumer'
+    useState('active-role').value = 'consumer'
     meMock.mockReturnValue(null)
     // `useState('session', ...)` is shared across every `it()` in this file
     // (same Nuxt app instance) — reset it so one test's login() can't leak
@@ -55,7 +60,7 @@ describe('useSession', () => {
   it('register() authenticates with the returned user', async () => {
     const session = useSession()
 
-    await session.register('Amara Chen', 'amara@example.com', 'password123')
+    await session.register('Amara Chen', 'amara@example.com', 'password123', true)
 
     expect(session.isAuthenticated.value).toBe(true)
     expect(session.name.value).toBe('Amara Chen')
@@ -80,7 +85,8 @@ describe('useSession', () => {
     expect(session.name.value).toBe('Amara Chen')
   })
 
-  it('setActiveRole() switches roles without logging out', async () => {
+  it('setActiveRole() switches a provider between roles without logging out', async () => {
+    loginUser = { ...FAKE_USER, isProvider: true }
     const session = useSession()
 
     await session.login('amara@example.com', 'password123')
@@ -90,7 +96,17 @@ describe('useSession', () => {
     expect(session.isAuthenticated.value).toBe(true)
   })
 
-  it('logout() calls the real endpoint and de-authenticates without resetting the active role', async () => {
+  it('a user without a provider profile can never be in the provider role', async () => {
+    const session = useSession()
+
+    await session.login('amara@example.com', 'password123')
+    session.setActiveRole('provider')
+
+    expect(session.activeRole.value).toBe('consumer')
+  })
+
+  it('logout() calls the real endpoint and de-authenticates', async () => {
+    loginUser = { ...FAKE_USER, isProvider: true }
     const session = useSession()
 
     await session.login('amara@example.com', 'password123')
@@ -98,7 +114,8 @@ describe('useSession', () => {
     await session.logout()
 
     expect(session.isAuthenticated.value).toBe(false)
-    expect(session.activeRole.value).toBe('provider')
+    // Logged out, nobody is a provider — the stored preference is kept for next login.
+    expect(session.activeRole.value).toBe('consumer')
   })
 
   it('clearLocal() de-authenticates without calling the network', async () => {
@@ -111,14 +128,14 @@ describe('useSession', () => {
   })
 
   it('persists the active role across separate useSession() calls (survives a reload)', async () => {
-    const a = useSession()
-    a.setActiveRole('provider')
-    // `useLocalStorage` flushes its write on the next tick, same as a real
-    // reload always has a task-queue boundary before the page re-reads it.
-    await nextTick()
+    loginUser = { ...FAKE_USER, isProvider: true }
+    await useSession().login('amara@example.com', 'password123')
+    useSession().setActiveRole('provider')
 
-    const b = useSession()
-    expect(b.activeRole.value).toBe('provider')
+    expect(useSession().activeRole.value).toBe('provider')
+    // The preference lives in a cookie so SSR can read it on the next request.
+    await nextTick()
+    expect(document.cookie).toContain('pf_role=provider')
   })
 
   it('shares state across separate calls (single source of truth)', async () => {

@@ -8,10 +8,17 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const categoryLabel = useCategoryLabel()
 
-const TABS: GalleryTab[] = ['home', 'recommended', 'trending']
+const ALL_TABS: GalleryTab[] = ['home', 'recommended', 'trending']
+// Hide a tab entirely rather than switch to it and show nothing.
+const tabs = computed(() => ALL_TABS.filter(tab => (props.itemsByTab[tab]?.length ?? 0) > 0))
+const hasAnyItems = computed(() => tabs.value.length > 0)
 const activeTab = ref<GalleryTab>('home')
-const currentItems = computed(() => props.itemsByTab[activeTab.value])
+watch(tabs, (available) => {
+  if (available.length > 0 && !available.includes(activeTab.value)) activeTab.value = available[0]!
+}, { immediate: true })
+const currentItems = computed(() => props.itemsByTab[activeTab.value] ?? [])
 
 const CARD_STEP_PX = 296
 const carousel = useCarousel(() => currentItems.value.length, { visibleCount: 3, intervalMs: 3600 })
@@ -30,7 +37,10 @@ function selectTab(tab: GalleryTab) {
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10">
+  <section
+    v-if="hasAnyItems"
+    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10"
+  >
     <div class="mb-7 flex items-center justify-between gap-4">
       <h2 class="font-display text-3xl font-bold sm:text-4xl">
         {{ t('marketplace.gallery.heading') }}
@@ -39,7 +49,7 @@ function selectTab(tab: GalleryTab) {
 
     <div class="mb-7 flex flex-wrap gap-2.5">
       <button
-        v-for="tab in TABS"
+        v-for="tab in tabs"
         :key="tab"
         type="button"
         class="rounded-full px-5 py-2.5 text-sm font-bold transition-colors"
@@ -76,13 +86,22 @@ function selectTab(tab: GalleryTab) {
             class="w-[276px] shrink-0 snap-start"
           >
             <div class="h-[190px] overflow-hidden rounded-2xl">
+              <NuxtImg
+                v-if="item.imageUrl"
+                :src="item.imageUrl"
+                :alt="item.title ?? categoryLabel(item.categoryId, item.categoryName)"
+                loading="lazy"
+                width="276"
+                height="190"
+                class="h-full w-full object-cover"
+              />
               <UiPlaceholderMedia
+                v-else
                 :icon="getCategoryIcon(categories, item.categoryId)"
-                label="276 x 190"
               />
             </div>
             <p class="mt-3 font-semibold">
-              {{ t(`marketplace.categories.${item.categoryId}.label`) }}
+              {{ item.title ?? categoryLabel(item.categoryId, item.categoryName) }}
             </p>
           </div>
         </div>

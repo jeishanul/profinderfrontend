@@ -11,13 +11,15 @@ import type { ServiceCategory } from '#shared/types/marketplace'
 // keeps their form-control ids from colliding when both happen to be in the
 // DOM at once, and `bare` drops the standalone card chrome (border/backdrop/
 // padding) when the sheet already provides it.
-withDefaults(
+const props = withDefaults(
   defineProps<{
     categories: ServiceCategory[]
     idPrefix?: string
     bare?: boolean
+    /** Desktop filters apply as you change them, so only the mobile sheet needs the button. */
+    showApply?: boolean
   }>(),
-  { idPrefix: 'filter-sidebar', bare: false },
+  { idPrefix: 'filter-sidebar', bare: false, showApply: true },
 )
 
 const emit = defineEmits<{
@@ -33,8 +35,11 @@ const minRating = defineModel<number>('minRating', { default: 0 })
 const verifiedOnly = defineModel<boolean>('verifiedOnly', { default: false })
 const minPrice = defineModel<number>('minPrice', { default: PRICE_MIN })
 const maxPrice = defineModel<number>('maxPrice', { default: PRICE_MAX })
+const skillIds = defineModel<string[]>('skillIds', { default: () => [] })
+const availableDay = defineModel<string | null>('availableDay', { default: null })
 
 const { t } = useI18n()
+const { symbol } = useSiteSettings()
 
 const RATING_OPTIONS = [5, 4, 3, 2, 1] as const
 
@@ -44,7 +49,28 @@ function toggleCategory(id: string) {
     : [...categoryIds.value, id]
 }
 
+const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
+
+// Skills only make sense inside one category, so they're offered once exactly one is chosen.
+const offeredSkills = computed(() =>
+  categoryIds.value.length === 1
+    ? (props.categories.find(category => category.id === categoryIds.value[0])?.skills ?? [])
+    : [],
+)
+
+// Changing the category selection drops skills that no longer apply.
+watch(offeredSkills, (offered) => {
+  const allowed = new Set(offered.map(skill => skill.id))
+  if (skillIds.value.some(id => !allowed.has(id))) skillIds.value = skillIds.value.filter(id => allowed.has(id))
+})
+
+function toggleSkill(id: string) {
+  skillIds.value = skillIds.value.includes(id) ? skillIds.value.filter(existing => existing !== id) : [...skillIds.value, id]
+}
+
 function resetAll() {
+  skillIds.value = []
+  availableDay.value = null
   categoryIds.value = []
   provinceCode.value = null
   cityCode.value = null
@@ -126,7 +152,7 @@ function resetAll() {
             class="text-sm font-semibold"
             :class="categoryIds.includes(cat.id) ? 'text-brand-700 dark:text-brand-100' : 'text-black/70 dark:text-white/70'"
           >
-            {{ t(`marketplace.categories.${cat.id}.label`) }}
+            {{ cat.name }}
           </span>
         </button>
       </div>
@@ -178,7 +204,7 @@ function resetAll() {
             :for="`${idPrefix}-min-price`"
             class="sr-only"
           >{{ t('marketplace.filters.minPriceLabel') }}</label>
-          <span class="text-sm text-black/40 dark:text-white/40">$</span>
+          <span class="text-sm text-black/40 dark:text-white/40">{{ symbol }}</span>
           <input
             :id="`${idPrefix}-min-price`"
             v-model.number="minPrice"
@@ -198,7 +224,7 @@ function resetAll() {
             :for="`${idPrefix}-max-price`"
             class="sr-only"
           >{{ t('marketplace.filters.maxPriceLabel') }}</label>
-          <span class="text-sm text-black/40 dark:text-white/40">$</span>
+          <span class="text-sm text-black/40 dark:text-white/40">{{ symbol }}</span>
           <input
             :id="`${idPrefix}-max-price`"
             v-model.number="maxPrice"
@@ -217,6 +243,7 @@ function resetAll() {
           v-model:to="maxPrice"
           :min="PRICE_MIN"
           :max="PRICE_MAX"
+          :step="PRICE_STEP"
           :label-from="t('marketplace.filters.minPriceLabel')"
           :label-to="t('marketplace.filters.maxPriceLabel')"
         />
@@ -226,6 +253,51 @@ function resetAll() {
         {{ t('marketplace.filters.perHourSuffix') }}
       </p>
     </fieldset>
+
+    <div
+      v-if="offeredSkills.length > 0"
+      class="mb-6"
+    >
+      <p class="mb-2.5 text-xs font-bold uppercase tracking-wide text-black/50 dark:text-white/50">
+        {{ t('marketplace.filters.skills') }}
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="skill in offeredSkills"
+          :key="skill.id"
+          type="button"
+          class="rounded-full px-3 py-1.5 text-xs font-bold transition-colors"
+          :class="skillIds.includes(skill.id)
+            ? 'bg-brand-600 text-white'
+            : 'bg-black/5 text-black/60 hover:text-black dark:bg-white/10 dark:text-white/60 dark:hover:text-white'"
+          :aria-pressed="skillIds.includes(skill.id)"
+          @click="toggleSkill(skill.id)"
+        >
+          {{ skill.name }}
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <p class="mb-2.5 text-xs font-bold uppercase tracking-wide text-black/50 dark:text-white/50">
+        {{ t('marketplace.filters.availableOn') }}
+      </p>
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          v-for="day in DAYS"
+          :key="day"
+          type="button"
+          class="rounded-full px-3 py-1.5 text-xs font-bold transition-colors"
+          :class="availableDay === day
+            ? 'bg-brand-600 text-white'
+            : 'bg-black/5 text-black/60 hover:text-black dark:bg-white/10 dark:text-white/60 dark:hover:text-white'"
+          :aria-pressed="availableDay === day"
+          @click="availableDay = availableDay === day ? null : day"
+        >
+          {{ t(`dashboard.days.${day}`) }}
+        </button>
+      </div>
+    </div>
 
     <label
       :for="`${idPrefix}-verified`"
@@ -250,6 +322,7 @@ function resetAll() {
     </label>
 
     <UiButton
+      v-if="showApply"
       class="mt-6 w-full justify-center"
       @click="emit('apply')"
     >
