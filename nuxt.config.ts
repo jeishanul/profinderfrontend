@@ -77,8 +77,6 @@ export default defineNuxtConfig({
     '/saved-providers': { ssr: false, robots: false },
     '/settings': { ssr: false, robots: false },
     '/become-a-provider': { ssr: false, robots: false },
-    // Friendly short URLs for the admin-managed pages (Terms, Privacy, About, Contact).
-    '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
     '/terms': { redirect: '/legal/terms-of-service' },
     '/privacy': { redirect: '/legal/privacy-policy' },
     '/about': { redirect: '/legal/about' },
@@ -154,7 +152,10 @@ export default defineNuxtConfig({
     // own `storage/` disk (see `asset('storage/...')` on resources there), not
     // this app's origin — `@nuxt/image` refuses to optimise a remote host it
     // doesn't know about otherwise.
-    domains: [new URL(process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000').hostname],
+    domains: [
+      new URL(process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000').hostname,
+      'admin.profinder.vip',
+    ],
   },
 
   robots: {
@@ -172,10 +173,7 @@ export default defineNuxtConfig({
     // The defaults (150 / 5 min / IP) are within reach of one idle messages tab (thread poll every 10 s, inbox
     // and badges every 30 s) and shared NATs. Generous globally; login/register/OTP are throttled by Laravel
     // per account/IP and get a tighter cap on /api/auth/** below.
-    rateLimiter: {
-      tokensPerInterval: 600,
-      interval: 300000,
-    },
+    rateLimiter: false,
     corsHandler: {
       origin: siteUrl,
     },
