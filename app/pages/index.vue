@@ -4,7 +4,7 @@ import type {
   GalleryItem,
   GalleryTab,
   PagedResult,
-  ProviderProfile,
+  ProviderSummary,
   ServiceCategory,
   Testimonial,
 } from '#shared/types/marketplace'
@@ -26,8 +26,9 @@ const quickTiles = computed(() => [
 ])
 
 const { data: categories } = await useApi<ServiceCategory[]>('/categories')
-const { data: providersPage } = await useApi<PagedResult<ProviderProfile>>('/providers', {
-  query: { perPage: 8 },
+// "Top-rated pros": verified, best-rated first — not just whoever signed up last.
+const { data: providersPage } = await useApi<PagedResult<ProviderSummary>>('/providers', {
+  query: { perPage: 8, sort: 'rating', verifiedOnly: true },
 })
 const { data: testimonials } = await useApi<Testimonial[]>('/testimonials')
 const { data: faqItems } = await useApi<FaqItem[]>('/faq')
@@ -45,7 +46,10 @@ const galleryItemsByTab = computed(() => Object.fromEntries(
   GALLERY_TABS.map((tab, index) => [tab, galleryResponses[index]?.data.value ?? []]),
 ) as Record<GalleryTab, GalleryItem[]>)
 
+const lastSearch = useLastSearch()
+
 function handleHeroSearch({ category, province, city, barangay }: { category: string, province: string, city: string, barangay: string }) {
+  lastSearch.value = province ? { provinceCode: province } : null
   navigateTo(localePath({
     path: '/browse',
     query: {
@@ -57,9 +61,10 @@ function handleHeroSearch({ category, province, city, barangay }: { category: st
   }))
 }
 
+const { settings } = useSiteSettings()
 useSeoMeta({
-  title: t('home.seoTitle'),
-  description: t('home.seoDescription'),
+  title: () => settings.value.seoDefaultTitle ?? t('home.seoTitle'),
+  description: () => settings.value.seoDefaultDescription ?? t('home.seoDescription', { name: settings.value.siteName ?? t('brand.name') }),
 })
 defineOgImage('DefaultSatori', {
   title: t('home.seoTitle'),

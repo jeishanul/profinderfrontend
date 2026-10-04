@@ -12,25 +12,38 @@ definePageMeta({
 const { t } = useI18n()
 const session = useSession()
 
+// Home only shows the latest few; the full lists live on /clients and /purchases.
+const PREVIEW_ROWS = 3
+
 const roleQuery = computed(() => ({ role: session.activeRole.value }))
 const { data: summary } = await useApi<DashboardSummary>('/dashboard/summary', {
   key: 'dashboard-summary',
   query: roleQuery,
 })
 
-const { data: clients } = await useApi<ClientServed[]>('/dashboard/clients', {
-  key: 'dashboard-clients-preview',
-  default: () => [],
-})
-const { data: purchases } = await useApi<PurchaseRecord[]>('/dashboard/purchases', {
-  key: 'dashboard-purchases-preview',
-  default: () => [],
-})
-
-const allClients = computed(() => clients.value ?? [])
-const allPurchases = computed(() => purchases.value ?? [])
-
 const isProvider = computed(() => session.activeRole.value === 'provider')
+
+// Only the list for the panel you're in is needed: providers see recent clients,
+// everyone else sees recent purchases. Switching panel loads the other on demand.
+const clientList = usePagedList<ClientServed>('/dashboard/clients', {
+  key: 'dashboard-clients-preview',
+  perPage: PREVIEW_ROWS,
+  immediate: isProvider.value,
+})
+const purchaseList = usePagedList<PurchaseRecord>('/dashboard/purchases', {
+  key: 'dashboard-purchases-preview',
+  perPage: PREVIEW_ROWS,
+  immediate: !isProvider.value,
+})
+await Promise.all([isProvider.value ? clientList : null, isProvider.value ? null : purchaseList])
+
+watch(isProvider, (provider) => {
+  if (provider) clientList.execute()
+  else purchaseList.execute()
+})
+
+const allClients = clientList.items
+const allPurchases = purchaseList.items
 
 useSeoMeta({
   title: t('dashboard.overview.title'),
@@ -117,6 +130,12 @@ useSeoMeta({
             <h2 class="font-display text-base font-bold">
               {{ t('dashboard.overview.activity.heading') }}
             </h2>
+            <NuxtLinkLocale
+              to="/notifications"
+              :class="linkButtonClass('ghost', 'sm')"
+            >
+              {{ t('dashboard.table.viewAll') }}
+            </NuxtLinkLocale>
           </div>
           <DashboardActivityFeed :items="summary.activity" />
         </div>
@@ -190,7 +209,7 @@ useSeoMeta({
                 <span class="min-w-0 flex-1 text-sm font-semibold">{{ t('dashboard.overview.consumer.quickActions.message') }}</span>
               </NuxtLinkLocale>
               <NuxtLinkLocale
-                to="/purchases"
+                :to="{ path: '/purchases', query: { filter: 'to_review' } }"
                 class="flex items-center gap-3 py-3"
               >
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-700/20 dark:text-accent-100">

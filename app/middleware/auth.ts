@@ -5,7 +5,7 @@
  * hasn't already this request, then redirects home and opens the login modal
  * if that comes back unauthenticated.
  */
-export default defineNuxtRouteMiddleware(async () => {
+export default defineNuxtRouteMiddleware(async (to) => {
   const session = useSession()
 
   if (session.status.value === 'idle') {
@@ -15,7 +15,8 @@ export default defineNuxtRouteMiddleware(async () => {
   if (session.isAuthenticated.value) return
 
   const authModal = useAuthModal()
-  authModal.open('login')
+  // After logging in, land on the page they were trying to reach (not the dashboard).
+  authModal.open('login', { redirect: to.fullPath })
 
   const localePath = useLocalePath()
   return navigateTo(localePath('/'))

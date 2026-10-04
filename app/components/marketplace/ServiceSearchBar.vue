@@ -29,7 +29,7 @@ const { t } = useI18n()
 const uid = useId()
 
 const categoryOptions = computed(() =>
-  props.categories.map(cat => ({ value: cat.id, label: t(`marketplace.categories.${cat.id}.label`) })),
+  props.categories.map(cat => ({ value: cat.id, label: cat.name })),
 )
 
 // `category` stays a plain string ('' = none) so every existing caller

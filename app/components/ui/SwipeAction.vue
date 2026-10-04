@@ -1,24 +1,30 @@
 <script setup lang="ts">
+export interface SwipeActionItem {
+  label: string
+  icon: IconName
+  /** `danger` (red, destructive) or `neutral` (dark, anything else) — defaults to `neutral`. */
+  tone?: 'danger' | 'neutral'
+  onAction: () => void
+}
+
 // Auto-imported as <UiSwipeAction />. Wraps one list row so a left swipe
-// reveals a single action button behind it (iOS Mail-style) — the native
+// reveals one or more action buttons behind it (iOS Mail-style) — the native
 // mobile pattern for row actions (see CLAUDE.md's mobile redesign notes).
 // Desktop/mouse users still get the action: revealing needs a real swipe,
 // but a released mouse-drag past the threshold reveals it the same way
-// (`usePointerSwipe` listens to mouse pointers too), and the panel stays
-// reachable by keyboard once revealed (a real `<button>`, not just a `div`).
-withDefaults(
-  defineProps<{
-    actionLabel: string
-    actionIcon: IconName
-  }>(),
-  {},
-)
-
-const emit = defineEmits<{
-  action: []
+// (`usePointerSwipe` listens to mouse pointers too), and each panel button
+// stays reachable by keyboard once revealed (a real `<button>`, not just a `div`).
+const props = defineProps<{
+  actions: SwipeActionItem[]
 }>()
 
-const REVEAL_WIDTH = 84
+const TONE_CLASS: Record<NonNullable<SwipeActionItem['tone']>, string> = {
+  danger: 'bg-red-600',
+  neutral: 'bg-black/70 dark:bg-white/20',
+}
+
+const ACTION_WIDTH = 84
+const REVEAL_WIDTH = computed(() => ACTION_WIDTH * props.actions.length)
 const CLICK_SUPPRESS_THRESHOLD = 8
 
 const rowRef = useTemplateRef('rowRef')
@@ -44,14 +50,14 @@ const { distanceX, isSwiping } = usePointerSwipe(rowRef, {
 })
 
 const translateX = computed(() => {
-  const base = isOpen.value ? -REVEAL_WIDTH : 0
+  const base = isOpen.value ? -REVEAL_WIDTH.value : 0
   if (!isSwiping.value) return base
-  return Math.max(-REVEAL_WIDTH, Math.min(0, base - distanceX.value))
+  return Math.max(-REVEAL_WIDTH.value, Math.min(0, base - distanceX.value))
 })
 
-function handleAction() {
+function handleAction(action: SwipeActionItem) {
   isOpen.value = false
-  emit('action')
+  action.onAction()
 }
 
 // Capture phase — runs before the slotted row's own @click, so it never
@@ -89,16 +95,19 @@ function handleRowClickCapture(event: MouseEvent) {
       :style="{ width: `${REVEAL_WIDTH}px` }"
     >
       <button
+        v-for="action in actions"
+        :key="action.label"
         type="button"
-        class="flex flex-1 flex-col items-center justify-center gap-1 bg-red-600 text-white active:scale-95"
-        :aria-label="actionLabel"
-        @click="handleAction"
+        class="flex flex-1 flex-col items-center justify-center gap-1 text-white active:scale-95"
+        :class="TONE_CLASS[action.tone ?? 'neutral']"
+        :aria-label="action.label"
+        @click="handleAction(action)"
       >
         <UiIcon
-          :name="actionIcon"
+          :name="action.icon"
           :size="17"
         />
-        <span class="text-[10px] font-semibold">{{ actionLabel }}</span>
+        <span class="text-[10px] font-semibold">{{ action.label }}</span>
       </button>
     </div>
     <!-- Not a new interactive control — a capture-phase guard that only

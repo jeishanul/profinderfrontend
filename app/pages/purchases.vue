@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BookingStatus, PurchaseRecord } from '#shared/types/dashboard'
+import type { PurchaseListMeta, PurchaseRecord } from '#shared/types/dashboard'
 
 // Reached from Home's quick tiles or the More sheet, never a bottom-nav tab
 // — mobile gets a back button instead of the tab bar (see `UiBackButton`).
@@ -10,36 +10,35 @@ definePageMeta({
 })
 
 const { t } = useI18n()
+const session = useSession()
 
-const { data: purchases } = await useApi<PurchaseRecord[]>('/dashboard/purchases', {
+const route = useRoute()
+// `?filter=to_review` (the dashboard's "Leave a review" shortcut) lands on the jobs still waiting for one.
+const filter = ref<string>(typeof route.query.filter === 'string' ? route.query.filter : 'all')
+const search = ref('')
+const debouncedSearch = refDebounced(search, 300)
+
+const list = await usePagedList<PurchaseRecord, PurchaseListMeta>('/dashboard/purchases', {
   key: 'dashboard-purchases',
-  default: () => [],
+  query: computed(() => ({
+    status: filter.value === 'all' ? undefined : filter.value,
+    q: debouncedSearch.value.trim() || undefined,
+  })),
 })
 
-const allPurchases = computed(() => purchases.value ?? [])
-
-const filter = ref<string>('all')
-
+// Chip counts and headline numbers come from the server, so they cover the whole list, not just what is loaded.
 const filterOptions = computed(() => {
-  const list = allPurchases.value
-  const countFor = (status: BookingStatus | 'all') =>
-    status === 'all' ? list.length : list.filter(purchase => purchase.status === status).length
-
-  return [
-    { value: 'all', label: t('dashboard.purchases.filters.all'), count: countFor('all') },
-    { value: 'completed', label: t('dashboard.purchases.filters.completed'), count: countFor('completed') },
-    { value: 'in_progress', label: t('dashboard.purchases.filters.in_progress'), count: countFor('in_progress') },
-    { value: 'cancelled', label: t('dashboard.purchases.filters.cancelled'), count: countFor('cancelled') },
-  ]
+  const counts = list.meta.value?.counts
+  return (['all', 'upcoming', 'completed', 'in_progress', 'cancelled', 'to_review'] as const).map(value => ({
+    value,
+    label: t(`dashboard.purchases.filters.${value}`),
+    count: counts?.[value] ?? 0,
+  }))
 })
 
-const filteredPurchases = computed(() =>
-  allPurchases.value.filter(purchase => filter.value === 'all' || purchase.status === filter.value),
-)
-
-const totalJobsCount = computed(() => allPurchases.value.length)
-const providersHiredCount = computed(() => new Set(allPurchases.value.map(purchase => purchase.providerName)).size)
-const activeOrdersCount = computed(() => allPurchases.value.filter(purchase => purchase.status === 'in_progress').length)
+const totalJobsCount = computed(() => list.meta.value?.counts.all ?? 0)
+const providersHiredCount = computed(() => list.meta.value?.totals.providersHired ?? 0)
+const activeOrdersCount = computed(() => list.meta.value?.totals.active ?? 0)
 
 useSeoMeta({
   title: t('dashboard.purchases.title'),
@@ -87,7 +86,7 @@ useSeoMeta({
         </div>
       </div>
       <NuxtLinkLocale
-        to="/profile"
+        :to="session.isProvider.value ? '/profile' : '/become-a-provider'"
         :class="linkButtonClass('secondary')"
       >
         {{ t('dashboard.purchases.sellBanner.cta') }}
@@ -114,8 +113,24 @@ useSeoMeta({
       :options="filterOptions"
     />
 
+    <UiInput
+      v-model="search"
+      icon="search"
+      class="w-full sm:w-72"
+      :placeholder="t('dashboard.purchases.searchPlaceholder')"
+    />
+
     <div class="rounded-2xl border border-black/10 p-5 sm:p-6 dark:border-white/10">
-      <DashboardPurchasesTable :purchases="filteredPurchases" />
+      <DashboardPurchasesTable :purchases="list.items.value" />
     </div>
+
+    <DashboardLoadMore
+      :shown="list.items.value.length"
+      :total="list.meta.value?.total ?? 0"
+      :has-more="list.hasMore.value"
+      :loading="list.loadingMore.value"
+      :failed="list.loadMoreFailed.value"
+      @more="list.loadMore()"
+    />
   </div>
 </template>

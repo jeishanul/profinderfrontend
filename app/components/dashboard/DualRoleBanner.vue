@@ -4,6 +4,8 @@
 // (every seller can also buy) can't be optional, so the entry point to
 // Browse Services stays visible no matter which mode the panel is in.
 const { t } = useI18n()
+const { settings } = useSiteSettings()
+const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
 </script>
 
 <template>
@@ -17,7 +19,7 @@ const { t } = useI18n()
       </span>
       <div>
         <div class="text-sm font-bold">
-          {{ t('dashboard.dualRoleBanner.title') }}
+          {{ t('dashboard.dualRoleBanner.title', { site: siteName }) }}
         </div>
         <div class="mt-0.5 text-xs text-black/60 dark:text-white/60">
           {{ t('dashboard.dualRoleBanner.body') }}

@@ -1,5 +1,5 @@
 {
-  "name": "findPeople",
+  "name": "profinder",
   "type": "module",
   "private": true,
   "engines": {
@@ -40,6 +40,7 @@
     "nuxt-og-image": "^6.7.8",
     "nuxt-security": "^2.6.0",
     "pinia": "^4.0.3",
+    "qrcode": "^1.5.4",
     "satori": "^0.33.4",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.42",
@@ -47,14 +48,19 @@
   },
   "devDependencies": {
     "@nuxt/test-utils": "^4.3.2",
+    "@types/qrcode": "^1.5.6",
     "@vue/test-utils": "^2.5.0",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-vuejs-accessibility": "^2.6.0",
+    "h3-next": "^2.0.1-rc.32",
     "happy-dom": "^20.14.5",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
     "typescript": "^6.0.3",
     "vitest": "^5.0.0",
     "vue-tsc": "^3.3.11"
+  },
+  "overrides": {
+    "h3": "^1.15.11"
   }
 }

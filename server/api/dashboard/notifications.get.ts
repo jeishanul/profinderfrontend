@@ -1,5 +1,7 @@
 import type { NotificationItem } from '#shared/types/dashboard'
 
 export default defineEventHandler((event): Promise<NotificationItem[]> => {
-  return callApi<NotificationItem[]>(event, '/dashboard/notifications')
+  const query = getQuery(event)
+
+  return callApi<NotificationItem[]>(event, '/dashboard/notifications', { query: { limit: query.limit } })
 })

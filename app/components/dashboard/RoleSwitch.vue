@@ -21,7 +21,19 @@ function optionClass(role: UserRole) {
 </script>
 
 <template>
-  <div class="inline-flex gap-1 rounded-full border border-black/10 bg-black/[0.03] p-1 dark:border-white/10 dark:bg-white/[0.06]">
+  <!-- Only people who actually have a provider profile can switch panels;
+       everyone else is offered the explicit way to become one. -->
+  <NuxtLinkLocale
+    v-if="!session.isProvider.value"
+    to="/become-a-provider"
+    class="inline-flex items-center rounded-full border border-brand-600/30 bg-brand-50 px-4 py-2 text-xs font-bold text-brand-700 transition-colors hover:bg-brand-100 dark:border-brand-100/20 dark:bg-brand-700/20 dark:text-brand-100"
+  >
+    {{ t('dashboard.roleSwitch.becomeProvider') }}
+  </NuxtLinkLocale>
+  <div
+    v-else
+    class="inline-flex gap-1 rounded-full border border-black/10 bg-black/[0.03] p-1 dark:border-white/10 dark:bg-white/[0.06]"
+  >
     <button
       type="button"
       :class="optionClass('consumer')"

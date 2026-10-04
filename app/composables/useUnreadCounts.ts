@@ -1,4 +1,8 @@
-import type { Conversation, NotificationItem } from '#shared/types/dashboard'
+/** `useApi` key of the unread-messages badge. */
+export const UNREAD_MESSAGES_KEY = 'dashboard-unread-messages'
+
+/** `useApi` key of the unread-notifications badge — refreshed whenever one is read, deleted or polled. */
+export const UNREAD_NOTIFICATIONS_KEY = 'dashboard-unread-notifications'
 
 /**
  * Unread message/notification counts for the header icon badges — shared by
@@ -15,21 +19,25 @@ import type { Conversation, NotificationItem } from '#shared/types/dashboard'
 export function useUnreadCounts() {
   const session = useSession()
 
-  const { data: conversations } = useApi<Conversation[]>('/dashboard/conversations', {
-    key: 'dashboard-conversations',
+  // Just the number of conversations with something unread — the badge used to
+  // download every conversation (with every message) to count them.
+  const { data: unreadConversations } = useApi<{ count: number }>('/dashboard/conversations/unread-count', {
+    key: UNREAD_MESSAGES_KEY,
     lazy: true,
     immediate: session.isAuthenticated.value,
-    default: () => [],
+    default: () => ({ count: 0 }),
   })
-  const { data: notifications } = useApi<NotificationItem[]>('/dashboard/notifications', {
-    key: 'dashboard-notifications',
+  // The real number from the server — counting "unread among the loaded page"
+  // under-reported once there were more notifications than one page holds.
+  const { data: unread } = useApi<{ count: number }>('/dashboard/notifications/unread-count', {
+    key: UNREAD_NOTIFICATIONS_KEY,
     lazy: true,
     immediate: session.isAuthenticated.value,
-    default: () => [],
+    default: () => ({ count: 0 }),
   })
 
-  const unreadMessages = computed(() => (conversations.value ?? []).filter(conversation => conversation.unread).length)
-  const unreadNotifications = computed(() => (notifications.value ?? []).filter(item => !item.read).length)
+  const unreadMessages = computed(() => unreadConversations.value?.count ?? 0)
+  const unreadNotifications = computed(() => unread.value?.count ?? 0)
 
   return {
     unreadMessages,

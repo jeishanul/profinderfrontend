@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AttachmentType, Conversation, ConversationMessage, MessageAttachment } from '#shared/types/dashboard'
+import type { AttachmentType, Conversation, ConversationMessage, MessageAttachment, MessageMeta, Quote, QuotePayload, ServiceListing } from '#shared/types/dashboard'
 
 // Auto-imported as <DashboardMessageThread/>. The right-hand panel of the
 // messages page: header (presence), the bubble list (attachments + status
@@ -10,14 +10,37 @@ import type { AttachmentType, Conversation, ConversationMessage, MessageAttachme
 const props = defineProps<{
   conversation: Conversation
   messages: ConversationMessage[]
+  /** The provider's listings, offered as an optional tag on a quote. */
+  services?: ServiceListing[]
+  /** Whether the viewer (as provider) is identity-verified; `false` = quotes are refused, so don't offer the form. */
+  providerVerified?: boolean
+  /** The quote an action is currently running on (disables its buttons). */
+  busyQuoteId?: string | null
+  /** True while the quote form's request is in flight. */
+  quoteSubmitting?: boolean
+  /** Server validation errors for the quote form, by field. */
+  quoteErrors?: Record<string, string>
+  /** Older messages exist beyond what's loaded. */
+  hasMoreBefore?: boolean
+  loadingOlder?: boolean
+  /** The first page of the thread is still loading. */
+  loading?: boolean
+  /** A message is being sent — the composer keeps its text until it succeeds. */
+  sending?: boolean
+  /** Why the last send failed; shown above the composer. */
+  sendError?: string
 }>()
 
 const emit = defineEmits<{
   'send': [payload: { text: string, file: File | null, attachmentType: AttachmentType | null }]
   'delete': [messageId: string]
-  'send-quote': [payload: { basePriceUsd: number, baseHours: number, extraHourlyRateUsd: number, note: string }]
-  'accept-quote': [quoteId: string]
+  'send-quote': [payload: QuotePayload]
+  'edit-quote': [quoteId: string, payload: QuotePayload]
+  'withdraw-quote': [quoteId: string]
+  'accept-quote': [quote: Quote]
   'decline-quote': [quoteId: string]
+  'view-booking': [bookingId: string]
+  'load-older': []
   /** Mobile-only back button (see `messages.vue`'s list/thread split) — a
    * no-op on desktop, where nothing listens for it since the list stays
    * visible alongside the thread there. */
@@ -27,10 +50,38 @@ const emit = defineEmits<{
 // A quote only makes sense flowing provider -> client (see
 // `DashboardQuoteFormModal`'s doc comment) — `conversation.role === 'client'`
 // means the account is acting as the provider in this thread.
-const canSendQuote = computed(() => props.conversation.role === 'client')
+const isProviderHere = computed(() => props.conversation.role === 'client')
+const canSendQuote = computed(() => isProviderHere.value && props.providerVerified !== false)
+// A provider who isn't verified yet is pointed at verification instead of a form the server would refuse.
+const needsVerificationToQuote = computed(() => isProviderHere.value && props.providerVerified === false)
 const showQuoteForm = ref(false)
+// Set while editing a pending quote; `null` means the form creates a new one.
+const editingQuote = ref<Quote | null>(null)
 
-const { t } = useI18n()
+// The client's most recent job request, offered to the provider as the
+// starting point of their quote (date, address and service pre-filled).
+const latestJobRequest = computed(() =>
+  [...props.messages].reverse().find(message => message.meta?.type === 'job_request' && !message.fromMe)?.meta ?? null,
+)
+
+// The job request the open form starts from: the one a card's own button was pressed on, else the newest.
+const quotePrefill = ref<MessageMeta | null>(null)
+
+function openNewQuote(fromRequest: MessageMeta | null = null) {
+  editingQuote.value = null
+  quotePrefill.value = fromRequest ?? latestJobRequest.value
+  showQuoteForm.value = true
+}
+
+function openEditQuote(quote: Quote) {
+  editingQuote.value = quote
+  showQuoteForm.value = true
+}
+
+const { t, locale } = useI18n()
+const { settings } = useSiteSettings()
+const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
+const categoryLabel = useCategoryLabel()
 
 const draft = ref('')
 const pendingAttachment = ref<MessageAttachment | null>(null)
@@ -59,10 +110,23 @@ function scrollToBottom() {
 
 onMounted(scrollToBottom)
 
-// New message (sent or received) or a different thread selected — always
-// jump to the latest message, the same way a real chat app never leaves you
-// scrolled up on your own newly sent message.
-watch(() => props.messages.length, () => nextTick(scrollToBottom))
+// A new message follows the conversation only if you were already at the
+// bottom (or it's your own) — a polled-in message must not yank you away from
+// older ones you're reading. Prepending older messages keeps your place.
+const NEAR_BOTTOM_PX = 120
+watch(() => props.messages, (next, previous) => {
+  const el = messageListRef.value
+  if (!el) return
+  const previousHeight = el.scrollHeight
+  const wasNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX
+  const prependedOlder = previous.length > 0 && next.length > previous.length && next[0]?.id !== previous[0]?.id
+  const addedMine = next.length > previous.length && next.at(-1)?.fromMe === true
+
+  nextTick(() => {
+    if (prependedOlder) el.scrollTop += el.scrollHeight - previousHeight
+    else if (wasNearBottom || addedMine) scrollToBottom()
+  })
+})
 
 watch(() => props.conversation.id, () => {
   draft.value = ''
@@ -73,10 +137,44 @@ watch(() => props.conversation.id, () => {
   nextTick(scrollToBottom)
 })
 
-function handleQuoteSubmit(payload: { basePriceUsd: number, baseHours: number, extraHourlyRateUsd: number, note: string }) {
-  emit('send-quote', payload)
-  showQuoteForm.value = false
+function handleQuoteSubmit(payload: QuotePayload) {
+  // The parent owns the request and decides when to close the form: it stays
+  // open (with the server's message) if the quote is rejected.
+  if (editingQuote.value) emit('edit-quote', editingQuote.value.id, payload)
+  else emit('send-quote', payload)
 }
+
+// The form closes itself once the parent finished a successful save.
+defineExpose({
+  closeQuoteForm: () => {
+    showQuoteForm.value = false
+    editingQuote.value = null
+  },
+  clearComposer: () => clearComposer(),
+})
+
+/** The booking this thread's most recent accepted quote / confirmation created, if any. */
+const latestBookingId = computed(() => {
+  for (const message of [...props.messages].reverse()) {
+    if (message.meta?.type === 'booking_created' && message.meta.bookingId) return message.meta.bookingId
+    if (message.quote?.bookingId) return message.quote.bookingId
+  }
+  return null
+})
+
+/** Quotes and system notices are part of a booking's record — they can't be deleted. */
+const isDeletable = (message: ConversationMessage) =>
+  !message.deleted && message.fromMe && !message.quote && (!message.meta || message.meta.type === 'job_request')
+
+/** Reportable: the other person's own words, not a quote or a system-generated notice. */
+const isReportable = (message: ConversationMessage) =>
+  !message.deleted && !message.fromMe && !message.quote && (!message.meta || message.meta.type === 'job_request')
+
+const reportTargetId = ref<string | null>(null)
+
+const lastSeenText = computed(() => props.conversation.lastSeenAt
+  ? t('dashboard.messages.lastSeen', { when: formatRelativeDate(props.conversation.lastSeenAt, locale.value) })
+  : t('dashboard.messages.offline'))
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
@@ -153,11 +251,15 @@ function handleSend() {
   const text = draft.value.trim()
   const attachmentType = pendingAttachment.value?.type ?? null
   const file = pendingFile.value
-  if (!text && !file) return
+  if ((!text && !file) || props.sending) return
+  // The composer is cleared by the parent (`clearComposer`) only once the
+  // message was actually delivered — a failed send used to lose what you typed.
   emit('send', { text, file, attachmentType })
+}
+
+function clearComposer() {
   draft.value = ''
-  pendingAttachment.value = null
-  pendingFile.value = null
+  clearPendingAttachment()
   nextTick(autoGrow)
 }
 
@@ -188,38 +290,52 @@ function handleKeydown(event: KeyboardEvent) {
           <span class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
             {{ initialsFor(conversation.personName) }}
           </span>
-          <span
-            v-if="conversation.online"
-            class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full bg-brand-600 ring-2 ring-white dark:ring-black"
-          />
         </span>
         <div>
           <div class="text-sm font-bold">
             {{ conversation.personName }}
           </div>
           <div class="text-xs text-black/60 dark:text-white/60">
-            <span :class="conversation.online && 'font-semibold text-brand-700 dark:text-brand-100'">
-              {{ conversation.online ? t('dashboard.messages.online') : conversation.lastSeenLabel }}
-            </span>
+            <span>{{ lastSeenText }}</span>
             · {{ conversation.role === 'client' ? t('dashboard.messages.roleClient') : t('dashboard.messages.roleProvider') }}
-            · {{ t(`marketplace.categories.${conversation.categoryId}.label`) }}
+            · {{ categoryLabel(conversation.categoryId, conversation.categoryName) }}
           </div>
         </div>
       </div>
-      <NuxtLinkLocale
-        v-if="conversation.role === 'client'"
-        to="/clients"
+      <button
+        v-if="latestBookingId"
+        type="button"
+        @click="$emit('view-booking', latestBookingId)"
       >
         <UiTag variant="primary">
           {{ t('dashboard.messages.viewBooking') }}
         </UiTag>
-      </NuxtLinkLocale>
+      </button>
     </div>
 
     <div
       ref="messageListRef"
       class="flex flex-1 flex-col gap-1 overflow-y-auto px-6 py-5"
     >
+      <p
+        v-if="loading"
+        class="py-6 text-center text-sm text-black/50 dark:text-white/50"
+      >
+        {{ t('dashboard.messages.loadingThread') }}
+      </p>
+      <div
+        v-if="hasMoreBefore"
+        class="mb-2 flex justify-center"
+      >
+        <UiButton
+          variant="ghost"
+          size="sm"
+          :disabled="loadingOlder"
+          @click="$emit('load-older')"
+        >
+          {{ loadingOlder ? t('dashboard.messages.loadingOlder') : t('dashboard.messages.loadOlder') }}
+        </UiButton>
+      </div>
       <div
         v-for="message in messages"
         :key="message.id"
@@ -227,7 +343,7 @@ function handleKeydown(event: KeyboardEvent) {
         :class="message.fromMe ? 'justify-end' : 'justify-start'"
       >
         <button
-          v-if="message.fromMe"
+          v-if="isDeletable(message)"
           type="button"
           class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/5 hover:text-red-600 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-red-400"
           :aria-label="t('dashboard.messages.deleteMessage')"
@@ -239,12 +355,63 @@ function handleKeydown(event: KeyboardEvent) {
           />
         </button>
 
+        <!-- A removed message keeps its row (so the thread's shape doesn't shift for the
+             other party) but shows a placeholder instead of its original content. -->
+        <div
+          v-if="message.deleted"
+          class="max-w-[60%] rounded-2xl px-3.5 py-2.5 text-sm text-black/40 italic dark:text-white/40"
+          :class="message.fromMe ? 'rounded-br-md bg-black/5 dark:bg-white/5' : 'rounded-bl-md bg-black/5 dark:bg-white/5'"
+        >
+          {{ t('dashboard.messages.messageDeleted') }}
+        </div>
+        <!-- System notices ("booking confirmed", "quote declined") sit centred, not in a bubble. -->
+        <div
+          v-else-if="message.meta && message.meta.type !== 'job_request'"
+          class="mx-auto my-1.5 max-w-[80%] rounded-2xl bg-black/5 px-3.5 py-1.5 text-center text-xs font-semibold text-black/60 dark:bg-white/10 dark:text-white/60"
+        >
+          <template v-if="message.meta.type === 'booking_created'">
+            {{ t('dashboard.messages.system.bookingCreated', { when: message.meta.scheduledAt ? formatDateTime(message.meta.scheduledAt, locale) : '' }) }}
+            <button
+              v-if="message.meta.bookingId"
+              type="button"
+              class="ml-1 underline"
+              @click="$emit('view-booking', message.meta.bookingId)"
+            >
+              {{ t('dashboard.messages.viewBooking') }}
+            </button>
+          </template>
+          <template v-else-if="message.meta.type === 'admin_notice'">
+            <span class="font-bold">{{ t('dashboard.messages.system.adminNotice', { site: siteName }) }}:</span>
+            {{ message.text }}
+          </template>
+          <template v-else>
+            {{ t('dashboard.messages.system.quoteDeclined') }}
+            <span
+              v-if="message.meta.reason"
+              class="mt-0.5 block font-normal"
+            >{{ t('dashboard.messages.system.quoteDeclinedReason', { reason: message.meta.reason }) }}</span>
+          </template>
+        </div>
         <DashboardQuoteCard
-          v-if="message.quote"
+          v-else-if="message.quote"
           :quote="message.quote"
           :can-respond="!message.fromMe"
-          @accept="$emit('accept-quote', message.quote.id)"
+          :is-own="message.fromMe"
+          :busy="busyQuoteId === message.quote.id"
+          @accept="$emit('accept-quote', message.quote)"
           @decline="$emit('decline-quote', message.quote.id)"
+          @edit="openEditQuote(message.quote)"
+          @withdraw="$emit('withdraw-quote', message.quote.id)"
+          @view-booking="(id) => $emit('view-booking', id)"
+        />
+        <DashboardJobRequestCard
+          v-else-if="message.meta?.type === 'job_request'"
+          :meta="message.meta"
+          :text="message.text"
+          :from-me="message.fromMe"
+          :can-quote="canSendQuote && !message.fromMe"
+          :needs-verification="needsVerificationToQuote && !message.fromMe"
+          @send-quote="openNewQuote(message.meta)"
         />
         <div
           v-else
@@ -284,6 +451,8 @@ function handleKeydown(event: KeyboardEvent) {
               v-else
               :href="message.attachment.url || '#'"
               :download="message.attachment.name"
+              target="_blank"
+              rel="noopener"
               class="flex items-center gap-2.5 rounded-lg p-1"
             >
               <span
@@ -327,7 +496,7 @@ function handleKeydown(event: KeyboardEvent) {
         </div>
 
         <button
-          v-if="!message.fromMe"
+          v-if="message.fromMe"
           type="button"
           class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/5 hover:text-red-600 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-red-400"
           :aria-label="t('dashboard.messages.deleteMessage')"
@@ -338,8 +507,27 @@ function handleKeydown(event: KeyboardEvent) {
             :size="14"
           />
         </button>
+        <button
+          v-else-if="isReportable(message)"
+          type="button"
+          class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-white"
+          :aria-label="t('dashboard.messages.reportMessage')"
+          @click="reportTargetId = message.id"
+        >
+          <UiIcon
+            name="alert-triangle"
+            :size="14"
+          />
+        </button>
       </div>
     </div>
+
+    <MarketplaceReportModal
+      :open="!!reportTargetId"
+      type="message"
+      :target-id="reportTargetId ?? ''"
+      @close="reportTargetId = null"
+    />
 
     <div
       v-if="pendingAttachment"
@@ -365,7 +553,23 @@ function handleKeydown(event: KeyboardEvent) {
       </button>
     </div>
 
+    <p
+      v-if="sendError"
+      role="alert"
+      class="border-t border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300"
+    >
+      {{ sendError }}
+    </p>
+
+    <p
+      v-if="conversation.otherDeleted"
+      class="border-t border-black/10 bg-black/5 px-4 py-4 text-center text-sm text-black/60 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
+    >
+      {{ t('dashboard.messages.recipientDeleted') }}
+    </p>
+
     <form
+      v-else
       class="flex items-end gap-2 border-t border-black/10 px-4 py-3 dark:border-white/10"
       @submit.prevent="handleSend"
     >
@@ -403,13 +607,25 @@ function handleKeydown(event: KeyboardEvent) {
         type="button"
         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-black/50 hover:bg-black/5 hover:text-black dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white"
         :aria-label="t('dashboard.messages.sendQuote')"
-        @click="showQuoteForm = true"
+        @click="openNewQuote()"
       >
         <UiIcon
           name="briefcase"
           :size="19"
         />
       </button>
+      <NuxtLinkLocale
+        v-else-if="needsVerificationToQuote"
+        :to="{ path: '/profile', query: { tab: 'kyc' } }"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-accent-700 hover:bg-accent-50 dark:text-accent-100 dark:hover:bg-accent-700/20"
+        :aria-label="t('dashboard.messages.quote.verifyToSend')"
+        :title="t('dashboard.messages.quote.verifyToSend')"
+      >
+        <UiIcon
+          name="shield-check"
+          :size="19"
+        />
+      </NuxtLinkLocale>
 
       <div class="relative flex shrink-0 items-center">
         <button
@@ -485,7 +701,7 @@ function handleKeydown(event: KeyboardEvent) {
       <button
         type="submit"
         class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-        :disabled="!draft.trim() && !pendingAttachment"
+        :disabled="sending || (!draft.trim() && !pendingAttachment)"
         :aria-label="t('dashboard.messages.send')"
       >
         <UiIcon
@@ -497,6 +713,11 @@ function handleKeydown(event: KeyboardEvent) {
 
     <DashboardQuoteFormModal
       :open="showQuoteForm"
+      :quote="editingQuote"
+      :prefill="quotePrefill"
+      :services="services"
+      :submitting="quoteSubmitting"
+      :errors="quoteErrors"
       @close="showQuoteForm = false"
       @submit="handleQuoteSubmit"
     />

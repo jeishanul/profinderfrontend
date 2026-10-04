@@ -2,12 +2,28 @@
 // Auto-imported as <MarketplaceWhyChooseUs />.
 const { t } = useI18n()
 
-const REASONS: Array<{ id: string, icon: IconName, tone: 'primary' | 'accent' }> = [
+const FALLBACK: Array<{ id: string, icon: IconName, tone: 'primary' | 'accent' }> = [
   { id: 'verified', icon: 'shield-check', tone: 'primary' },
   { id: 'support', icon: 'phone', tone: 'accent' },
   { id: 'payments', icon: 'lock', tone: 'primary' },
   { id: 'reviews', icon: 'star', tone: 'accent' },
 ]
+
+// The admin's points, else the built-in four.
+const content = useContentSection('why_choose_us')
+const reasons = computed(() => content.value.length > 0
+  ? content.value.map((item, index) => ({
+      id: `cms-${index}`,
+      icon: knownIcon(item.icon, FALLBACK[index % FALLBACK.length]!.icon),
+      tone: (index % 2 === 0 ? 'primary' : 'accent') as 'primary' | 'accent',
+      label: item.title ?? '',
+    }))
+  : FALLBACK.map(reason => ({ ...reason, label: t(`marketplace.whyChooseUs.reasons.${reason.id}`) })))
+
+// The first item with an image supplies the visual alongside the points —
+// admins can attach one via the content editor; otherwise a placeholder.
+const featuredImage = computed(() => content.value.find(item => item.imageUrl)?.imageUrl ?? null)
+const featuredDescription = computed(() => content.value.find(item => item.description)?.description ?? null)
 
 const toneClasses: Record<'primary' | 'accent', string> = {
   primary: 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100',
@@ -31,7 +47,7 @@ const toneClasses: Record<'primary' | 'accent', string> = {
     <div class="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
       <div class="grid grid-cols-2 gap-4">
         <div
-          v-for="reason in REASONS"
+          v-for="reason in reasons"
           :key="reason.id"
           class="rounded-2xl border border-black/10 bg-white/70 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/30"
         >
@@ -46,16 +62,24 @@ const toneClasses: Record<'primary' | 'accent', string> = {
             />
           </div>
           <p class="font-semibold">
-            {{ t(`marketplace.whyChooseUs.reasons.${reason.id}`) }}
+            {{ reason.label }}
           </p>
         </div>
       </div>
 
       <div class="relative min-h-64 overflow-hidden rounded-3xl">
+        <NuxtImg
+          v-if="featuredImage"
+          :src="featuredImage"
+          :alt="t('marketplace.whyChooseUs.heading')"
+          width="560"
+          height="380"
+          class="h-full w-full object-cover"
+        />
         <UiPlaceholderMedia
+          v-else
           icon="user"
           tone="accent"
-          label="560 x 380"
         />
         <div class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-brand-700 py-4 text-sm font-bold text-white">
           <UiIcon
@@ -66,5 +90,11 @@ const toneClasses: Record<'primary' | 'accent', string> = {
         </div>
       </div>
     </div>
+    <p
+      v-if="featuredDescription"
+      class="mt-6 max-w-2xl text-black/60 dark:text-white/60"
+    >
+      {{ featuredDescription }}
+    </p>
   </section>
 </template>

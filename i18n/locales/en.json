@@ -1,16 +1,35 @@
 {
   "brand": {
-    "name": "FindPeople"
+    "name": "ProFinder"
   },
   "theme": {
     "switchToLight": "Switch to light mode",
     "switchToDark": "Switch to dark mode"
   },
   "ui": {
+    "lightbox": {
+      "close": "Close",
+      "previous": "Previous photo",
+      "next": "Next photo"
+    },
+    "starInput": {
+      "stars": "{count} star | {count} stars"
+    },
     "scrollToTop": "Scroll to top",
     "selectSearch": {
       "searchPlaceholder": "Search...",
       "noResults": "No matches"
+    },
+    "toast": {
+      "dismiss": "Dismiss"
+    },
+    "confirm": {
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "sessionExpired": "Your session has expired. Please log in again."
     }
   },
   "auth": {
@@ -24,7 +43,7 @@
     "login": {
       "heading": "Welcome back",
       "subheading": "Log in to message pros and manage your bookings.",
-      "identifierLabel": "Email or username",
+      "identifierLabel": "Email",
       "identifierPlaceholder": "you{'@'}example.com",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Enter your password",
@@ -33,7 +52,11 @@
       "submit": "Log in",
       "switchPrompt": "Don't have an account?",
       "switchAction": "Sign up",
-      "invalidError": "That email/username or password doesn't look right."
+      "invalidError": "That email or password doesn't look right.",
+      "deactivatedError": "You deactivated this account. Reactivate it to log back in.",
+      "reactivate": "Reactivate my account and log in",
+      "suspendedError": "This account is no longer active. Please contact support if you think this is a mistake.",
+      "tooManyAttempts": "Too many attempts. Please wait a minute and try again."
     },
     "register": {
       "heading": "Create your account",
@@ -44,7 +67,11 @@
       "emailPlaceholder": "you{'@'}example.com",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Create a password",
-      "terms": "I agree to FindPeople's {tos} and {privacy}.",
+      "terms": "I agree to {name}'s {tos} and {privacy}.",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "termsRequiredError": "Please accept the Terms of Service and Privacy Policy to continue.",
+      "passwordMismatchError": "The two passwords don't match.",
       "termsTos": "Terms of Service",
       "termsPrivacy": "Privacy Policy",
       "submit": "Create account",
@@ -74,7 +101,15 @@
       "resendCountdown": "Resend code in {time}",
       "resend": "Resend code",
       "changeEmail": "Change email",
+      "resent": "We sent you a new code.",
       "invalidError": "That code is invalid or has expired."
+    },
+    "verifyEmail": {
+      "heading": "Verify your email",
+      "subheading": "We sent a 6-digit code to {email}. Enter it to confirm your address.",
+      "submit": "Verify email",
+      "skip": "I'll do this later",
+      "verified": "Email verified — thanks!"
     },
     "resetPassword": {
       "heading": "Set a new password",
@@ -103,6 +138,7 @@
   "nav": {
     "howItWorks": "How it works",
     "browseServices": "Browse services",
+    "becomeProvider": "Become a provider",
     "login": "Log in",
     "signup": "Sign up",
     "messages": "Messages",
@@ -117,15 +153,31 @@
     "generalSection": "General",
     "loginPrompt": "Log in to message providers, book services and track your bookings."
   },
+  "maintenance": {
+    "title": "We'll be right back",
+    "body": "{name} is down for scheduled maintenance. Please check back shortly."
+  },
+  "legal": {
+    "notFound": "Page not found",
+    "eyebrow": "Information",
+    "lastUpdated": "Last updated {date}"
+  },
   "footer": {
     "tagline": "Connecting skilled local professionals with people who need work done.",
     "tagline2": "Made for people who get things done.",
-    "copyright": "© {year} FindPeople. All rights reserved.",
+    "copyright": "© {year} {name}. All rights reserved.",
     "getTheApp": "Get the app",
+    "legal": {
+      "heading": "Company"
+    },
     "customers": {
       "heading": "For customers",
       "browseServices": "Browse services",
       "howItWorks": "How it works"
+    },
+    "providers": {
+      "heading": "For providers",
+      "becomeProvider": "Become a provider"
     },
     "categories": {
       "heading": "Popular categories"
@@ -142,7 +194,7 @@
   },
   "home": {
     "seoTitle": "Trusted local pros, on demand",
-    "seoDescription": "FindPeople connects you with verified, background-checked local professionals for house cleaning, AC service, electrical, plumbing and more."
+    "seoDescription": "{name} connects you with verified, background-checked local professionals for house cleaning, AC service, electrical, plumbing and more."
   },
   "errors": {
     "seoTitle": "Error",
@@ -151,6 +203,52 @@
     "goHome": "Go home"
   },
   "marketplace": {
+    "uncategorised": "Other",
+    "report": {
+      "title": {
+        "provider": "Report this provider",
+        "review": "Report this review",
+        "message": "Report this message"
+      },
+      "subtitle": "Tell us what's wrong. Our team reviews every report; the person you report isn't told it was you.",
+      "reasonLabel": "What's the problem?",
+      "reasons": {
+        "spam": "Spam or advertising",
+        "fraud": "Scam or fraud",
+        "offensive": "Offensive or abusive",
+        "fake": "Fake or misleading",
+        "other": "Something else"
+      },
+      "detailsLabel": "Anything else we should know? (optional)",
+      "cancel": "Cancel",
+      "submit": "Send report",
+      "sent": "Thanks — we'll take a look.",
+      "errors": {
+        "reason": "Please choose a reason.",
+        "send": "Couldn't send your report. Please try again."
+      }
+    },
+    "jobRequest": {
+      "verifyEmail": "Verify my email",
+      "title": "Request a booking from {name}",
+      "subtitle": "Describe the job. {name} replies with a price and a confirmed time — you only book if you accept.",
+      "service": "Service",
+      "serviceAny": "Not sure / something else",
+      "description": "What do you need done?",
+      "descriptionPlaceholder": "e.g. The kitchen sink is leaking and the cabinet floor is wet.",
+      "date": "Preferred date",
+      "time": "Preferred time",
+      "address": "Job address",
+      "addressPlaceholder": "House/unit no., street, barangay",
+      "cancel": "Cancel",
+      "submit": "Send request",
+      "sent": "Request sent to {name}.",
+      "errors": {
+        "description": "Please describe the job.",
+        "dateForTime": "Choose a date too, or clear the time.",
+        "submit": "Couldn't send your request. Please try again."
+      }
+    },
     "search": {
       "categoryLabel": "Service category",
       "categoryPlaceholder": "What service?",
@@ -170,9 +268,10 @@
       "submit": "Search"
     },
     "hero": {
-      "trustBadge": "Trusted by 12,000+ verified pros",
+      "trustBadge": "Trusted by verified pros",
       "regionLabel": "Featured service highlight",
       "goToSlide": "Go to slide {number}",
+      "learnMore": "Learn more",
       "slides": {
         "general": {
           "headline": "Home services, done right by pros near you.",
@@ -187,11 +286,6 @@
           "sub": "Book trusted, rated cleaning pros for a one-time deep clean or a regular routine."
         }
       }
-    },
-    "trustStats": {
-      "pros": "Verified professionals",
-      "categories": "Service categories",
-      "satisfaction": "Job satisfaction rate"
     },
     "howItWorks": {
       "eyebrow": "How it works",
@@ -220,49 +314,25 @@
       "subheading": "Whatever the job, there's a trusted local pro for it.",
       "previous": "Previous category",
       "next": "Next category",
-      "countLabel": "{count}+ pros",
-      "cleaning": { "label": "House Cleaning" },
-      "ac-service": { "label": "AC Service & Repair" },
-      "electrician": { "label": "Electrician" },
-      "plumber": { "label": "Plumber" },
-      "painter": { "label": "Painter" },
-      "carpenter": { "label": "Carpenter" },
-      "appliance-repair": { "label": "Appliance Repair" },
-      "gardening": { "label": "Gardening & Landscaping" }
+      "countLabel": "{count}+ pros"
     },
     "featuredProviders": {
-      "heading": "Top-rated pros near you",
+      "browseAll": "Browse all providers",
+      "heading": "Top-rated pros",
+      "headingWithLocation": "Top-rated pros near {province}",
       "subheading": "A sample of the professionals available in your area.",
       "viewMore": "View more pros",
       "showFewer": "Show fewer pros"
     },
     "provider": {
       "yearsExperience": "{years} yrs experience",
-      "estimate": "Est. ${rate}/hr",
-      "fromEstimate": "Est. from ${rate}/hr",
+      "estimate": "Est. {rate}/hr",
+      "fromEstimate": "Est. from {rate}/hr",
       "message": "Message",
       "viewProfile": "View profile",
       "save": "Save provider",
-      "unsave": "Remove from saved providers"
-    },
-    "skills": {
-      "wiring": "Wiring",
-      "fault-fixing": "Fault fixing",
-      "panel-upgrades": "Panel upgrades",
-      "deep-clean": "Deep clean",
-      "move-out-clean": "Move-out clean",
-      "leak-repair": "Leak repair",
-      "fittings": "Fittings",
-      "interior-painting": "Interior painting",
-      "texture-finish": "Texture finish",
-      "furniture-repair": "Furniture repair",
-      "custom-fittings": "Custom fittings",
-      "ac-servicing": "AC servicing",
-      "ac-installation": "AC installation",
-      "fridge-repair": "Fridge repair",
-      "washer-repair": "Washer repair",
-      "landscaping": "Landscaping",
-      "garden-upkeep": "Garden upkeep"
+      "unsave": "Remove from saved providers",
+      "pendingVerification": "This provider is still completing verification and can't take booking requests yet. You can message them in the meantime."
     },
     "whyChooseUs": {
       "eyebrow": "Why choose us",
@@ -289,42 +359,19 @@
     },
     "testimonials": {
       "heading": "What customers are saying",
-      "goTo": "Go to testimonial {number}",
-      "quotes": {
-        "tanvir-r": {
-          "quote": "Found a great electrician within the hour. FindPeople made comparing pros ridiculously easy.",
-          "role": "Homeowner, Banani"
-        },
-        "farzana-h": {
-          "quote": "Booked a deep clean before guests arrived. The pro was punctual, thorough, and the price matched the quote exactly.",
-          "role": "Homeowner, Gulshan"
-        },
-        "imran-k": {
-          "quote": "Used FindPeople to find an AC technician for our office. Quick response, fair pricing.",
-          "role": "Small business owner"
-        },
-        "nadia-s": {
-          "quote": "Love that I can see real reviews before booking. No more guessing who to trust.",
-          "role": "Homeowner, Dhanmondi"
-        },
-        "shafiq-m": {
-          "quote": "I manage repairs across three rental units through FindPeople now. Saves me hours every month.",
-          "role": "Landlord"
-        }
-      }
+      "goTo": "Go to testimonial {number}"
     },
     "downloadApp": {
       "eyebrow": "Download our app",
       "heading": "Any service, any time, anywhere.",
-      "description": "Give us your mobile number and we'll text you a link to download the FindPeople app.",
-      "phonePlaceholder": "Type your mobile number",
-      "cta": "Get the app",
+      "description": "Get the app for the same booking experience as the website, right on your phone.",
       "qrHint": "Scan the QR code to download directly to your phone.",
       "googlePlay": "Google Play",
       "appStore": "App Store",
       "helpline": {
-        "heading": "Can't find your service? Let us know — we're here 24/7.",
-        "description": "Call or email us anytime at {number} · {email}",
+        "heading": "Can't find your service? Let us know.",
+        "headingWithHours": "Can't find your service? Let us know. {hours}.",
+        "description": "Call or email us anytime — we usually reply within the hour.",
         "requestService": "Request a service"
       }
     },
@@ -332,39 +379,11 @@
       "heading": "Frequently asked questions",
       "subheading": "Everything you need to know before your first booking.",
       "showMore": "Show more questions",
-      "showFewer": "Show fewer questions",
-      "items": {
-        "trust": {
-          "question": "How do I know a service pro is trustworthy?",
-          "answer": "Every professional on FindPeople completes ID verification and a background check before they can accept jobs, and their public rating reflects real completed work."
-        },
-        "cost": {
-          "question": "How much does it cost to use FindPeople?",
-          "answer": "Browsing and requesting quotes is completely free. Professionals pay a small service fee only when they complete a paid job."
-        },
-        "coverage-area": {
-          "question": "Which areas does FindPeople currently serve?",
-          "answer": "We're live across Dhaka and expanding to more cities soon."
-        },
-        "unhappy": {
-          "question": "What happens if I'm not happy with the service?",
-          "answer": "Reach out to our support team within 48 hours of the job and we'll help make it right, including arranging a redo with the provider."
-        },
-        "payments": {
-          "question": "How do payments work?",
-          "answer": "FindPeople doesn't process payments. The rate you see is a starting estimate — you and the provider agree on a final price directly, and you pay them in cash once the job is complete."
-        },
-        "recurring": {
-          "question": "Can I book the same pro for recurring service?",
-          "answer": "Yes — after your first job, you can rebook the same professional directly from your history."
-        },
-        "mobile-app": {
-          "question": "Is there a FindPeople mobile app?",
-          "answer": "Yes, the FindPeople app is available on Android and iOS with the same booking experience as the website."
-        }
-      }
+      "showFewer": "Show fewer questions"
     },
     "filters": {
+      "skills": "Skills",
+      "availableOn": "Available on",
       "heading": "Filters",
       "resetAll": "Reset all",
       "location": "Location",
@@ -384,6 +403,17 @@
       "anywhere": "you",
       "seoEyebrow": "Browse & filter",
       "seoDescription": "Filter verified local professionals by category, location, rating and availability.",
+      "searchPlaceholder": "Search by name, skill or keyword",
+      "sortLabel": "Sort by",
+      "pagination": "Pagination",
+      "sort": {
+        "recommended": "Recommended",
+        "rating": "Highest rated",
+        "reviews": "Most reviewed",
+        "price_asc": "Price: low to high",
+        "price_desc": "Price: high to low",
+        "newest": "Newest"
+      },
       "noResults": "No pros match these filters yet — try widening your search.",
       "previousPage": "Previous page",
       "nextPage": "Next page",
@@ -391,16 +421,38 @@
     },
     "providerProfile": {
       "seoTitle": "{name} — {category}",
-      "seoDescription": "View {name}'s profile, ratings, skills and reviews on FindPeople.",
+      "seoDescription": "View {name}'s profile, ratings, skills and reviews on {site}.",
       "verifiedPro": "Verified pro",
       "contactProvider": "Contact provider",
       "requestQuote": "Request a quote",
+      "requestBooking": "Request a booking",
       "about": "About",
       "skills": "Skills",
       "recentWork": "Recent work",
       "reviews": "Reviews ({count})",
+      "ratingBreakdown": "Rating breakdown",
+      "notFound": "Provider not found",
+      "memberSince": "Member since {date}",
+      "services": "Services",
+      "requestService": "Request this",
+      "priceHourly": "From {amount}/hr",
+      "priceFlat": "{amount} flat",
+      "openPhoto": "Open photo {number}",
+      "share": "Share this profile",
+      "linkCopied": "Link copied.",
+      "shareFailed": "Couldn't share this profile.",
+      "reportProvider": "Report this provider",
+      "serviceAreaFrom": "Serves up to {radius} km around {city}.",
+      "basedIn": "Based in {city}.",
+      "starsLabel": "{stars} stars",
+      "loadMoreReviews": "Show more reviews",
+      "loadingReviews": "Loading…",
+      "reviewsFailed": "Couldn't load more reviews. Please try again.",
+      "providerReply": "Reply from the provider",
+      "noReviewsYet": "No reviews yet.",
+      "reportReview": "Report",
       "postedDaysAgo": "{days} days ago",
-      "minVisitFee": "${fee} min. visit",
+      "minVisitFee": "{fee} min. visit",
       "priceDisclaimer": "Discuss the job and agree on a price before work begins. The final price is paid in cash directly to the provider.",
       "identityChecked": "Identity & background checked",
       "availabilityFormatted": "Available {days}",
@@ -414,45 +466,6 @@
         "responseTimeValue": "< {hours} hr",
         "repeatClients": "Repeat clients"
       }
-    },
-    "providers": {
-      "rahim-karim": {
-        "bio": "Experienced electrician with 8 years across residential and small commercial jobs — wiring, panel upgrades, fault diagnosis and safety inspections. I show up on time, explain the work clearly, and leave the space clean."
-      },
-      "anika-sultana": {
-        "bio": "Detail-oriented cleaning professional specializing in deep cleans and move-out turnarounds. I bring my own eco-friendly supplies and follow a consistent room-by-room checklist."
-      },
-      "farhan-ahmed": {
-        "bio": "Plumber with 6 years of experience fixing leaks, replacing fittings and handling small emergency call-outs. Upfront pricing before any work starts."
-      },
-      "mim-tabassum": {
-        "bio": "Interior painter focused on clean lines and durable finishes. I protect furniture and floors on every job and clean up fully before I leave."
-      },
-      "karim-hossain": {
-        "bio": "Carpenter handling furniture repair and custom fittings for homes and small offices. I measure twice and build things that last."
-      },
-      "nusrat-jahan": {
-        "bio": "AC servicing and installation specialist. I carry common parts on-site so most repairs are finished in a single visit."
-      },
-      "emon-rahman": {
-        "bio": "Appliance repair technician covering fridges and washing machines. Honest diagnosis first — I'll tell you if a repair isn't worth it."
-      },
-      "priya-das": {
-        "bio": "Gardener and landscaper who keeps small home gardens tidy year-round, from seasonal planting to regular upkeep."
-      }
-    },
-    "reviews": {
-      "rahim-karim-review-1": { "comment": "Fixed a recurring breaker trip that two other electricians couldn't diagnose. Explained everything clearly and priced fairly." },
-      "rahim-karim-review-2": { "comment": "Punctual and tidy. Installed three new outlets in an afternoon. Would book again for future work." },
-      "anika-sultana-review-1": { "comment": "Best deep clean we've had. Every corner of the kitchen looked brand new." },
-      "anika-sultana-review-2": { "comment": "Showed up on time and worked through a long checklist without cutting corners." },
-      "farhan-ahmed-review-1": { "comment": "Fixed an emergency leak on a Sunday evening. Fair pricing, no surprises." },
-      "farhan-ahmed-review-2": { "comment": "Replaced our kitchen fittings quickly and left everything spotless." },
-      "mim-tabassum-review-1": { "comment": "Beautiful, even finish on our living room walls. Very tidy work." },
-      "karim-hossain-review-1": { "comment": "Repaired a wobbly dining table so well it feels sturdier than new." },
-      "nusrat-jahan-review-1": { "comment": "Serviced two AC units in under an hour each. Cooling noticeably better." },
-      "emon-rahman-review-1": { "comment": "Diagnosed our washer issue in minutes and had the part on hand." },
-      "priya-das-review-1": { "comment": "Our small garden has never looked better. Reliable and easy to schedule." }
     }
   },
   "dashboard": {
@@ -477,10 +490,11 @@
     },
     "roleSwitch": {
       "provider": "Provider",
-      "consumer": "Consumer"
+      "consumer": "Consumer",
+      "becomeProvider": "Become a provider"
     },
     "dualRoleBanner": {
-      "title": "Every FindPeople account can both offer and book services",
+      "title": "Every {site} account can both offer and book services",
       "body": "Switching your view swaps between your provider and consumer panels — Browse Services is always one click away, however you're set.",
       "cta": "Browse services"
     },
@@ -535,16 +549,17 @@
         }
       },
       "activity": {
+        "empty": "Nothing here yet — activity from your bookings and reviews will show up as it happens.",
         "heading": "Recent activity",
         "viewAll": "View all",
         "hoursAgo": "{count}h ago",
         "daysAgo": "{count}d ago",
         "new_booking": "New booking from {name}",
-        "payment_received": "Payment received — ${amount} for {category}",
+        "payment_received": "Payment received — {amount} for {category}",
         "review_received": "{rating}-star review from {name}",
         "new_message": "New message from {name}",
         "order_completed": "Order completed with {name}",
-        "refund_processed": "Refund processed — ${amount}",
+        "refund_processed": "Refund processed — {amount}",
         "new_order": "Booked {category} with {name}"
       }
     },
@@ -557,9 +572,105 @@
       "status": "Status",
       "rating": "Rating",
       "message": "Message",
+      "review": "Review",
+      "messageFailed": "Couldn't open the conversation. Please try again.",
+      "details": "Details",
+      "actions": "Actions",
       "bookAgain": "Book again",
       "repeatBadge": "Repeat",
-      "viewAll": "View all"
+      "viewAll": "View all",
+      "editReview": "Edit review",
+      "cancel": "Cancel"
+    },
+    "payment": {
+      "unpaid": "Unpaid",
+      "paid_cash": "Paid (cash)",
+      "refunded": "Refunded"
+    },
+    "reviewForm": {
+      "title": "Review {name}",
+      "editTitle": "Edit your review of {name}",
+      "subtitle": "Your honest feedback helps other people choose — and helps good providers get found.",
+      "ratingLabel": "Your rating",
+      "commentLabel": "Your review (optional)",
+      "commentPlaceholder": "What went well? Was the provider on time, tidy and fairly priced?",
+      "submit": "Submit review",
+      "saveChanges": "Save changes",
+      "cancel": "Cancel",
+      "delete": "Delete review",
+      "deleteConfirm": {
+        "title": "Delete your review?",
+        "message": "It will be removed from the provider's page and their rating will be recalculated."
+      },
+      "thanks": "Thanks — your review is live.",
+      "updated": "Review updated.",
+      "deleted": "Review deleted.",
+      "errors": {
+        "rating": "Please choose a star rating.",
+        "commentShort": "If you write a comment, make it at least {count} characters.",
+        "save": "Couldn't save your review. Please try again."
+      }
+    },
+    "bookingDrawer": {
+      "loading": "Loading booking…",
+      "notFound": "We couldn't find that booking.",
+      "close": "Close",
+      "titleFallback": "Booking",
+      "yourReview": "Your review",
+      "leaveReview": "Leave a review",
+      "editReview": "Edit review",
+      "withClient": "With {name} (client)",
+      "withProvider": "With {name}",
+      "when": "When",
+      "where": "Where",
+      "amount": "Amount",
+      "hours": "{count}h",
+      "cancelReason": "Cancellation reason",
+      "extraHours": "Extra hours worked",
+      "extraHoursHelp": "Only if the job ran past the quoted hours — billed at the quote's extra hourly rate.",
+      "cancelReasonLabel": "Why are you cancelling?",
+      "cancelReasonRequired": "Please give a reason.",
+      "keepBooking": "Keep booking",
+      "confirmCancel": "Cancel booking",
+      "by": {
+        "consumer": "the client",
+        "provider": "the provider",
+        "admin": "an admin"
+      },
+      "timeline": {
+        "scheduled": "Scheduled",
+        "started": "Started",
+        "completed": "Completed",
+        "cancelled": "Cancelled by {by}",
+        "paid": "Paid in cash"
+      },
+      "actions": {
+        "start": "Start job",
+        "complete": "Mark completed",
+        "markPaid": "Mark paid (cash)",
+        "cancel": "Cancel booking"
+      },
+      "started": "Job started.",
+      "completed": "Job marked completed.",
+      "paid": "Payment recorded.",
+      "cancelled": "Booking cancelled.",
+      "errors": {
+        "action": "That didn't work. Please try again.",
+        "rebook": "Couldn't start a new request with this provider. Please try again."
+      },
+      "clientReview": "Client's review",
+      "startFrom": "You can start this job from {when}.",
+      "reply": {
+        "label": "Reply to this review",
+        "placeholder": "Thank them, or add context for future clients",
+        "help": "Your reply is public on your profile and can't be edited once sent.",
+        "send": "Post reply",
+        "sent": "Reply posted.",
+        "failed": "Couldn't post your reply. Please try again.",
+        "tooShort": "Write at least a couple of words.",
+        "yours": "Your reply",
+        "fromProvider": "Reply from the provider"
+      }
     },
     "status": {
       "completed": "Completed",
@@ -577,8 +688,9 @@
       },
       "filters": {
         "all": "All",
-        "completed": "Completed",
         "upcoming": "Upcoming",
+        "in_progress": "In progress",
+        "completed": "Completed",
         "cancelled": "Cancelled"
       },
       "searchPlaceholder": "Search clients",
@@ -600,18 +712,63 @@
       },
       "filters": {
         "all": "All",
-        "completed": "Completed",
+        "upcoming": "Upcoming",
         "in_progress": "In progress",
-        "cancelled": "Cancelled"
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "to_review": "To review"
       },
-      "empty": "No purchases match this filter yet."
+      "empty": "No purchases match this filter yet.",
+      "searchPlaceholder": "Search by provider or service"
+    },
+    "emailBanner": {
+      "title": "Please verify your email",
+      "body": "We'll send a code to {email}. You need a verified email to send booking requests or become a provider.",
+      "cta": "Verify now"
+    },
+    "becomeProvider": {
+      "verifyEmail": "Verify my email",
+      "title": "Become a provider",
+      "subtitle": "Tell clients what you do, what you charge and where. You can edit everything later.",
+      "steps": {
+        "service": "Your service",
+        "about": "About you",
+        "location": "Where you work"
+      },
+      "step": "Step {current} of {total}",
+      "next": "Continue",
+      "back": "Back",
+      "submit": "Create my provider profile",
+      "success": "You're now a provider. Next, verify your identity to start accepting bookings.",
+      "fields": {
+        "category": "What do you do?",
+        "categoryPlaceholder": "Choose your main category",
+        "skills": "Your skills",
+        "skillsHint": "Pick the ones that apply — clients search by these.",
+        "noSkills": "No skills listed for this category yet.",
+        "headline": "Professional headline",
+        "headlinePlaceholder": "e.g. Licensed plumber with 10 years' experience",
+        "bio": "About you",
+        "bioPlaceholder": "Tell clients about your experience and how you work (optional)",
+        "years": "Years of experience",
+        "rate": "Starting rate estimate (per hour)",
+        "rateHelp": "A starting point shown to clients — you'll agree on the final price together."
+      },
+      "errors": {
+        "category": "Please choose a category.",
+        "headline": "Please add a headline.",
+        "rate": "Please enter a rate above 0.",
+        "location": "Please choose your province and city.",
+        "submit": "Couldn't create your provider profile. Please try again."
+      }
     },
     "profile": {
       "title": "My profile & verification",
       "subtitle": "Manage how clients see you, and verify your identity to start accepting bookings",
       "tabs": {
         "details": "Profile details",
-        "kyc": "KYC verification · required"
+        "kyc": "KYC verification · required",
+        "reviews": "Reviews"
       },
       "changePhoto": "Change photo",
       "addCoverPhoto": "Add cover photo",
@@ -629,6 +786,17 @@
       "recentWorkHint": "Add up to 6 photos of past jobs — shown on your public profile.",
       "addPhoto": "Add photo",
       "removePhoto": "Remove photo",
+      "removePhotoConfirm": {
+        "title": "Remove this photo?",
+        "message": "It will disappear from your public profile."
+      },
+      "errors": {
+        "notAnImage": "Please choose an image file.",
+        "imageTooLarge": "That image is larger than 5 MB. Please choose a smaller one.",
+        "upload": "Couldn't upload that file. Please try again.",
+        "save": "Couldn't save your profile. Please try again."
+      },
+      "pickCategoryFirst": "Choose a primary category first",
       "fields": {
         "fullName": "Full name",
         "headline": "Professional headline",
@@ -644,7 +812,10 @@
         "hourlyRate": "Starting rate estimate",
         "hourlyRateHelp": "Shown to consumers as a starting point — you'll agree on the final price together.",
         "minVisitFee": "Minimum visit fee",
-        "responseTime": "Response time",
+        "responseTime": "Response time (hours)",
+        "responseTimeHelp": "How quickly you usually reply to a new request.",
+        "serviceArea": "Service area (km)",
+        "serviceAreaHelp": "How far you will travel. Leave empty if it varies.",
         "availability": "Weekly availability",
         "availabilityPreview": "Clients will see: {text}"
       },
@@ -656,10 +827,20 @@
       "saved": "Saved",
       "kyc": {
         "mandatoryTitle": "Verification is mandatory before you can accept bookings",
-        "mandatoryBody": "FindPeople verifies every service provider's identity to keep clients safe. You can't accept bookings until all three steps are approved.",
+        "mandatoryBody": "{site} verifies every service provider's identity to keep clients safe. You can't accept bookings until all three steps are approved.",
         "statusVerified": "Verified",
         "statusInReview": "In review",
         "statusNotStarted": "Not started",
+        "statusRejected": "Rejected",
+        "rejectedBody": "Rejected: {reason} Please send a new one.",
+        "rejectedNoReason": "This step was rejected. Please send a clearer document.",
+        "submitted": "Submitted — we'll review it shortly.",
+        "errors": {
+          "type": "Please choose a JPG, PNG or WebP image.",
+          "typeWithPdf": "Please choose a JPG, PNG, WebP image or a PDF.",
+          "tooLarge": "That file is larger than 8 MB. Please choose a smaller one.",
+          "submit": "Couldn't submit that step. Please try again."
+        },
         "steps": {
           "identity": {
             "title": "Government-issued ID",
@@ -690,6 +871,12 @@
         "submitStep": "Submit for review",
         "dropzone": "Drag a file here, or",
         "browseFiles": "Browse files",
+        "replaceDocument": "Replace document",
+        "replaceConfirm": {
+          "title": "Replace a verified document?",
+          "message": "Sending a new document removes your verified status until it's approved again.",
+          "confirmLabel": "Replace document"
+        },
         "complianceNote": "Your documents are encrypted and only used for identity verification, per our Trust & Safety policy."
       }
     },
@@ -708,11 +895,40 @@
       "searchPlaceholder": "Search conversations",
       "backToList": "Back to conversations",
       "archive": "Archive",
+      "unarchive": "Unarchive",
+      "archived": "Conversation archived.",
+      "unarchived": "Conversation restored to your inbox.",
+      "undo": "Undo",
       "archiveConversation": "Archive conversation",
+      "tabs": {
+        "inbox": "Inbox",
+        "archived": "Archived"
+      },
+      "emptyInbox": "No conversations yet. Message a provider or wait for a client to get in touch.",
+      "emptyArchived": "Nothing archived.",
+      "noResults": "No conversations match your search.",
+      "pickConversation": "Select a conversation to start chatting.",
+      "threadFailed": "Couldn't load this conversation. Please try again.",
+      "loadingThread": "Loading messages…",
+      "loadOlder": "Load earlier messages",
+      "loadingOlder": "Loading…",
+      "lastSeen": "Last seen {when}",
+      "offline": "Offline",
+      "unreadCount": "{count} unread message | {count} unread messages",
+      "preview": {
+        "quote": "Sent a quote",
+        "attachment": "Sent an attachment",
+        "system": "Booking update"
+      },
+      "deleteConfirm": {
+        "title": "Delete this message?",
+        "message": "It will disappear for both of you."
+      },
       "roleClient": "Client",
       "roleProvider": "Provider",
       "viewBooking": "View booking",
       "composerPlaceholder": "Write a message...",
+      "recipientDeleted": "This person has deleted their account, so you can't send them messages.",
       "send": "Send",
       "hoursAgo": "{count}h",
       "daysAgo": "{count}d",
@@ -723,34 +939,109 @@
       "attachFile": "Attach a file",
       "messageOptions": "Message options",
       "deleteMessage": "Delete message",
+      "reportMessage": "Report message",
+      "messageDeleted": "Message deleted",
       "removeAttachment": "Remove attachment",
       "statusSent": "Sent",
       "statusDelivered": "Delivered",
       "statusSeen": "Seen",
       "sendQuote": "Send a quote",
+      "errors": {
+        "send": "Couldn't send your message — it's still in the box, try again.",
+        "delete": "Couldn't delete that message. Please try again.",
+        "archive": "Couldn't archive that conversation. Please try again.",
+        "unarchive": "Couldn't restore that conversation. Please try again."
+      },
+      "jobRequest": {
+        "heading": "Job request",
+        "sendQuote": "Send a quote"
+      },
+      "system": {
+        "bookingCreated": "Booking confirmed for {when}.",
+        "quoteDeclined": "The client declined this quote.",
+        "adminNotice": "{site} support",
+        "quoteDeclinedReason": "Reason: {reason}"
+      },
       "quote": {
         "formTitle": "Send a quote",
         "formSubtitle": "A structured price for this job — shown as a card in the chat with Accept/Decline.",
         "basePriceLabel": "Base price",
-        "basePricePlaceholder": "e.g. $50",
+        "basePricePlaceholder": "e.g. {symbol}50",
         "baseHoursLabel": "Base hours",
         "baseHoursPlaceholder": "e.g. 3",
         "extraRateLabel": "Extra hourly rate",
-        "extraRatePlaceholder": "e.g. $10",
+        "extraRatePlaceholder": "e.g. {symbol}10",
         "extraRateHelp": "Charged per hour for any work beyond the base hours above.",
         "noteLabel": "Note (optional)",
         "notePlaceholder": "What's included, materials, etc.",
         "cancel": "Cancel",
         "send": "Send quote",
+        "saveChanges": "Save changes",
+        "editTitle": "Edit quote",
+        "whenLabel": "Date & time",
+        "whenHelp": "When you'll do the job. If the client accepts, this becomes their booking.",
+        "addressLabel": "Job address",
+        "addressPlaceholder": "House/unit no., street, barangay",
+        "serviceLabel": "Service",
+        "serviceNone": "Not tied to a listed service",
+        "expiryLabel": "Offer valid for",
+        "expiry": {
+          "h24": "24 hours",
+          "h48": "48 hours",
+          "h72": "3 days",
+          "h168": "7 days",
+          "keep": "Keep current (until {when})",
+          "keepNoDate": "Keep current expiry"
+        },
         "cardHeading": "Price quote",
         "forHours": "for {hours}h",
-        "extraRateNote": "+${rate}/hr for extra work",
+        "extraRateNote": "+{rate}/hr for extra work",
         "accept": "Accept",
         "decline": "Decline",
         "pending": "Awaiting response",
         "accepted": "Accepted",
         "declined": "Declined",
-        "acceptedBooked": "Booked — see it in your bookings."
+        "withdrawn": "Withdrawn",
+        "expired": "Expired",
+        "expiresAt": "Valid until {when}",
+        "edit": "Edit",
+        "withdraw": "Withdraw",
+        "viewBooking": "View booking",
+        "acceptConfirm": {
+          "title": "Accept this quote?",
+          "message": "This books the job for {when} at {price}. The provider will be expected to show up.",
+          "confirm": "Accept & book"
+        },
+        "declineConfirm": {
+          "title": "Decline this quote?",
+          "message": "The provider will be told you declined.",
+          "confirm": "Decline",
+          "reasonLabel": "Reason (optional)",
+          "reasonPlaceholder": "e.g. The price is above my budget"
+        },
+        "withdrawConfirm": {
+          "title": "Withdraw this quote?",
+          "message": "The client will no longer be able to accept it.",
+          "confirm": "Withdraw"
+        },
+        "sent": "Quote sent.",
+        "updated": "Quote updated.",
+        "withdrawn_toast": "Quote withdrawn.",
+        "acceptedToast": "Booked! You'll find it under My Purchases.",
+        "declinedToast": "Quote declined.",
+        "errors": {
+          "price": "Enter a price above {amount}.",
+          "hours": "Enter the base hours (a whole number, at least 1).",
+          "date": "Choose a date and time in the future.",
+          "send": "Couldn't send the quote. Please try again.",
+          "update": "Couldn't update the quote. Please try again.",
+          "withdraw": "Couldn't withdraw the quote. Please try again.",
+          "accept": "Couldn't accept the quote. Please try again.",
+          "decline": "Couldn't decline the quote. Please try again.",
+          "needVerification": "Complete identity verification to send quotes."
+        },
+        "acceptedBooked": "Booked — see it in your bookings.",
+        "verifyToSend": "Verify your identity to send quotes"
       }
     },
     "notificationsPage": {
@@ -758,25 +1049,134 @@
       "subtitle": "Bookings, payments, reviews and messages, all in one feed",
       "markAllRead": "Mark all as read",
       "markRead": "Mark read",
+      "clearRead": "Clear read",
+      "clearConfirm": {
+        "title": "Clear read notifications?",
+        "message": "Notifications you've already read will be removed for good."
+      },
+      "remove": "Delete notification",
+      "showMore": "Show more",
       "filters": {
         "all": "All",
         "bookings": "Bookings",
         "payments": "Payments",
-        "messages": "Messages"
+        "messages": "Messages",
+        "account": "Account",
+        "system": "System"
       },
       "today": "Today",
       "earlier": "Earlier",
       "hoursAgo": "{count}h ago",
       "daysAgo": "{count}d ago",
       "empty": "No notifications in this filter yet.",
-      "new_booking": { "title": "New booking from {name}", "body": "{category} — confirm or reschedule." },
-      "payment_received": { "title": "Payment received", "body": "${amount} for {category} — {name}" },
-      "new_message": { "title": "New message from {name}", "body": "Open Messages to reply." },
-      "review_received": { "title": "{rating}-star review from {name}", "body": "See what they said in Clients served." },
-      "order_completed": { "title": "Order completed", "body": "{category} with {name}" },
-      "kyc_submitted": { "title": "KYC selfie submitted for review", "body": "We'll email you within 24 hours with the result." },
-      "refund_processed": { "title": "Refund processed", "body": "${amount} refunded" },
-      "booking_reminder": { "title": "Reminder: booking with {name} tomorrow", "body": "{category}" }
+      "new_booking": {
+        "title": "{name} accepted your quote",
+        "body": "{category} · {amount} — it's now on your schedule."
+      },
+      "quote_received": {
+        "title": "{name} sent you a quote",
+        "body": "{amount} — open the chat to review and accept it."
+      },
+      "quote_declined": {
+        "title": "{name} declined your quote",
+        "body": "Open the chat to follow up."
+      },
+      "booking_started": {
+        "title": "{name} has started your job",
+        "body": "{category}"
+      },
+      "booking_cancelled": {
+        "title": "Booking with {name} was cancelled",
+        "body": "{category}"
+      },
+      "payment_received": {
+        "title": "Cash payment recorded",
+        "body": "{amount} paid to {name} for {category}"
+      },
+      "kyc_approved": {
+        "title": "A verification step was approved",
+        "body": "Keep going until every step is approved."
+      },
+      "kyc_rejected": {
+        "title": "A verification step was rejected",
+        "body": "Open Verification to see why and send it again."
+      },
+      "provider_verified": {
+        "title": "You're verified!",
+        "body": "Your profile now shows the Verified badge, and you can send quotes."
+      },
+      "provider_unverified": {
+        "title": "Your verification was removed",
+        "body": "Contact support if you think this is a mistake."
+      },
+      "account_suspended": {
+        "title": "Your account was suspended",
+        "body": "Contact support if you think this is a mistake."
+      },
+      "account_reactivated": {
+        "title": "Your account is active again",
+        "body": "You can use {site} as normal."
+      },
+      "admin_notice": {
+        "title": "A message from {site} support",
+        "body": "Open the conversation to read it."
+      },
+      "booking_updated": {
+        "title": "Support updated your booking with {name}",
+        "body": "{category} · {amount} — open it to see the new time and price."
+      },
+      "listing_paused": {
+        "title": "One of your services was paused",
+        "body": "Contact support if you think this is a mistake."
+      },
+      "listing_removed": {
+        "title": "One of your services was removed",
+        "body": "Contact support if you think this is a mistake."
+      },
+      "provider_profile_removed": {
+        "title": "Your provider profile was removed",
+        "body": "It is no longer shown on {site}. Contact support if you think this is a mistake."
+      },
+      "provider_profile_restored": {
+        "title": "Your provider profile is back",
+        "body": "It is visible again. Re-activate any services that were paused."
+      },
+      "report_resolved": {
+        "title": "We took action on your report",
+        "body": "Thanks for helping keep {site} safe."
+      },
+      "report_dismissed": {
+        "title": "We reviewed your report",
+        "body": "We didn't find a reason to act. Thanks for letting us know."
+      },
+      "review_hidden": {
+        "title": "One of your reviews was hidden",
+        "body": "It didn't follow our community guidelines."
+      },
+      "new_message": {
+        "title": "New message from {name}",
+        "body": "Open Messages to reply."
+      },
+      "job_request": {
+        "title": "{name} sent you a job request",
+        "body": "{category} — open the chat to send a quote."
+      },
+      "review_received": {
+        "title": "{rating}-star review from {name}",
+        "body": "Open the booking to see what they said."
+      },
+      "order_completed": {
+        "title": "Your job with {name} is complete",
+        "body": "{category} — you can leave a review now."
+      },
+      "refund_processed": {
+        "title": "Refund processed",
+        "body": "{amount} refunded"
+      },
+      "booking_reminder": {
+        "title": "Reminder: booking with {name} coming up",
+        "body": "{category} — open it for the details."
+      }
     },
     "services": {
       "title": "My services",
@@ -784,11 +1184,27 @@
       "addService": "Add a new service",
       "summary": {
         "active": "Active services",
-        "bookings": "Bookings this month",
+        "bookings": "Total bookings",
         "rating": "Average rating"
       },
       "edit": "Edit",
       "preview": "Preview",
+      "delete": "Delete",
+      "unverified": {
+        "title": "Your services stay paused until you're verified",
+        "body": "You can create and edit them now. Finish verification and they can go live."
+      },
+      "deleted": "Service deleted.",
+      "empty": "You haven't listed any services yet. Add one so clients can find you.",
+      "deleteConfirm": {
+        "title": "Delete \"{name}\"?",
+        "message": "This removes the listing for good. Existing bookings are not affected."
+      },
+      "errors": {
+        "update": "Couldn't update that service. Please try again.",
+        "delete": "Couldn't delete that service. Please try again.",
+        "save": "Couldn't save that service. Please check the details and try again."
+      },
       "activate": "Activate",
       "deactivate": "Deactivate",
       "bookingsCount": "{count} bookings",
@@ -812,7 +1228,13 @@
         "save": "Save changes",
         "create": "Create service",
         "closePreview": "Close preview"
-      }
+      },
+      "price": {
+        "flat": "{amount} flat",
+        "hourly": "{amount}/hr"
+      },
+      "created": "Service added.",
+      "updated": "Service updated."
     },
     "savedProviders": {
       "title": "Saved providers",
@@ -823,7 +1245,16 @@
       "remove": "Remove from saved",
       "empty": "No saved providers left.",
       "browse": "Browse services",
-      "neverBooked": "Never booked"
+      "neverBooked": "Never booked",
+      "removed": "Removed {name} from saved",
+      "undo": "Undo",
+      "bookedOn": "Booked {date}",
+      "viewProfile": "View {name}'s profile",
+      "errors": {
+        "remove": "Couldn't remove them from your saved list. Try again.",
+        "restore": "Couldn't save them again. Try again.",
+        "message": "Couldn't open the conversation. Please try again."
+      }
     },
     "settings": {
       "title": "Settings",
@@ -834,7 +1265,13 @@
         "email": "Email",
         "phone": "Phone",
         "editProfile": "Edit profile",
-        "editHint": "Name, email and phone are all managed from your profile."
+        "editPersonalInfo": "Edit details",
+        "editHint": "Name, email and phone are all managed from your profile.",
+        "editHintPersonal": "Your name, phone number and email.",
+        "emailChangeHelp": "If you change it, we'll send a code to the new address to confirm it.",
+        "personalInfoTitle": "Your details",
+        "nameRequired": "Please enter your name.",
+        "saved": "Details updated."
       },
       "security": {
         "heading": "Security",
@@ -851,6 +1288,12 @@
         "twoFaBody": "Add an extra layer of security at login",
         "twoFactorSetup": {
           "loading": "Setting up...",
+          "passwordHeading": "Confirm it's you",
+          "passwordBody": "Enter your password to start setting up two-factor authentication.",
+          "continue": "Continue",
+          "copy": "Copy codes",
+          "download": "Download .txt",
+          "copied": "Recovery codes copied.",
           "heading": "Set up two-factor authentication",
           "body": "Scan this QR code with an authenticator app (like Google Authenticator or Authy), then enter the 6-digit code it shows.",
           "manualEntry": "Or enter this code manually:",
@@ -870,7 +1313,9 @@
         "heading": "Notification preferences",
         "bookingRequests": "New booking requests",
         "messages": "Messages",
-        "marketing": "Product tips & marketing"
+        "marketing": "Product tips & marketing",
+        "saved": "Saved",
+        "saveError": "Couldn't save that change. Please try again."
       },
       "language": {
         "heading": "Language & region",
@@ -888,6 +1333,12 @@
         "confirmDeleteTitle": "Delete your account?",
         "confirmDeleteBody": "This deactivates your account for good and removes your access — your booking and review history stays intact for the people you've worked with. You'll be signed out now."
       }
+    },
+    "common": {
+      "showing": "Showing {shown} of {total}",
+      "loadMore": "Load more",
+      "loadingMore": "Loading…",
+      "loadMoreFailed": "Couldn't load more. Try again."
     }
   }
 }

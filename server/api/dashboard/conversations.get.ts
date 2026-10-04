@@ -1,5 +1,5 @@
-import type { Conversation } from '#shared/types/dashboard'
+import type { Conversation, Paged } from '#shared/types/dashboard'
 
-export default defineEventHandler((event): Promise<Conversation[]> => {
-  return callApi<Conversation[]>(event, '/dashboard/conversations')
+export default defineEventHandler((event): Promise<Paged<Conversation>> => {
+  return callApi<Paged<Conversation>>(event, '/dashboard/conversations', { query: pickListQuery(getQuery(event)) })
 })

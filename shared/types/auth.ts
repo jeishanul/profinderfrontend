@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string
   avatarUrl: string | null
   isProvider: boolean
+  /** The address has been confirmed with a code. Booking requests and becoming a provider need it. */
+  emailVerified: boolean
 }
 
 /**

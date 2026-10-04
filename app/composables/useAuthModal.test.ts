@@ -65,4 +65,28 @@ describe('useAuthModal', () => {
     expect(b.isOpen.value).toBe(true)
     expect(b.view.value).toBe('register')
   })
+
+  it('remembers what the visitor was doing and runs it on complete()', async () => {
+    const modal = useAuthModal()
+    let ran = false
+
+    modal.open('login', {
+      onSuccess: () => {
+        ran = true
+      },
+    })
+    await modal.complete()
+
+    expect(ran).toBe(true)
+    expect(modal.isOpen.value).toBe(false)
+  })
+
+  it('complete() with nothing to resume just closes the modal', async () => {
+    const modal = useAuthModal()
+
+    modal.open('login')
+    await modal.complete()
+
+    expect(modal.isOpen.value).toBe(false)
+  })
 })

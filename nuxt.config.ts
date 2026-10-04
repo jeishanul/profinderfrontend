@@ -1,5 +1,13 @@
 import tailwindcss from '@tailwindcss/vite'
 
+// Every deployed environment (staging, production) must set this explicitly — see the
+// production guard below. The `http://localhost:3838` fallback only exists so `npm run dev`
+// works out of the box on a fresh checkout; it must never reach a real deployment.
+if (!process.env.NUXT_PUBLIC_SITE_URL && process.env.NODE_ENV === 'production') {
+  throw new Error('NUXT_PUBLIC_SITE_URL must be set in production (site URL, CORS origin and i18n base URL all depend on it).')
+}
+const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3838'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 
@@ -36,9 +44,9 @@ export default defineNuxtConfig({
 
   // --- SEO (@nuxtjs/seo: site-config, robots, sitemap, og-image, schema-org, seo-utils) ---
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
-    name: 'FindPeople',
-    description: 'FindPeople',
+    url: siteUrl,
+    name: 'ProFinder',
+    description: 'ProFinder',
     defaultLocale: 'en',
     indexable: process.env.NUXT_SITE_INDEXABLE === 'true',
   },
@@ -66,9 +74,15 @@ export default defineNuxtConfig({
     '/messages': { ssr: false, robots: false },
     '/notifications': { ssr: false, robots: false },
     '/services': { ssr: false, robots: false },
-    '/earnings': { ssr: false, robots: false },
     '/saved-providers': { ssr: false, robots: false },
     '/settings': { ssr: false, robots: false },
+    '/become-a-provider': { ssr: false, robots: false },
+    // Friendly short URLs for the admin-managed pages (Terms, Privacy, About, Contact).
+    '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
+    '/terms': { redirect: '/legal/terms-of-service' },
+    '/privacy': { redirect: '/legal/privacy-policy' },
+    '/about': { redirect: '/legal/about' },
+    '/contact': { redirect: '/legal/contact' },
   },
 
   devServer: {
@@ -119,7 +133,7 @@ export default defineNuxtConfig({
 
   // --- i18n configuration ---
   i18n: {
-    baseUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
+    baseUrl: siteUrl,
     defaultLocale: 'en',
     strategy: 'prefix_except_default',
     locales: [
@@ -136,6 +150,11 @@ export default defineNuxtConfig({
   image: {
     quality: 80,
     format: ['avif', 'webp'],
+    // Avatars, cover photos and CMS images are served from the Laravel backend's
+    // own `storage/` disk (see `asset('storage/...')` on resources there), not
+    // this app's origin — `@nuxt/image` refuses to optimise a remote host it
+    // doesn't know about otherwise.
+    domains: [new URL(process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000').hostname],
   },
 
   robots: {
@@ -150,8 +169,15 @@ export default defineNuxtConfig({
   // 3. crossOriginOpenerPolicy false kora hoyeche IP origin warning bondho korte.
   security: {
     csrf: true,
+    // The defaults (150 / 5 min / IP) are within reach of one idle messages tab (thread poll every 10 s, inbox
+    // and badges every 30 s) and shared NATs. Generous globally; login/register/OTP are throttled by Laravel
+    // per account/IP and get a tighter cap on /api/auth/** below.
+    rateLimiter: {
+      tokensPerInterval: 600,
+      interval: 300000,
+    },
     corsHandler: {
-      origin: process.env.NUXT_PUBLIC_SITE_URL || 'http://162.35.24.95:3000',
+      origin: siteUrl,
     },
     headers: {
       strictTransportSecurity: false,
@@ -166,5 +192,11 @@ export default defineNuxtConfig({
 
   seo: {
     automaticTwitterTags: false,
+  },
+
+  // Provider profiles and legal pages are dynamic (not file-based routes),
+  // so the sitemap can't discover them on its own — see `server/api/__sitemap__/urls.ts`.
+  sitemap: {
+    sources: ['/api/__sitemap__/urls'],
   },
 })

@@ -5,6 +5,7 @@
       <slot />
     </main>
     <AppFooter class="hidden md:block" />
+    <AppFooterCompact class="pb-24 md:hidden" />
     <UiScrollToTopButton />
     <MarketplaceAuthModal />
     <AppBottomNav />

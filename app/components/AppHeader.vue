@@ -4,9 +4,13 @@ import type { ServiceCategory } from '#shared/types/marketplace'
 // Nav labels come from i18n messages, not hardcoded strings.
 const { t } = useI18n()
 
+const session = useSession()
+
 const links = computed(() => [
   { label: t('nav.howItWorks'), to: '/#how-it-works' },
   { label: t('nav.browseServices'), to: '/browse' },
+  // Providers already have their own panel; everyone else (incl. guests) gets the CTA.
+  ...(session.isProvider.value ? [] : [{ label: t('nav.becomeProvider'), to: '/become-a-provider' }]),
 ])
 
 // Only the home page's hero ever docks its search bar into the header (see
@@ -20,7 +24,6 @@ const showDockedSearch = computed(() => isHomeRoute.value && isDocked.value)
 const { data: categories } = await useApi<ServiceCategory[]>('/categories', { lazy: true, default: () => [] })
 
 const authModal = useAuthModal()
-const session = useSession()
 const { unreadMessages, unreadNotifications } = useUnreadCounts()
 const firstName = computed(() => session.name.value.split(' ')[0] ?? '')
 
@@ -45,13 +48,7 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
         to="/"
         class="flex shrink-0 items-center gap-2.5 font-display font-bold text-brand-700 dark:text-brand-500"
       >
-        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
-          <UiIcon
-            name="leaf"
-            :size="22"
-          />
-        </span>
-        <span class="text-xl">{{ t('brand.name') }}</span>
+        <AppBrand />
       </NuxtLinkLocale>
 
       <ul
@@ -130,9 +127,10 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
             to="/dashboard"
             class="flex items-center gap-2 rounded-full py-1 pr-3.5 pl-1 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/10"
           >
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 font-display text-xs font-bold text-white">
-              {{ session.initials.value }}
-            </span>
+            <UiAvatar
+              :name="session.name.value"
+              :src="session.user.value?.avatarUrl"
+            />
             {{ firstName }}
           </NuxtLinkLocale>
         </div>

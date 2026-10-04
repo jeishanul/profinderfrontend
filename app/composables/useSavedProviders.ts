@@ -1,7 +1,8 @@
 /**
  * Shared "is this provider saved" state for the heart/save toggle wherever a
  * provider appears (browse results, provider profile) — backed by the real
- * `/dashboard/saved-providers` endpoints. `useState` so every card on a page
+ * `/dashboard/saved-providers` endpoints (only the ids are loaded here; the
+ * saved-providers page pages through the full rows). `useState` so every card on a page
  * agrees after one toggle, without each card fetching the list itself.
  */
 export function useSavedProviders() {
@@ -17,25 +18,40 @@ export function useSavedProviders() {
     // request's cookies (see `useSession.fetchUser`'s comment for the full
     // explanation) and `useApiFetch`'s CSRF wrapper crashes outside a
     // synchronous setup call. It's also a GET, so CSRF isn't needed anyway.
-    const saved = await useRequestFetch()<{ id: string }[]>('/api/dashboard/saved-providers')
-    savedIds.value = saved.map(provider => provider.id)
-    loaded.value = true
+    try {
+      savedIds.value = await useRequestFetch()<string[]>('/api/dashboard/saved-providers/ids')
+      loaded.value = true
+    }
+    catch {
+      // A hiccup loading the hearts must never take the whole page down with it; they just show empty
+      // until the next attempt (`loaded` stays false).
+    }
+  }
+
+  /** Forget what was loaded — the person behind the session may have changed. */
+  function reset() {
+    savedIds.value = []
+    loaded.value = false
   }
 
   function isSaved(providerId: string): boolean {
     return savedIds.value.includes(providerId)
   }
 
-  async function toggle(providerId: string) {
-    if (isSaved(providerId)) {
-      await useApiFetch(`/api/dashboard/saved-providers/${providerId}`, { method: 'DELETE' })
-      savedIds.value = savedIds.value.filter(id => id !== providerId)
-    }
-    else {
-      await useApiFetch(`/api/dashboard/saved-providers/${providerId}`, { method: 'POST' })
-      savedIds.value = [...savedIds.value, providerId]
-    }
+  async function save(providerId: string) {
+    await useApiFetch(`/api/dashboard/saved-providers/${providerId}`, { method: 'POST' })
+    if (!isSaved(providerId)) savedIds.value = [...savedIds.value, providerId]
   }
 
-  return { ensureLoaded, isSaved, toggle }
+  async function unsave(providerId: string) {
+    await useApiFetch(`/api/dashboard/saved-providers/${providerId}`, { method: 'DELETE' })
+    savedIds.value = savedIds.value.filter(id => id !== providerId)
+  }
+
+  async function toggle(providerId: string) {
+    if (isSaved(providerId)) await unsave(providerId)
+    else await save(providerId)
+  }
+
+  return { ensureLoaded, reset, isSaved, toggle, save, unsave }
 }

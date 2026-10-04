@@ -1,17 +1,43 @@
 <script setup lang="ts">
 // Auto-imported as <MarketplaceDownloadAppSection />.
 const { t } = useI18n()
+const { settings } = useSiteSettings()
+const requestUrl = useRequestURL()
 
-const phoneNumber = ref('')
+// Nothing to download without at least one store link — showing the pitch
+// and a QR code that just opens the website was misleading.
+const hasAppLink = computed(() => Boolean(settings.value.appStoreUrl || settings.value.playStoreUrl))
+const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.playStoreUrl ?? requestUrl.origin)
+
+// An admin-uploaded screenshot for the phone mock, if one of the
+// `app_download` content items (the store badges) has an image attached.
+const content = useContentSection('app_download')
+const phoneImage = computed(() => content.value.find(item => item.imageUrl)?.imageUrl ?? null)
+
+const helplineHeading = computed(() => (settings.value.supportHours
+  ? t('marketplace.downloadApp.helpline.headingWithHours', { hours: settings.value.supportHours })
+  : t('marketplace.downloadApp.helpline.heading')))
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10">
+  <section
+    v-if="hasAppLink"
+    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10"
+  >
     <div class="grid items-center gap-12 lg:grid-cols-[400px_minmax(0,1fr)]">
       <div class="relative mx-auto h-[360px] w-[220px]">
         <div class="h-full w-full overflow-hidden rounded-[28px] bg-black/90 p-2 shadow-2xl">
           <div class="h-full w-full overflow-hidden rounded-[20px]">
+            <NuxtImg
+              v-if="phoneImage"
+              :src="phoneImage"
+              :alt="t('marketplace.downloadApp.heading')"
+              width="204"
+              height="344"
+              class="h-full w-full object-cover"
+            />
             <UiPlaceholderMedia
+              v-else
               icon="image"
               class="h-full"
             />
@@ -34,31 +60,12 @@ const phoneNumber = ref('')
           {{ t('marketplace.downloadApp.description') }}
         </p>
 
-        <form
-          class="mt-7 flex max-w-md gap-1.5 rounded-full border border-black/10 bg-white/70 p-1.5 backdrop-blur-xl dark:border-white/10 dark:bg-black/30"
-          @submit.prevent
-        >
-          <label
-            for="download-app-phone"
-            class="sr-only"
-          >{{ t('marketplace.downloadApp.phonePlaceholder') }}</label>
-          <input
-            id="download-app-phone"
-            v-model="phoneNumber"
-            type="tel"
-            :placeholder="t('marketplace.downloadApp.phonePlaceholder')"
-            class="w-full rounded-full bg-transparent px-4 py-3 text-sm outline-none placeholder:text-black/40 dark:placeholder:text-white/40"
-          >
-          <UiButton
-            type="submit"
-            class="shrink-0 rounded-full! whitespace-nowrap"
-          >
-            {{ t('marketplace.downloadApp.cta') }}
-          </UiButton>
-        </form>
-
         <div class="mt-6 flex items-center gap-4">
-          <UiQrCode :size="64" />
+          <UiQrCode
+            :value="qrTarget"
+            :size="72"
+            :label="t('marketplace.downloadApp.qrHint')"
+          />
           <p class="max-w-[220px] text-sm text-black/60 dark:text-white/60">
             {{ t('marketplace.downloadApp.qrHint') }}
           </p>
@@ -66,35 +73,40 @@ const phoneNumber = ref('')
       </div>
     </div>
 
-    <div class="mt-16 flex flex-col items-center justify-between gap-6 rounded-3xl border border-black/10 bg-white/70 p-9 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:flex-row">
+    <div
+      v-if="settings.contactPhone || settings.contactEmail"
+      class="mt-16 flex flex-col items-center justify-between gap-6 rounded-3xl border border-black/10 bg-white/70 p-9 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:flex-row"
+    >
       <div>
         <p class="text-lg font-bold">
-          {{ t('marketplace.downloadApp.helpline.heading') }}
+          {{ helplineHeading }}
         </p>
         <p class="mt-1.5 text-sm text-black/60 dark:text-white/60">
-          {{ t('marketplace.downloadApp.helpline.description', { number: SUPPORT_PHONE, email: SUPPORT_EMAIL }) }}
+          {{ t('marketplace.downloadApp.helpline.description') }}
         </p>
       </div>
       <div class="flex shrink-0 flex-wrap justify-center gap-2.5">
         <a
-          :href="`tel:${SUPPORT_PHONE}`"
+          v-if="settings.contactPhone"
+          :href="`tel:${settings.contactPhone}`"
           class="inline-flex items-center gap-2 rounded-md bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-700/20 dark:text-brand-100 dark:hover:bg-brand-700/30"
         >
           <UiIcon
             name="phone"
             :size="15"
           />
-          {{ SUPPORT_PHONE }}
+          {{ settings.contactPhone }}
         </a>
         <a
-          :href="`mailto:${SUPPORT_EMAIL}`"
+          v-if="settings.contactEmail"
+          :href="`mailto:${settings.contactEmail}`"
           class="inline-flex items-center gap-2 rounded-md bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-700/20 dark:text-brand-100 dark:hover:bg-brand-700/30"
         >
           <UiIcon
             name="mail"
             :size="15"
           />
-          {{ SUPPORT_EMAIL }}
+          {{ settings.contactEmail }}
         </a>
         <NuxtLinkLocale
           to="/browse"
