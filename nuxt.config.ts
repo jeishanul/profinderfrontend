@@ -63,6 +63,11 @@ export default defineNuxtConfig({
   // Server-to-server direct internal call to Laravel backend port 8000
   runtimeConfig: {
     apiBaseUrl: process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000',
+    // Social login: the public client IDs (the secrets live only in Laravel's .env). A provider
+    // with an empty ID is treated as not configured and its button is hidden.
+    socialRedirectBase: siteUrl,
+    socialGoogleClientId: process.env.NUXT_SOCIAL_GOOGLE_CLIENT_ID || '',
+    socialFacebookClientId: process.env.NUXT_SOCIAL_FACEBOOK_CLIENT_ID || '',
   },
 
   // --- Hybrid rendering defaults; extend per-route as pages are added ---

@@ -4,9 +4,9 @@
 // anywhere in the app opens this same instance via `useAuthModal()`.
 // Backed by the real Laravel API now (see `useSession` and
 // `server/api/auth/*`) — login/register/forgot-password/otp/reset-password
-// all call it. The two social buttons stay inert stubs: real OAuth needs
-// external app credentials this project doesn't have, so they're
-// deliberately not wired to anything.
+// all call it. The social buttons are plain links into the Nitro OAuth
+// redirect (`server/api/auth/social/*`); the callback lands back on `/` with a
+// `?social=` result that `onMounted` below turns into a login or an error.
 const { t } = useI18n()
 const { settings } = useSiteSettings()
 const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
@@ -16,6 +16,44 @@ const session = useSession()
 const titleId = useId()
 
 const toast = useToast()
+const route = useRoute()
+
+// Which providers have credentials configured — the others get no button.
+const { data: socialProviders } = useFetch<{ google: boolean, facebook: boolean }>('/api/auth/social/providers', { default: () => ({ google: false, facebook: false }) })
+const socialButtons = computed(() => (['google', 'facebook'] as const).filter(provider => socialProviders.value?.[provider]))
+
+onMounted(async () => {
+  const result = route.query.social
+  if (typeof result !== 'string') return
+
+  const challenge = typeof route.query.challenge === 'string' ? route.query.challenge : ''
+  // Drop the result (and the 2FA challenge) from the address bar straight away.
+  await navigateTo({ path: route.path, query: {}, hash: route.hash }, { replace: true })
+
+  if (result === 'ok') {
+    await session.fetchUser()
+    await authModal.complete()
+  }
+  else if (result === '2fa' && challenge) {
+    twoFactorChallengeToken.value = challenge
+    twoFactorCode.value = ''
+    twoFactorError.value = ''
+    authModal.open('two-factor')
+  }
+  else if (result === 'error') {
+    authModal.open('login')
+    const reason = route.query.reason
+    loginError.value = reason === 'cancelled'
+      ? t('auth.social.cancelledError')
+      : reason === 'account_suspended' || reason === 'account_banned'
+        ? t('auth.login.suspendedError')
+        : reason === 'account_deactivated'
+          ? t('auth.social.deactivatedError')
+          : reason === 'social_no_email'
+            ? t('auth.social.noEmailError')
+            : t('auth.social.failedError')
+  }
+})
 
 const login = reactive({ identifier: '', password: '', remember: true })
 const register = reactive({ fullName: '', email: '', password: '', confirmPassword: '', acceptTerms: false })
@@ -993,40 +1031,33 @@ async function skipVerification() {
     </template>
 
     <template v-if="isAuthTab">
-      <div class="my-6 flex items-center gap-3">
+      <div
+        v-if="socialButtons.length"
+        class="my-6 flex items-center gap-3"
+      >
         <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
         <span class="text-xs text-black/50 dark:text-white/50">{{ t('auth.social.divider') }}</span>
         <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
       </div>
 
-      <div class="flex gap-2.5">
-        <!-- Not wired to anything real yet — see the note at the top of this
-             file: real OAuth needs external app credentials this project
-             doesn't have. Disabled rather than silently faking a login. -->
-        <button
-          type="button"
-          disabled
-          class="flex h-[46px] w-full min-w-0 cursor-not-allowed items-center justify-center gap-2.5 rounded-xl border border-black/10 bg-white text-sm font-semibold whitespace-nowrap text-black opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white"
+      <div
+        v-if="socialButtons.length"
+        class="flex gap-2.5"
+      >
+        <!-- Full page navigation on purpose: the provider's consent screen can't be framed. -->
+        <a
+          v-for="provider in socialButtons"
+          :key="provider"
+          :href="`/api/auth/social/${provider}/redirect`"
+          class="flex h-[46px] w-full min-w-0 items-center justify-center gap-2.5 rounded-xl border border-black/10 bg-white text-sm font-semibold whitespace-nowrap text-black transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
         >
           <UiIcon
-            name="google"
+            :name="provider"
             filled
             :size="18"
           />
-          {{ t('auth.social.google') }}
-        </button>
-        <button
-          type="button"
-          disabled
-          class="flex h-[46px] w-full min-w-0 cursor-not-allowed items-center justify-center gap-2.5 rounded-xl border border-black/10 bg-white text-sm font-semibold whitespace-nowrap text-black opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white"
-        >
-          <UiIcon
-            name="facebook"
-            filled
-            :size="18"
-          />
-          {{ t('auth.social.facebook') }}
-        </button>
+          {{ t(`auth.social.${provider}`) }}
+        </a>
       </div>
     </template>
   </UiModal>

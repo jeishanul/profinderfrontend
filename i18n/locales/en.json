@@ -82,7 +82,11 @@
     "social": {
       "divider": "or continue with",
       "google": "Google",
-      "facebook": "Facebook"
+      "facebook": "Facebook",
+      "cancelledError": "Sign-in was cancelled. You can try again or use your email and password.",
+      "failedError": "We couldn't sign you in with that account. Please try again.",
+      "noEmailError": "That account didn't share an email address, so we can't sign you in with it.",
+      "deactivatedError": "You deactivated this account. Log in with your email and password to reactivate it."
     },
     "back": "Back",
     "forgotPassword": {
