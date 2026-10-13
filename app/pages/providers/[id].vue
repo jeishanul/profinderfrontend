@@ -25,7 +25,7 @@ function goBack() {
 const { data: provider, error } = await useApi<ProviderProfile>(`/providers/${route.params.id}`)
 
 if (error.value || !provider.value) {
-  const status = apiErrorStatus(error.value) ?? 404
+  const status = apiErrorStatus(error.value) ?? 500
   throw createError({
     statusCode: status,
     statusMessage: status === 404 ? t('marketplace.providerProfile.notFound') : t('errors.somethingWrong'),
@@ -84,14 +84,16 @@ async function handleMessage() {
 }
 
 const isSaving = ref(false)
-async function handleToggleSave() {
+async function handleToggleSave(afterLogin = false) {
   if (!session.isAuthenticated.value || !provider.value) {
-    authModal.open('login', { onSuccess: () => handleToggleSave() })
+    authModal.open('login', { onSuccess: () => handleToggleSave(true) })
     return
   }
   isSaving.value = true
   try {
-    await savedProviders.toggle(provider.value.id)
+    // Queued behind the login modal: end saved, never flip a provider the person had already saved.
+    if (afterLogin) await savedProviders.ensureSaved(provider.value.id)
+    else await savedProviders.toggle(provider.value.id)
   }
   catch (error) {
     toast.error(apiErrorMessage(error, t('ui.errors.generic')))
@@ -153,19 +155,24 @@ const pageTitle = computed(() => t('marketplace.providerProfile.seoTitle', {
   category: categoryLabel.value,
 }))
 
+// What the profile says about itself (headline, else bio) makes a far better search snippet than a generic line;
+// the generic one is only for profiles that have neither.
+const snippet = computed(() => {
+  const text = (provider.value!.headline ?? provider.value!.bio ?? '').trim()
+  return text.length > 155 ? `${text.slice(0, 154)}…` : text
+})
+const metaDescription = computed(() => snippet.value || t('marketplace.providerProfile.seoDescription', { name: provider.value!.name, site: siteName.value }))
+
 useSeoMeta({
   title: pageTitle,
-  description: t('marketplace.providerProfile.seoDescription', { name: provider.value!.name, site: siteName.value }),
+  description: metaDescription,
 })
 defineOgImage('MarketplaceSatori', {
   title: provider.value!.name,
   eyebrow: categoryLabel,
-  description: t('marketplace.providerProfile.seoDescription', { name: provider.value!.name, site: siteName.value }),
+  description: metaDescription.value,
 })
-const schemaDescription = computed(() => {
-  const text = provider.value!.headline ?? provider.value!.bio ?? ''
-  return text.length > 155 ? `${text.slice(0, 154)}…` : text
-})
+const schemaDescription = snippet
 
 useSchemaOrg([
   defineWebPage(),
@@ -324,7 +331,7 @@ useSchemaOrg([
             :class="savedProviders.isSaved(provider.id) ? 'text-red-600 dark:text-red-400' : 'text-black/40 dark:text-white/40'"
             :aria-label="savedProviders.isSaved(provider.id) ? t('marketplace.provider.unsave') : t('marketplace.provider.save')"
             :disabled="isSaving"
-            @click="handleToggleSave"
+            @click="handleToggleSave()"
           >
             <UiIcon
               name="heart"
@@ -456,12 +463,14 @@ useSchemaOrg([
                 :aria-label="t('marketplace.providerProfile.openPhoto', { number: index + 1 })"
                 @click="lightboxIndex = index"
               >
-                <img
+                <NuxtImg
                   :src="photo.url"
                   :alt="t('marketplace.providerProfile.recentWork')"
+                  width="360"
+                  height="270"
                   loading="lazy"
                   class="h-full w-full object-cover transition-transform hover:scale-105"
-                >
+                />
               </button>
             </div>
           </div>
@@ -547,6 +556,23 @@ useSchemaOrg([
                 : provider.serviceAreaKm !== null
                   ? t('marketplace.providerProfile.serviceArea', { radius: provider.serviceAreaKm })
                   : t('marketplace.providerProfile.basedIn', { city: provider.cityName }) }}
+              <span
+                v-if="provider.provinceSlug && provider.citySlug"
+                class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold"
+              >
+                <NuxtLinkLocale
+                  :to="`/ph/${provider.provinceSlug}/${provider.citySlug}`"
+                  class="text-brand-700 hover:underline dark:text-brand-100"
+                >
+                  {{ t('marketplace.providerProfile.moreInCity', { city: provider.cityName }) }}
+                </NuxtLinkLocale>
+                <NuxtLinkLocale
+                  :to="`/ph/${provider.provinceSlug}`"
+                  class="text-brand-700 hover:underline dark:text-brand-100"
+                >
+                  {{ t('marketplace.providerProfile.moreInProvince', { province: provider.provinceName }) }}
+                </NuxtLinkLocale>
+              </span>
             </p>
           </div>
 
@@ -594,7 +620,7 @@ useSchemaOrg([
         :class="savedProviders.isSaved(provider.id) ? 'text-red-600 dark:text-red-400' : 'text-black/40 dark:text-white/40'"
         :aria-label="savedProviders.isSaved(provider.id) ? t('marketplace.provider.unsave') : t('marketplace.provider.save')"
         :disabled="isSaving"
-        @click="handleToggleSave"
+        @click="handleToggleSave()"
       >
         <UiIcon
           name="heart"

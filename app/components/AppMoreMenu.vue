@@ -7,7 +7,7 @@ const { t } = useI18n()
 const moreMenu = useMoreMenu()
 const session = useSession()
 const authModal = useAuthModal()
-const { unreadNotifications } = useUnreadCounts()
+const { unreadNotifications, newApplicants } = useUnreadCounts()
 
 const isProvider = computed(() => session.activeRole.value === 'provider')
 
@@ -119,6 +119,24 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
           {{ t('dashboard.sidebar.myPurchases') }}
         </NuxtLinkLocale>
         <NuxtLinkLocale
+          v-if="!isProvider"
+          to="/seek-job"
+          :class="itemClass"
+          @click="go"
+        >
+          <span :class="iconWrapClass">
+            <UiIcon
+              name="briefcase"
+              :size="17"
+            />
+          </span>
+          <span class="flex-1">{{ t('dashboard.sidebar.seekJob') }}</span>
+          <span
+            v-if="newApplicants > 0"
+            class="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-600 px-1 text-[11px] font-bold text-white"
+          >{{ formatBadgeCount(newApplicants) }}</span>
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
           to="/notifications"
           :class="itemClass"
           @click="go"
@@ -165,6 +183,32 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
               />
             </span>
             {{ t('dashboard.sidebar.myServices') }}
+          </NuxtLinkLocale>
+          <NuxtLinkLocale
+            to="/find-jobs"
+            :class="itemClass"
+            @click="go"
+          >
+            <span :class="iconWrapClass">
+              <UiIcon
+                name="search"
+                :size="17"
+              />
+            </span>
+            {{ t('dashboard.sidebar.findJobs') }}
+          </NuxtLinkLocale>
+          <NuxtLinkLocale
+            to="/find-jobs/applications"
+            :class="itemClass"
+            @click="go"
+          >
+            <span :class="iconWrapClass">
+              <UiIcon
+                name="check-circle"
+                :size="17"
+              />
+            </span>
+            {{ t('dashboard.sidebar.myApplications') }}
           </NuxtLinkLocale>
         </template>
 

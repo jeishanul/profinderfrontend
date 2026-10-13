@@ -327,8 +327,11 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   don't widen it to `*`.
 - **CSRF is on** (`nuxt-csurf`). Every POST/PUT/PATCH/DELETE needs the `csrf-token` header, which
   `useApiFetch` attaches for you (see Calling our API below). A raw `$fetch` mutation fails with 403.
-- **Rate limiting is on by default** (150 requests / 5 min / IP) using the `lruCache` in-memory
-  driver. That driver is per-process — fine for a single instance, but it resets on redeploy and
+- **Rate limiting is on**: 600 requests / 5 min / IP globally, and 60 / 5 min on `/api/auth/**`
+  (`security.rateLimiter` and `routeRules` in `nuxt.config.ts`), using the `lruCache` in-memory
+  driver. Laravel throttles per account/IP as well. The BFF forwards the visitor's *socket* address to
+  Laravel (`callApi`) and never the browser's own `X-Forwarded-For`, which would let a visitor dodge the
+  per-IP limits. That driver is per-process — fine for a single instance, but it resets on redeploy and
   doesn't share state across horizontally-scaled instances. If/when this deploys to more than one
   instance behind a load balancer, switch `security.rateLimiter.driver` to a shared store (e.g.
   Redis) or rate limiting won't be effective.
@@ -422,6 +425,55 @@ absolute`, use `@nuxt/fonts` for custom fonts.
 - Pass new list params through the BFF with `pickListQuery(getQuery(event))` (`server/utils/apiProxy.ts`),
   which forwards only `page`, `perPage`, `q`, `status`, `archived`.
 - Public Browse keeps its filters in the URL (the URL is the source of truth) — see `pages/browse.vue`.
+
+### Head tags on SEO landing pages
+
+- `app.vue` emits the canonical, hreflang and og:locale tags for every route. A landing page
+  (`/category/*`, `/ph/**`) calls **`useSeoLanding(meta, eyebrow)`** for its title, description, robots,
+  schema.org and OG image; it overrides the canonical only when an admin set a custom one
+  (`useCanonicalOverride`), so a page never emits two canonical tags. Never add a `<link rel="canonical">` per page.
+- These pages are keyed by path (`definePageMeta({ key: route => route.path })`) so moving between two of them
+  builds a fresh component; head and filter state never go stale. Search/sort/page state is
+  `useSeoProviderFilters()`; the URL is the source of truth (back/forward restore it).
+- All text on them is in `en.json` under `seo.*`.
+- The favicon links live in `app.vue` (an admin-uploaded favicon replaces the built-in set), and `updateSiteConfig`
+  there feeds the site name/description to structured data and OG tags.
+
+### Categories
+
+`useCategories({ withSkills?, lazy? })` is the only way to load categories: two cached variants
+(`categories`, `categories-with-skills`), so a page never refetches what another one already has.
+
+### Social sign-in and re-authentication
+
+- The OAuth round trip lives in `server/api/auth/social/*`. What the person asked for before leaving (remember me,
+  the page they were on, reactivating) travels in the httpOnly state cookie; a 2FA challenge or a "finish creating
+  your account" token waits in a second httpOnly cookie (`SOCIAL_PENDING_COOKIE`) and is picked up by the BFF
+  (`two-factor/challenge`, `social/complete`). Nothing sensitive goes in the URL. `safeReturnTo` only accepts
+  same-site paths.
+- Accounts created by social sign-in have no password (`AccountSettings.hasPassword`). Anything that asks for "your
+  password" (change password, delete account, turn off 2FA, start 2FA setup) uses `<DashboardReauthField>` and
+  `reauthBody()`, which switch to an emailed one-time code for those accounts.
+
+### Seek Job (consumer-posted jobs)
+
+- Consumer pages `/seek-job`, `/seek-job/new`, `/seek-job/[id]`, `/seek-job/[id]/edit`; provider pages `/find-jobs`, `/find-jobs/[id]`, `/find-jobs/applications` (`middleware: ['auth','provider']`). All are `ssr: false` + `robots: false` in `routeRules`.
+- Shared helpers: `utils/jobPost.ts` (status/expiry helpers), `utils/offer.ts` + `<DashboardOfferFields>` (price/hours/extra rate/when — shared with `QuoteFormModal`), `useJobLabels()`, `useJobErrors()` (maps API `code` to `seekJob.errors.<code>` then `findJobs.errors.<code>`).
+- BFF routes under `server/api/dashboard/{job-posts,seek-jobs,job-post-applications}/**`; query keys are whitelisted with `pickSeekJobQuery`.
+- Hiring: `/seek-job/{id}?hire={applicationId}` opens the hire modal (used by the "Hire" button on the chat's job-application card).
+- "New applicants" count rides on the `/dashboard/conversations/unread-count` poll (`UNREAD_APPLICANTS_KEY`), no extra request.
+- Job photos and the exact address are private: photos stream through the BFF with the session; never put the post title in a notification `title/body`, only as the `subjectName` param.
+
+### Testing the BFF
+
+`callApi` is built by `createCallApi(deps)` (`server/utils/apiProxy.ts`) so its rules (token, client address,
+401 clears the cookie) are unit-tested with plain fakes (`apiProxy.test.ts`). A handler that only forwards a body can
+be tested by stubbing the Nitro globals (see `two-factor/setup.post.test.ts`, `// @vitest-environment node`).
+
+### Browse filters
+
+The pure URL/API query helpers for Browse live in `utils/browseQuery.ts` (`parseBrowseQuery`,
+`toBrowseRouteQuery`, `toProviderApiQuery`) with tests; `pages/browse.vue` only wires them to the router.
 
 ### Private files through the BFF
 

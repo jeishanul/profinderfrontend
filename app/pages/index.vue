@@ -5,7 +5,6 @@ import type {
   GalleryTab,
   PagedResult,
   ProviderSummary,
-  ServiceCategory,
   Testimonial,
 } from '#shared/types/marketplace'
 
@@ -25,11 +24,23 @@ const quickTiles = computed(() => [
   { to: '/settings', icon: 'gear' as const, tint: 'bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70', label: t('dashboard.sidebar.settings') },
 ])
 
-const { data: categories } = await useApi<ServiceCategory[]>('/categories')
+const { data: categories } = await useCategories()
 // "Top-rated pros": verified, best-rated first — not just whoever signed up last.
 const { data: providersPage } = await useApi<PagedResult<ProviderSummary>>('/providers', {
   query: { perPage: 8, sort: 'rating', verifiedOnly: true },
 })
+// When the visitor searched a province earlier this visit, prefer that province's pros — but only if it has enough
+// to fill the row; a near-empty "Top-rated near X" would look worse than the national list.
+const lastSearch = useLastSearch()
+const FEATURED_MIN = 4
+const provincePage = lastSearch.value?.provinceCode
+  ? (await useApi<PagedResult<ProviderSummary>>('/providers', {
+      query: { perPage: 8, sort: 'rating', verifiedOnly: true, province: lastSearch.value.provinceCode },
+      key: 'home-featured-province',
+    })).data
+  : null
+const featuredIsLocal = computed(() => (provincePage?.value?.items.length ?? 0) >= FEATURED_MIN)
+const featuredProviders = computed(() => (featuredIsLocal.value ? provincePage!.value!.items : providersPage.value?.items ?? []))
 const { data: testimonials } = await useApi<Testimonial[]>('/testimonials')
 const { data: faqItems } = await useApi<FaqItem[]>('/faq')
 
@@ -46,10 +57,9 @@ const galleryItemsByTab = computed(() => Object.fromEntries(
   GALLERY_TABS.map((tab, index) => [tab, galleryResponses[index]?.data.value ?? []]),
 ) as Record<GalleryTab, GalleryItem[]>)
 
-const lastSearch = useLastSearch()
-
 function handleHeroSearch({ category, province, city, barangay }: { category: string, province: string, city: string, barangay: string }) {
   lastSearch.value = province ? { provinceCode: province } : null
+
   navigateTo(localePath({
     path: '/browse',
     query: {
@@ -67,8 +77,8 @@ useSeoMeta({
   description: () => settings.value.seoDefaultDescription ?? t('home.seoDescription', { name: settings.value.siteName ?? t('brand.name') }),
 })
 defineOgImage('DefaultSatori', {
-  title: t('home.seoTitle'),
-  description: t('home.seoDescription'),
+  title: settings.value.seoDefaultTitle ?? t('home.seoTitle'),
+  description: settings.value.seoDefaultDescription ?? t('home.seoDescription', { name: settings.value.siteName ?? t('brand.name') }),
 })
 useSchemaOrg([defineWebPage()])
 </script>
@@ -111,7 +121,8 @@ useSchemaOrg([defineWebPage()])
     <MarketplaceHowItWorksSteps />
     <MarketplaceCategoryCarousel :categories="categories ?? []" />
     <MarketplaceFeaturedProviders
-      :providers="providersPage?.items ?? []"
+      :providers="featuredProviders"
+      :local="featuredIsLocal"
       :categories="categories ?? []"
     />
     <MarketplaceWhyChooseUs />

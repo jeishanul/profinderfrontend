@@ -25,16 +25,11 @@ export default defineNuxtConfig({
   ],
   devtools: { enabled: true },
 
-  // Favicon matches the brand mark (green rounded square + white leaf, same
-  // as the header/footer logo badge) — see public/favicon.svg. SVG first
-  // (crisp at any size, modern browsers prefer it); PNG fallbacks for
-  // browsers/contexts that don't support SVG favicons.
+  // The favicon links live in `app.vue`: an admin-uploaded favicon replaces the built-in brand mark there instead of
+  // being added next to it. The apple-touch-icon stays static.
   app: {
     head: {
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
-        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
       ],
     },
@@ -68,6 +63,8 @@ export default defineNuxtConfig({
     socialRedirectBase: siteUrl,
     socialGoogleClientId: process.env.NUXT_SOCIAL_GOOGLE_CLIENT_ID || '',
     socialFacebookClientId: process.env.NUXT_SOCIAL_FACEBOOK_CLIENT_ID || '',
+    // Facebook Graph API version used by the login dialog (e.g. v19.0).
+    socialFacebookGraphVersion: process.env.NUXT_SOCIAL_FACEBOOK_GRAPH_VERSION || 'v19.0',
   },
 
   // --- Hybrid rendering defaults; extend per-route as pages are added ---
@@ -82,6 +79,12 @@ export default defineNuxtConfig({
     '/saved-providers': { ssr: false, robots: false },
     '/settings': { ssr: false, robots: false },
     '/become-a-provider': { ssr: false, robots: false },
+    '/seek-job/**': { ssr: false, robots: false },
+    '/seek-job': { ssr: false, robots: false },
+    '/find-jobs/**': { ssr: false, robots: false },
+    '/find-jobs': { ssr: false, robots: false },
+    // Credential endpoints: Laravel also throttles per account/IP, this just caps a single address hammering them.
+    '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
     '/terms': { redirect: '/legal/terms-of-service' },
     '/privacy': { redirect: '/legal/privacy-policy' },
     '/about': { redirect: '/legal/about' },
@@ -176,9 +179,12 @@ export default defineNuxtConfig({
   security: {
     csrf: true,
     // The defaults (150 / 5 min / IP) are within reach of one idle messages tab (thread poll every 10 s, inbox
-    // and badges every 30 s) and shared NATs. Generous globally; login/register/OTP are throttled by Laravel
-    // per account/IP and get a tighter cap on /api/auth/** below.
-    rateLimiter: false,
+    // and badges every 30 s) and shared NATs, so the global cap is generous. Login/register/OTP are throttled
+    // by Laravel per account/IP and get a much tighter cap on /api/auth/** (see routeRules).
+    rateLimiter: {
+      tokensPerInterval: 600,
+      interval: 300000,
+    },
     corsHandler: {
       origin: siteUrl,
     },

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { ServiceCategory } from '#shared/types/marketplace'
-
 const { t } = useI18n()
 const { settings } = useSiteSettings()
 const requestUrl = useRequestURL()
@@ -14,8 +12,10 @@ const CUSTOMER_LINKS = [
 // Popular categories and legal pages come from the API (admins manage both),
 // not a hardcoded list that silently goes stale. Lazy: the footer is below
 // the fold and must never block the page.
-const { data: categories } = useApi<ServiceCategory[]>('/categories', { key: 'footer-categories', lazy: true, default: () => [] })
+const { data: categories } = useCategories({ lazy: true })
 const { data: legalPages } = useApi<{ slug: string, title: string }[]>('/pages', { key: 'footer-pages', lazy: true, default: () => [] })
+
+const { data: popularProvinces } = useApi<{ name: string, slug: string }[]>('/seo/popular-provinces', { key: 'footer-provinces', lazy: true, default: () => [] })
 
 const popularCategories = computed(() => [...(categories.value ?? [])]
   .filter(category => category.providerCount > 0)
@@ -127,7 +127,7 @@ const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.pla
             :key="category.id"
           >
             <NuxtLinkLocale
-              :to="{ path: '/browse', query: { categories: category.id } }"
+              :to="`/category/${category.id}`"
               class="text-white/80 hover:text-white"
             >
               {{ category.name }}
@@ -189,6 +189,28 @@ const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.pla
           />
         </div>
       </div>
+    </div>
+
+    <div
+      v-if="popularProvinces && popularProvinces.length > 0"
+      class="mx-auto mt-10 max-w-6xl px-4 sm:px-6 lg:px-10"
+    >
+      <p class="mb-3 text-xs font-bold uppercase tracking-wide text-white/50">
+        {{ t('footer.locations.heading') }}
+      </p>
+      <ul class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        <li
+          v-for="province in popularProvinces"
+          :key="province.slug"
+        >
+          <NuxtLinkLocale
+            :to="`/ph/${province.slug}`"
+            class="text-white/80 hover:text-white"
+          >
+            {{ province.name }}
+          </NuxtLinkLocale>
+        </li>
+      </ul>
     </div>
 
     <div class="mx-auto mt-10 flex max-w-6xl flex-col gap-2 border-t border-white/15 px-4 pt-6 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">

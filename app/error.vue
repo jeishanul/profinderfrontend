@@ -12,6 +12,13 @@ useSeoMeta({ title: t('errors.seoTitle'), robots: 'noindex, nofollow' })
 function handleError() {
   clearError({ redirect: localePath('/') })
 }
+
+// A server or network failure is usually temporary: offer to try the same page again.
+const canRetry = computed(() => props.error.statusCode !== 404)
+const route = useRoute()
+function retry() {
+  clearError({ redirect: route.fullPath })
+}
 </script>
 
 <template>
@@ -29,9 +36,20 @@ function handleError() {
       >
         {{ props.error.statusMessage }}
       </p>
-      <UiButton @click="handleError">
-        {{ t('errors.goHome') }}
-      </UiButton>
+      <div class="flex flex-wrap justify-center gap-2.5">
+        <UiButton
+          v-if="canRetry"
+          @click="retry"
+        >
+          {{ t('errors.retry') }}
+        </UiButton>
+        <UiButton
+          :variant="canRetry ? 'ghost' : 'primary'"
+          @click="handleError"
+        >
+          {{ t('errors.goHome') }}
+        </UiButton>
+      </div>
     </div>
   </NuxtLayout>
 </template>

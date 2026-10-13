@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PurchaseRecord } from '#shared/types/dashboard'
+import type { BookingDetail, PurchaseRecord } from '#shared/types/dashboard'
 
 // Auto-imported as <DashboardPurchasesTable/>. Used both on the dashboard
 // overview (a 3-row preview) and the full my-purchases page. "Details" opens
@@ -36,6 +36,23 @@ function avatarClass(index: number) {
 
 const canCancel = (purchase: PurchaseRecord) => purchase.can.cancel
 const canEditReview = (purchase: PurchaseRecord) => purchase.hasReview && purchase.reviewEditable
+// "Edit review" goes straight to the form: the row doesn't carry the review's text, so fetch it first.
+const loadingReviewId = ref<string | null>(null)
+async function editReview(purchase: PurchaseRecord) {
+  if (loadingReviewId.value) return
+  loadingReviewId.value = purchase.id
+  try {
+    const detail = await useApiFetch<BookingDetail>(`/api/dashboard/bookings/${purchase.id}`)
+    if (detail.review) reviewForm.open({ bookingId: purchase.id, providerName: purchase.providerName, review: detail.review })
+    else drawer.open(purchase.id)
+  }
+  catch (error) {
+    toast.error(apiErrorMessage(error, t('ui.errors.generic')))
+  }
+  finally {
+    loadingReviewId.value = null
+  }
+}
 const openReview = (purchase: PurchaseRecord) => reviewForm.open({ bookingId: purchase.id, providerName: purchase.providerName })
 const canBookAgain = (purchase: PurchaseRecord) => purchase.status === 'completed' || purchase.status === 'cancelled'
 const serviceLabel = (purchase: PurchaseRecord) => purchase.serviceTitle ?? categoryLabel(purchase.categoryId, purchase.categoryName)
@@ -114,7 +131,8 @@ async function messageProvider(purchase: PurchaseRecord) {
             variant="secondary"
             size="sm"
             class="flex-1 justify-center"
-            @click="drawer.open(purchase.id)"
+            :disabled="loadingReviewId === purchase.id"
+            @click="editReview(purchase)"
           >
             {{ t('dashboard.table.editReview') }}
           </UiButton>
@@ -231,7 +249,8 @@ async function messageProvider(purchase: PurchaseRecord) {
                   v-if="canEditReview(purchase)"
                   variant="secondary"
                   size="sm"
-                  @click="drawer.open(purchase.id)"
+                  :disabled="loadingReviewId === purchase.id"
+                  @click="editReview(purchase)"
                 >
                   {{ t('dashboard.table.editReview') }}
                 </UiButton>

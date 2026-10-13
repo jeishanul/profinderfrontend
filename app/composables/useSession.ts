@@ -101,6 +101,20 @@ export function useSession() {
     return user
   }
 
+  /**
+   * A first-time social sign-in, after the person accepted the terms: the BFF still holds the pending token in an
+   * httpOnly cookie. Resolves to the user, or a 2FA challenge when the matching account has 2FA on.
+   */
+  async function completeSocialSignup(acceptTerms: boolean) {
+    const result = await useApiFetch<AuthUser | { twoFactorRequired: true }>('/api/auth/social/complete', {
+      method: 'POST',
+      body: { acceptTerms },
+    })
+    if ('twoFactorRequired' in result) return result
+    state.value = { user: result, status: 'ready' }
+    return result
+  }
+
   async function register(fullName: string, email: string, password: string, acceptTerms: boolean) {
     const user = await useApiFetch<AuthUser>('/api/auth/register', {
       method: 'POST',
@@ -143,6 +157,7 @@ export function useSession() {
     fetchUser,
     login,
     completeTwoFactorChallenge,
+    completeSocialSignup,
     register,
     logout,
     clearLocal,

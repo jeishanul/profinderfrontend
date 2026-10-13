@@ -34,6 +34,7 @@ function timeLabel(hours: number) {
 function previewOf(conversation: Conversation) {
   switch (conversation.lastMessageType) {
     case 'quote': return t('dashboard.messages.preview.quote')
+    case 'job_application': return t('dashboard.messages.preview.job_application')
     case 'attachment': return t('dashboard.messages.preview.attachment')
     case 'system': return t('dashboard.messages.preview.system')
     default: return conversation.lastMessagePreview

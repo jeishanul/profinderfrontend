@@ -83,7 +83,7 @@ const trackStyle = computed(() => (isDesktop.value
         <NuxtLinkLocale
           v-for="category in categories"
           :key="category.id"
-          :to="{ path: '/browse', query: { categories: category.id } }"
+          :to="`/category/${category.id}`"
           class="flex w-[252px] shrink-0 snap-start items-center gap-4 rounded-2xl border border-black/10 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-shadow hover:shadow-lg dark:border-white/10 dark:bg-black/30"
         >
           <div class="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">

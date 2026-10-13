@@ -30,7 +30,7 @@ function iconFor(item: ActivityItem) {
 function textFor(item: ActivityItem) {
   return t(`dashboard.overview.activity.${item.kind}`, {
     name: item.personName,
-    category: categoryLabel(item.categoryId),
+    category: item.categoryName ?? categoryLabel(item.categoryId),
     amount: money(item.amountUsd ?? 0),
     rating: item.ratingGiven ?? 0,
   })

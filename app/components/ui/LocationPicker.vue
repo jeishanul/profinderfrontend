@@ -36,6 +36,7 @@
 interface LocationOption {
   code: string
   name: string
+  slug?: string
 }
 
 withDefaults(
@@ -97,8 +98,8 @@ watch(cityCode, () => {
   barangay.value = null
 })
 
-const provinceName = computed(() => provinces.value?.find(p => p.code === provinceCode.value)?.name ?? null)
-const cityName = computed(() => cities.value?.find(c => c.code === cityCode.value)?.name ?? null)
+const provinceName = computed(() => provinces.value?.find(p => p.code === provinceCode.value || (p.slug && p.slug === provinceCode.value))?.name ?? null)
+const cityName = computed(() => cities.value?.find(c => c.code === cityCode.value || (c.slug && c.slug === cityCode.value))?.name ?? null)
 
 const summary = computed(() => {
   const parts = [provinceName.value, cityName.value, barangay.value].filter((part): part is string => !!part)

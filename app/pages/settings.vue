@@ -30,14 +30,16 @@ const { data: account, refresh: refreshAccount } = await useApi<AccountSettings>
 const bookingRequests = ref(true)
 const messages = ref(true)
 const marketing = ref(false)
+const jobAlerts = ref(true)
 /** The last snapshot confirmed saved by the server — what a failed save reverts to. */
-let savedPreferences = { bookingRequests: true, messages: true, marketing: false }
+let savedPreferences = { bookingRequests: true, messages: true, marketing: false, jobAlerts: true }
 
 watch(account, (value) => {
   if (!value) return
   bookingRequests.value = value.notificationPreferences.bookingRequests
   messages.value = value.notificationPreferences.messages
   marketing.value = value.notificationPreferences.marketing
+  jobAlerts.value = value.notificationPreferences.jobAlerts
   savedPreferences = { ...value.notificationPreferences }
 }, { immediate: true })
 
@@ -48,6 +50,7 @@ watch(account, (value) => {
 
 const isTwoFactorSetupOpen = ref(false)
 const isTwoFactorDisableOpen = ref(false)
+const hasPassword = computed(() => account.value?.hasPassword ?? true)
 const disablePassword = ref('')
 const disableError = ref('')
 const disableSubmitting = ref(false)
@@ -68,13 +71,14 @@ async function confirmDisableTwoFactor() {
   try {
     await useApiFetch('/api/dashboard/account/two-factor', {
       method: 'DELETE',
-      body: { currentPassword: disablePassword.value },
+      body: reauthBody(hasPassword.value, disablePassword.value),
     })
     isTwoFactorDisableOpen.value = false
     await refreshAccount()
   }
-  catch {
-    disableError.value = t('dashboard.settings.security.currentPasswordError')
+  catch (error) {
+    const fields = apiFieldErrors(error)
+    disableError.value = fields.verificationCode ?? t('dashboard.settings.security.currentPasswordError')
   }
   finally {
     disableSubmitting.value = false
@@ -90,6 +94,7 @@ async function confirmDisableTwoFactor() {
 const notificationSaveState = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 let notificationSaveEpoch = 0
 let savedIndicatorTimeout: ReturnType<typeof setTimeout> | undefined
+let revertingPreferences = false
 
 const saveNotificationPreferences = useDebounceFn(async () => {
   if (!account.value) return
@@ -98,6 +103,7 @@ const saveNotificationPreferences = useDebounceFn(async () => {
     bookingRequests: bookingRequests.value,
     messages: messages.value,
     marketing: marketing.value,
+    jobAlerts: jobAlerts.value,
   }
   notificationSaveState.value = 'saving'
   try {
@@ -115,16 +121,23 @@ const saveNotificationPreferences = useDebounceFn(async () => {
   }
   catch (error) {
     if (epoch !== notificationSaveEpoch) return
+    // Putting the toggles back would otherwise trip the watcher below and send the old values again.
+    revertingPreferences = true
     bookingRequests.value = savedPreferences.bookingRequests
     messages.value = savedPreferences.messages
     marketing.value = savedPreferences.marketing
+    jobAlerts.value = savedPreferences.jobAlerts
     notificationSaveState.value = 'error'
     toast.error(apiErrorMessage(error, t('dashboard.settings.notifications.saveError')))
   }
 }, 300)
 
-watch([bookingRequests, messages, marketing], () => {
+watch([bookingRequests, messages, marketing, jobAlerts], () => {
   if (!account.value) return
+  if (revertingPreferences) {
+    revertingPreferences = false
+    return
+  }
   saveNotificationPreferences()
 })
 
@@ -135,7 +148,7 @@ const confirmPassword = ref('')
 const passwordJustChanged = ref(false)
 const passwordError = ref('')
 
-const canChangePassword = computed(() => currentPassword.value.length > 0 && newPassword.value.length >= 8 && newPassword.value === confirmPassword.value)
+const canChangePassword = computed(() => (!hasPassword.value || currentPassword.value.length > 0) && newPassword.value.length >= 8 && newPassword.value === confirmPassword.value)
 
 function openChangePassword() {
   currentPassword.value = ''
@@ -151,7 +164,7 @@ async function submitChangePassword() {
   try {
     await useApiFetch('/api/dashboard/account/password', {
       method: 'PUT',
-      body: { currentPassword: currentPassword.value, password: newPassword.value },
+      body: hasPassword.value ? { currentPassword: currentPassword.value, password: newPassword.value } : { password: newPassword.value },
     })
     isPasswordModalOpen.value = false
     passwordJustChanged.value = true
@@ -194,7 +207,7 @@ async function confirmDangerAction() {
     else {
       await useApiFetch('/api/dashboard/account', {
         method: 'DELETE',
-        body: { currentPassword: dangerPassword.value },
+        body: reauthBody(hasPassword.value, dangerPassword.value),
       })
     }
     dangerAction.value = null
@@ -206,9 +219,10 @@ async function confirmDangerAction() {
   }
   catch (error) {
     // A wrong password has its own wording; anything else (e.g. "finish your active bookings first") is the server's message.
-    dangerError.value = dangerAction.value === 'delete' && apiFieldErrors(error).currentPassword
+    const fields = apiFieldErrors(error)
+    dangerError.value = dangerAction.value === 'delete' && fields.currentPassword
       ? t('dashboard.settings.security.currentPasswordError')
-      : apiErrorMessage(error, t('errors.somethingWrong'))
+      : (dangerAction.value === 'delete' && fields.verificationCode) || apiErrorMessage(error, t('errors.somethingWrong'))
   }
   finally {
     dangerSubmitting.value = false
@@ -245,12 +259,10 @@ useSeoMeta({
           {{ t('dashboard.settings.account.heading') }}
         </p>
         <div class="mb-5 rounded-2xl border border-black/10 dark:border-white/10">
-          <component
-            :is="isProvider ? NuxtLinkLocale : 'button'"
-            :to="isProvider ? '/profile' : undefined"
-            :type="isProvider ? undefined : 'button'"
+          <button
+            type="button"
             class="flex w-full items-center gap-3 px-4 py-3.5 text-left"
-            @click="!isProvider && (isPersonalInfoOpen = true)"
+            @click="isPersonalInfoOpen = true"
           >
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70">
               <UiIcon
@@ -267,7 +279,25 @@ useSeoMeta({
               :size="16"
               class="shrink-0 rotate-180 text-black/30 dark:text-white/30"
             />
-          </component>
+          </button>
+          <NuxtLinkLocale
+            v-if="isProvider"
+            to="/profile"
+            class="flex w-full items-center gap-3 border-t border-black/10 px-4 py-3.5 text-left dark:border-white/10"
+          >
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70">
+              <UiIcon
+                name="briefcase"
+                :size="17"
+              />
+            </span>
+            <span class="min-w-0 flex-1 text-[13.5px] font-semibold">{{ t('dashboard.settings.account.editProfile') }}</span>
+            <UiIcon
+              name="chevron-left"
+              :size="16"
+              class="shrink-0 rotate-180 text-black/30 dark:text-white/30"
+            />
+          </NuxtLinkLocale>
         </div>
 
         <p class="mb-2 px-1 text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40">
@@ -359,6 +389,22 @@ useSeoMeta({
               :label="t('dashboard.settings.notifications.messages')"
             />
           </div>
+          <div
+            v-if="isProvider"
+            class="flex items-center gap-3 border-b border-black/10 px-4 py-3.5 dark:border-white/10"
+          >
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
+              <UiIcon
+                name="search"
+                :size="16"
+              />
+            </span>
+            <span class="min-w-0 flex-1 text-[13.5px] font-semibold">{{ t('dashboard.settings.notifications.jobAlerts') }}</span>
+            <UiToggleSwitch
+              v-model="jobAlerts"
+              :label="t('dashboard.settings.notifications.jobAlerts')"
+            />
+          </div>
           <div class="flex items-center gap-3 px-4 py-3.5">
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 dark:bg-accent-700/20 dark:text-accent-100">
               <UiIcon
@@ -444,21 +490,22 @@ useSeoMeta({
             <h2 class="font-display text-[15px] font-bold">
               {{ t('dashboard.settings.account.heading') }}
             </h2>
-            <NuxtLinkLocale
-              v-if="isProvider"
-              to="/profile"
-              :class="linkButtonClass('ghost', 'sm')"
-            >
-              {{ t('dashboard.settings.account.editProfile') }}
-            </NuxtLinkLocale>
-            <UiButton
-              v-else
-              variant="ghost"
-              size="sm"
-              @click="isPersonalInfoOpen = true"
-            >
-              {{ t('dashboard.settings.account.editPersonalInfo') }}
-            </UiButton>
+            <div class="flex items-center gap-2">
+              <NuxtLinkLocale
+                v-if="isProvider"
+                to="/profile"
+                :class="linkButtonClass('ghost', 'sm')"
+              >
+                {{ t('dashboard.settings.account.editProfile') }}
+              </NuxtLinkLocale>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                @click="isPersonalInfoOpen = true"
+              >
+                {{ t('dashboard.settings.account.editPersonalInfo') }}
+              </UiButton>
+            </div>
           </div>
           <p class="mb-3.5 text-xs text-black/50 dark:text-white/50">
             {{ isProvider ? t('dashboard.settings.account.editHint') : t('dashboard.settings.account.editHintPersonal') }}
@@ -520,7 +567,7 @@ useSeoMeta({
               size="sm"
               @click="openChangePassword"
             >
-              {{ t('dashboard.settings.security.changePassword') }}
+              {{ hasPassword ? t('dashboard.settings.security.changePassword') : t('dashboard.settings.security.setPassword') }}
             </UiButton>
           </div>
           <div class="flex items-center justify-between gap-4 py-3.5">
@@ -566,6 +613,18 @@ useSeoMeta({
             <UiToggleSwitch
               v-model="messages"
               :label="t('dashboard.settings.notifications.messages')"
+            />
+          </div>
+          <div
+            v-if="isProvider"
+            class="flex items-center justify-between gap-4 border-b border-black/10 py-3.5 dark:border-white/10"
+          >
+            <div class="text-[13.5px] font-semibold">
+              {{ t('dashboard.settings.notifications.jobAlerts') }}
+            </div>
+            <UiToggleSwitch
+              v-model="jobAlerts"
+              :label="t('dashboard.settings.notifications.jobAlerts')"
             />
           </div>
           <div class="flex items-center justify-between gap-4 py-3.5">
@@ -654,8 +713,14 @@ useSeoMeta({
       @close="isPasswordModalOpen = false"
     >
       <h2 class="mb-5 font-display text-xl font-bold">
-        {{ t('dashboard.settings.security.changePassword') }}
+        {{ hasPassword ? t('dashboard.settings.security.changePassword') : t('dashboard.settings.security.setPassword') }}
       </h2>
+      <p
+        v-if="!hasPassword"
+        class="mb-4 -mt-3 text-sm text-black/60 dark:text-white/60"
+      >
+        {{ t('dashboard.settings.security.setPasswordBody') }}
+      </p>
       <form
         class="flex flex-col gap-4"
         @submit.prevent="submitChangePassword"
@@ -666,7 +731,7 @@ useSeoMeta({
         >
           {{ passwordError }}
         </p>
-        <div>
+        <div v-if="hasPassword">
           <label
             for="settings-current-password"
             class="mb-1.5 block text-xs font-bold"
@@ -732,14 +797,10 @@ useSeoMeta({
         v-if="dangerAction === 'delete'"
         class="mb-4"
       >
-        <label
-          for="danger-password"
-          class="mb-1.5 block text-xs font-bold"
-        >{{ t('dashboard.settings.security.currentPasswordLabel') }}</label>
-        <UiInput
+        <DashboardReauthField
           id="danger-password"
           v-model="dangerPassword"
-          type="password"
+          :has-password="hasPassword"
         />
       </div>
       <p
@@ -767,6 +828,7 @@ useSeoMeta({
 
     <DashboardTwoFactorSetupModal
       :open="isTwoFactorSetupOpen"
+      :has-password="hasPassword"
       @close="isTwoFactorSetupOpen = false"
       @enabled="refreshAccount"
     />
@@ -785,17 +847,11 @@ useSeoMeta({
         class="flex flex-col gap-4"
         @submit.prevent="confirmDisableTwoFactor"
       >
-        <div>
-          <label
-            for="disable-two-factor-password"
-            class="mb-1.5 block text-xs font-bold"
-          >{{ t('dashboard.settings.security.currentPasswordLabel') }}</label>
-          <UiInput
-            id="disable-two-factor-password"
-            v-model="disablePassword"
-            type="password"
-          />
-        </div>
+        <DashboardReauthField
+          id="disable-two-factor-password"
+          v-model="disablePassword"
+          :has-password="hasPassword"
+        />
         <p
           v-if="disableError"
           class="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 dark:bg-red-900/20 dark:text-red-300"

@@ -26,15 +26,20 @@ const localePath = useLocalePath()
 const savedProviders = useSavedProviders()
 const toast = useToast()
 
+// Saving your own profile is refused by the server, so don't offer it.
+const isOwn = computed(() => session.isAuthenticated.value && session.user.value?.id === props.provider.userId)
+
 const isSaving = ref(false)
-async function handleToggleSave() {
+async function handleToggleSave(afterLogin = false) {
   if (!session.isAuthenticated.value) {
-    authModal.open('login', { onSuccess: () => handleToggleSave() })
+    authModal.open('login', { onSuccess: () => handleToggleSave(true) })
     return
   }
   isSaving.value = true
   try {
-    await savedProviders.toggle(props.provider.id)
+    // After a login the person's saved list has just been loaded: if this provider is already on it, they wanted it saved, not removed.
+    if (afterLogin) await savedProviders.ensureSaved(props.provider.id)
+    else await savedProviders.toggle(props.provider.id)
   }
   catch (error) {
     toast.error(apiErrorMessage(error, t('ui.errors.generic')))
@@ -75,12 +80,13 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
     class="relative flex flex-col gap-4 rounded-2xl border border-black/10 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:flex-row sm:items-center sm:gap-6"
   >
     <button
+      v-if="!isOwn"
       type="button"
       class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 transition-colors hover:text-red-600 disabled:opacity-50 dark:bg-black/40 dark:hover:text-red-400"
       :class="savedProviders.isSaved(provider.id) ? 'text-red-600 dark:text-red-400' : 'text-black/40 dark:text-white/40'"
       :aria-label="savedProviders.isSaved(provider.id) ? t('marketplace.provider.unsave') : t('marketplace.provider.save')"
       :disabled="isSaving"
-      @click="handleToggleSave"
+      @click="handleToggleSave()"
     >
       <UiIcon
         name="heart"
@@ -156,12 +162,13 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
     class="relative flex flex-col gap-3.5 rounded-2xl border border-black/10 bg-white/70 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/30"
   >
     <button
+      v-if="!isOwn"
       type="button"
       class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 transition-colors hover:text-red-600 disabled:opacity-50 dark:bg-black/40 dark:hover:text-red-400"
       :class="savedProviders.isSaved(provider.id) ? 'text-red-600 dark:text-red-400' : 'text-black/40 dark:text-white/40'"
       :aria-label="savedProviders.isSaved(provider.id) ? t('marketplace.provider.unsave') : t('marketplace.provider.save')"
       :disabled="isSaving"
-      @click="handleToggleSave"
+      @click="handleToggleSave()"
     >
       <UiIcon
         name="heart"

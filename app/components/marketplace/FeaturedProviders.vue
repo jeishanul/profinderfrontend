@@ -5,6 +5,8 @@ import type { ProviderSummary, ServiceCategory } from '#shared/types/marketplace
 const props = defineProps<{
   providers: ProviderSummary[]
   categories: ServiceCategory[]
+  /** True when the list really is that province's pros; otherwise the heading and subheading stay general. */
+  local?: boolean
 }>()
 
 const { t } = useI18n()
@@ -24,7 +26,7 @@ const lastSearchProvinceName = computed(() => {
   const code = lastSearch.value?.provinceCode
   return code ? (provinces.value?.find(p => p.code === code)?.name ?? null) : null
 })
-const heading = computed(() => (lastSearchProvinceName.value
+const heading = computed(() => (props.local && lastSearchProvinceName.value
   ? t('marketplace.featuredProviders.headingWithLocation', { province: lastSearchProvinceName.value })
   : t('marketplace.featuredProviders.heading')))
 </script>
@@ -36,7 +38,7 @@ const heading = computed(() => (lastSearchProvinceName.value
         {{ heading }}
       </h2>
       <p class="mt-2.5 text-black/60 dark:text-white/60">
-        {{ t('marketplace.featuredProviders.subheading') }}
+        {{ local ? t('marketplace.featuredProviders.subheadingLocal') : t('marketplace.featuredProviders.subheading') }}
       </p>
     </div>
 

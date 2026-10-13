@@ -356,6 +356,11 @@ async function handleDeclineQuote(quoteId: string) {
   }, 'dashboard.messages.quote.errors.decline')
 }
 
+// Hiring happens on the job's page (it shows the whole applicant and the consequences); `?hire=` opens the dialog there.
+function handleHireApplication({ postId, applicationId }: { postId: string, applicationId: string }) {
+  navigateTo(localePath({ path: `/seek-job/${postId}`, query: { hire: applicationId } }))
+}
+
 // Providers manage jobs under "Clients served", clients under "My purchases".
 function handleViewBooking(bookingId: string) {
   const page = activeConversation.value?.role === 'client' ? '/clients' : '/purchases'
@@ -444,6 +449,7 @@ useSeoMeta({
           @accept-quote="handleAcceptQuote"
           @decline-quote="handleDeclineQuote"
           @view-booking="handleViewBooking"
+          @hire-application="handleHireApplication"
           @load-older="thread.loadOlder"
         />
         <div

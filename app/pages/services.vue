@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { KycState, ServiceListMeta, ServiceListing } from '#shared/types/dashboard'
-import type { ServiceCategory } from '#shared/types/marketplace'
 import type { ServiceFormSubmitPayload } from '~/components/dashboard/ServiceFormModal.vue'
 
 // Reached from Home's quick tiles or the More sheet, never a bottom-nav tab
@@ -20,10 +19,7 @@ const list = await usePagedList<ServiceListing, ServiceListMeta>('/dashboard/ser
   perPage: 20,
 })
 const refresh = list.refresh
-const { data: categories } = await useApi<ServiceCategory[]>('/categories', {
-  key: 'categories',
-  default: () => [],
-})
+const { data: categories } = await useCategories()
 
 const listings = list.items
 

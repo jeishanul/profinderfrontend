@@ -50,6 +50,8 @@ watch(() => props.open, (isOpen) => {
   address.value = props.initialAddress ?? ''
   serviceListingId.value = props.serviceId ?? ''
   errors.value = {}
+  // A previous attempt's "verify your email first" prompt must not greet the next, unrelated request.
+  needsEmailVerification.value = false
 }, { immediate: true })
 
 async function submit() {

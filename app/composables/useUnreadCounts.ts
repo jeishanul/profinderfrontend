@@ -1,6 +1,12 @@
 /** `useApi` key of the unread-messages badge. */
 export const UNREAD_MESSAGES_KEY = 'dashboard-unread-messages'
 
+/**
+ * New applicants on the consumer's job posts ride along on the unread-messages poll (one request for both), so
+ * refreshing either refreshes both.
+ */
+export const UNREAD_APPLICANTS_KEY = UNREAD_MESSAGES_KEY
+
 /** `useApi` key of the unread-notifications badge — refreshed whenever one is read, deleted or polled. */
 export const UNREAD_NOTIFICATIONS_KEY = 'dashboard-unread-notifications'
 
@@ -21,11 +27,11 @@ export function useUnreadCounts() {
 
   // Just the number of conversations with something unread — the badge used to
   // download every conversation (with every message) to count them.
-  const { data: unreadConversations } = useApi<{ count: number }>('/dashboard/conversations/unread-count', {
+  const { data: unreadConversations } = useApi<{ count: number, newApplicants?: number }>('/dashboard/conversations/unread-count', {
     key: UNREAD_MESSAGES_KEY,
     lazy: true,
     immediate: session.isAuthenticated.value,
-    default: () => ({ count: 0 }),
+    default: () => ({ count: 0, newApplicants: 0 }),
   })
   // The real number from the server — counting "unread among the loaded page"
   // under-reported once there were more notifications than one page holds.
@@ -38,9 +44,11 @@ export function useUnreadCounts() {
 
   const unreadMessages = computed(() => unreadConversations.value?.count ?? 0)
   const unreadNotifications = computed(() => unread.value?.count ?? 0)
+  const newApplicants = computed(() => unreadConversations.value?.newApplicants ?? 0)
 
   return {
     unreadMessages,
     unreadNotifications,
+    newApplicants,
   }
 }

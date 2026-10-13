@@ -53,5 +53,10 @@ export function useSavedProviders() {
     else await save(providerId)
   }
 
-  return { ensureLoaded, reset, isSaved, toggle, save, unsave }
+  /** For a "save" that was queued behind the login modal: it must end saved, never flip a provider that already was. */
+  async function ensureSaved(providerId: string) {
+    if (!isSaved(providerId)) await save(providerId)
+  }
+
+  return { ensureLoaded, reset, isSaved, toggle, save, unsave, ensureSaved }
 }

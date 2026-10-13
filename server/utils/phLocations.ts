@@ -1,3 +1,4 @@
+import { slugify } from '#shared/utils/slugify'
 import provincesData from './data/ph-locations/provinces.json'
 import citiesData from './data/ph-locations/cities.json'
 import barangaysData from './data/ph-locations/barangays.json'
@@ -15,12 +16,14 @@ import barangaysData from './data/ph-locations/barangays.json'
 export interface Province {
   code: string
   name: string
+  slug: string
 }
 
 export interface CityMunicipality {
   code: string
   provinceCode: string
   name: string
+  slug: string
 }
 
 export interface Barangay {
@@ -29,11 +32,11 @@ export interface Barangay {
 }
 
 const PROVINCES: Province[] = (provincesData as Array<{ name: string, prov_code: string }>)
-  .map(p => ({ code: p.prov_code, name: p.name }))
+  .map(p => ({ code: p.prov_code, name: p.name, slug: slugify(p.name) }))
   .sort((a, b) => a.name.localeCompare(b.name))
 
 const CITIES: CityMunicipality[] = (citiesData as Array<{ name: string, prov_code: string, mun_code: string }>)
-  .map(c => ({ code: c.mun_code, provinceCode: c.prov_code, name: c.name }))
+  .map(c => ({ code: c.mun_code, provinceCode: c.prov_code, name: c.name, slug: slugify(c.name) }))
   .sort((a, b) => a.name.localeCompare(b.name))
 
 const BARANGAYS: Barangay[] = (barangaysData as Array<{ name: string, mun_code: string }>)
@@ -45,17 +48,21 @@ export function getProvinces(): Province[] {
 }
 
 export function getCitiesByProvince(provinceCode: string): CityMunicipality[] {
-  return CITIES.filter(city => city.provinceCode === provinceCode)
+  const prov = PROVINCES.find(p => p.code === provinceCode || p.slug === provinceCode)
+  const code = prov ? prov.code : provinceCode
+  return CITIES.filter(city => city.provinceCode === code)
 }
 
 export function getBarangaysByCity(cityCode: string): Barangay[] {
-  return BARANGAYS.filter(barangay => barangay.cityCode === cityCode)
+  const city = CITIES.find(c => c.code === cityCode || c.slug === cityCode)
+  const code = city ? city.code : cityCode
+  return BARANGAYS.filter(barangay => barangay.cityCode === code)
 }
 
 export function getProvinceByCode(provinceCode: string): Province | undefined {
-  return PROVINCES.find(p => p.code === provinceCode)
+  return PROVINCES.find(p => p.code === provinceCode || p.slug === provinceCode)
 }
 
 export function getCityByCode(cityCode: string): CityMunicipality | undefined {
-  return CITIES.find(c => c.code === cityCode)
+  return CITIES.find(c => c.code === cityCode || c.slug === cityCode)
 }

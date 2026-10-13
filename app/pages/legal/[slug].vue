@@ -12,7 +12,7 @@ const slug = String(route.params.slug)
 const { data: page, error } = await useApi<StaticPageContent>(`/pages/${slug}`, { key: `page-${slug}` })
 
 if (error.value || !page.value) {
-  const status = apiErrorStatus(error.value) ?? 404
+  const status = apiErrorStatus(error.value) ?? 500
   throw createError({
     statusCode: status,
     statusMessage: status === 404 ? t('legal.notFound') : t('errors.somethingWrong'),

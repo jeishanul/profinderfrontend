@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { ServiceCategory } from '#shared/types/marketplace'
-
 // Nav labels come from i18n messages, not hardcoded strings.
 const { t } = useI18n()
 
@@ -21,7 +19,7 @@ const isHomeRoute = computed(() => String(route.name ?? '').startsWith('index'))
 const { isDocked } = useHeroSearchDock()
 const showDockedSearch = computed(() => isHomeRoute.value && isDocked.value)
 
-const { data: categories } = await useApi<ServiceCategory[]>('/categories', { lazy: true, default: () => [] })
+const { data: categories } = useCategories({ lazy: true })
 
 const authModal = useAuthModal()
 const { unreadMessages, unreadNotifications } = useUnreadCounts()

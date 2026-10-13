@@ -60,6 +60,8 @@ export interface Review {
 
 export interface ProviderSummary {
   id: string
+  /** The owning account, so a card can tell it is the viewer's own profile. */
+  userId: string
   name: string
   headline: string | null
   avatarUrl: string | null
@@ -85,14 +87,15 @@ export interface ProviderSummary {
 }
 
 export interface ProviderProfile extends ProviderSummary {
+  /** Slugs of the province and city landing pages this provider's area links to. */
+  provinceSlug: string | null
+  citySlug: string | null
   bio: string | null
   jobsCompleted: number
   repeatClientPercent: number
   responseTimeHours: number
   /** Null when the provider hasn't set one. */
   minVisitFee: number | null
-  /** The provider's user id, to recognise your own profile. */
-  userId: string
   /** Null when the provider hasn't set a service radius. */
   serviceAreaKm: number | null
   /** Day ids (`'mon'`..`'sun'`) — see `formatAvailabilityDays` in `app/utils/availability.ts`. */

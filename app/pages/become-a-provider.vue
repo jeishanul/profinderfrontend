@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { ProviderProfileDetail } from '#shared/types/dashboard'
-import type { ServiceCategory } from '#shared/types/marketplace'
 
 // The explicit, opt-in way to become a provider. Opening the profile editor
 // used to do this silently (and list an empty profile publicly); now the
@@ -22,11 +21,7 @@ if (session.user.value?.isProvider) {
   await navigateTo(localePath('/profile'), { replace: true })
 }
 
-const { data: categories } = await useApi<ServiceCategory[]>('/categories', {
-  key: 'categories-with-skills',
-  query: { include: 'skills' },
-  default: () => [],
-})
+const { data: categories } = await useCategories({ withSkills: true })
 
 const STEP_IDS = ['service', 'about', 'location'] as const
 const stepIndex = ref(0)

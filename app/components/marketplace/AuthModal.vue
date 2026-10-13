@@ -26,23 +26,29 @@ onMounted(async () => {
   const result = route.query.social
   if (typeof result !== 'string') return
 
-  const challenge = typeof route.query.challenge === 'string' ? route.query.challenge : ''
-  // Drop the result (and the 2FA challenge) from the address bar straight away.
+  // Read everything we need *before* the address bar is cleaned up: the query is gone after the navigation below.
+  const reason = typeof route.query.reason === 'string' ? route.query.reason : ''
+  const failedProvider = typeof route.query.provider === 'string' ? route.query.provider : ''
   await navigateTo({ path: route.path, query: {}, hash: route.hash }, { replace: true })
 
   if (result === 'ok') {
     await session.fetchUser()
     await authModal.complete()
   }
-  else if (result === '2fa' && challenge) {
-    twoFactorChallengeToken.value = challenge
+  else if (result === '2fa') {
+    // The challenge itself stays in an httpOnly cookie; the BFF picks it up when the code is submitted.
+    twoFactorChallengeToken.value = ''
     twoFactorCode.value = ''
     twoFactorError.value = ''
     authModal.open('two-factor')
   }
+  else if (result === 'terms') {
+    socialTermsAccepted.value = false
+    socialTermsError.value = ''
+    authModal.open('social-terms')
+  }
   else if (result === 'error') {
     authModal.open('login')
-    const reason = route.query.reason
     loginError.value = reason === 'cancelled'
       ? t('auth.social.cancelledError')
       : reason === 'account_suspended' || reason === 'account_banned'
@@ -51,9 +57,55 @@ onMounted(async () => {
           ? t('auth.social.deactivatedError')
           : reason === 'social_no_email'
             ? t('auth.social.noEmailError')
-            : t('auth.social.failedError')
+            : reason === 'social_email_unverified'
+              ? t('auth.social.emailUnverifiedError')
+              : t('auth.social.failedError')
+    // A self-deactivated account can come straight back by signing in with the same provider again.
+    socialReactivateProvider.value = reason === 'account_deactivated' && (failedProvider === 'google' || failedProvider === 'facebook') ? failedProvider : null
   }
 })
+
+// What the OAuth round trip carries back with it: "remember me" and the page the person was on.
+function socialHref(provider: string, extra: Record<string, string> = {}) {
+  const params = new URLSearchParams({ remember: login.remember ? '1' : '0', returnTo: route.fullPath, ...extra })
+  return `/api/auth/social/${provider}/redirect?${params}`
+}
+
+const socialReactivateProvider = ref<'google' | 'facebook' | null>(null)
+
+// --- First-time social sign-in: nothing exists until the terms are accepted. ---------
+const socialTermsAccepted = ref(false)
+const socialTermsError = ref('')
+const socialTermsLoading = ref(false)
+
+async function handleSocialTermsSubmit() {
+  if (!socialTermsAccepted.value) {
+    socialTermsError.value = t('auth.register.termsRequiredError')
+    return
+  }
+  socialTermsLoading.value = true
+  socialTermsError.value = ''
+  try {
+    const result = await session.completeSocialSignup(true)
+    if ('twoFactorRequired' in result) {
+      twoFactorChallengeToken.value = ''
+      twoFactorCode.value = ''
+      twoFactorError.value = ''
+      authModal.setView('two-factor')
+      return
+    }
+    await authModal.complete()
+  }
+  catch (error) {
+    // The pending sign-in only lives for a few minutes; if it lapsed they just start again.
+    socialTermsError.value = apiErrorCode(error) === 'social_expired' || apiErrorStatus(error) === 422
+      ? t('auth.social.expiredError')
+      : t('auth.social.failedError')
+  }
+  finally {
+    socialTermsLoading.value = false
+  }
+}
 
 const login = reactive({ identifier: '', password: '', remember: true })
 const register = reactive({ fullName: '', email: '', password: '', confirmPassword: '', acceptTerms: false })
@@ -486,6 +538,13 @@ async function skipVerification() {
         >
           {{ loginError }}
         </p>
+        <a
+          v-if="socialReactivateProvider"
+          :href="socialHref(socialReactivateProvider, { reactivate: '1' })"
+          class="flex h-[46px] w-full items-center justify-center rounded-xl border border-black/10 text-sm font-semibold transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10"
+        >
+          {{ t('auth.social.reactivateWith', { provider: t(`auth.social.${socialReactivateProvider}`) }) }}
+        </a>
         <UiButton
           v-if="needsReactivation"
           type="button"
@@ -1030,6 +1089,73 @@ async function skipVerification() {
       </p>
     </template>
 
+    <template v-else-if="authModal.view.value === 'social-terms'">
+      <h2
+        :id="titleId"
+        class="text-2xl font-bold"
+      >
+        {{ t('auth.social.terms.heading') }}
+      </h2>
+      <p class="mt-1.5 text-sm text-black/60 dark:text-white/60">
+        {{ t('auth.social.terms.subheading') }}
+      </p>
+
+      <form
+        class="mt-6 flex flex-col gap-4"
+        @submit.prevent="handleSocialTermsSubmit"
+      >
+        <label
+          for="auth-social-terms"
+          class="flex items-start gap-2 text-xs text-black/60 dark:text-white/60"
+        >
+          <input
+            id="auth-social-terms"
+            v-model="socialTermsAccepted"
+            type="checkbox"
+            class="mt-0.5 h-[15px] w-[15px] shrink-0 accent-brand-600"
+          >
+          <i18n-t
+            keypath="auth.register.terms"
+            tag="span"
+            class="leading-relaxed"
+            :name="siteName"
+          >
+            <template #tos>
+              <NuxtLinkLocale
+                to="/legal/terms-of-service"
+                target="_blank"
+                rel="noopener"
+                class="font-semibold"
+              >{{ t('auth.register.termsTos') }}</NuxtLinkLocale>
+            </template>
+            <template #privacy>
+              <NuxtLinkLocale
+                to="/legal/privacy-policy"
+                target="_blank"
+                rel="noopener"
+                class="font-semibold"
+              >{{ t('auth.register.termsPrivacy') }}</NuxtLinkLocale>
+            </template>
+          </i18n-t>
+        </label>
+
+        <p
+          v-if="socialTermsError"
+          class="-mt-1 text-xs font-semibold text-red-600 dark:text-red-400"
+        >
+          {{ socialTermsError }}
+        </p>
+
+        <UiButton
+          type="submit"
+          class="h-[46px] w-full justify-center rounded-xl!"
+          :disabled="socialTermsLoading"
+        >
+          {{ t('auth.social.terms.submit') }}
+        </UiButton>
+      </form>
+    </template>
+
     <template v-if="isAuthTab">
       <div
         v-if="socialButtons.length"
@@ -1048,7 +1174,7 @@ async function skipVerification() {
         <a
           v-for="provider in socialButtons"
           :key="provider"
-          :href="`/api/auth/social/${provider}/redirect`"
+          :href="socialHref(provider)"
           class="flex h-[46px] w-full min-w-0 items-center justify-center gap-2.5 rounded-xl border border-black/10 bg-white text-sm font-semibold whitespace-nowrap text-black transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
         >
           <UiIcon
