@@ -27,7 +27,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const { symbol, money } = useSiteSettings()
+const { money } = useSiteSettings()
 const titleId = useId()
 
 const EXPIRY_OPTIONS = [24, 48, 72, 168] as const
@@ -74,32 +74,16 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) resetForm()
 })
 
-// A quote can't be set in the past; `min` also nudges the native picker.
-const minDateTime = computed(() => toDateTimeLocalValue(new Date()))
-
 const serviceOptions = computed(() => (props.services ?? []).filter(service => service.status === 'active'))
-
-function parseAmount(value: string) {
-  return Number(value.replace(/[^\d.]/g, '')) || 0
-}
-
-function parseWholeNumber(value: string) {
-  return Math.min(24, Number(value.replace(/\D/g, '')) || 0)
-}
 
 function handleSubmit() {
   localError.value = ''
-  if (basePriceUsd.value <= 0) {
-    localError.value = t('dashboard.messages.quote.errors.price', { amount: money(0) })
-    return
-  }
-  if (baseHours.value < 1) {
-    localError.value = t('dashboard.messages.quote.errors.hours')
-    return
-  }
   const scheduledAt = fromDateTimeLocalValue(scheduledAtLocal.value)
-  if (!scheduledAt || new Date(scheduledAt).getTime() <= Date.now()) {
-    localError.value = t('dashboard.messages.quote.errors.date')
+  const problem = offerProblem({ price: basePriceUsd.value, hours: baseHours.value, scheduledAt })
+  if (problem) {
+    localError.value = problem === 'price'
+      ? t('dashboard.messages.quote.errors.price', { amount: money(0) })
+      : t(`dashboard.messages.quote.errors.${problem}`)
     return
   }
 
@@ -108,7 +92,7 @@ function handleSubmit() {
     baseHours: baseHours.value,
     extraHourlyRateUsd: extraHourlyRateUsd.value,
     note: note.value.trim(),
-    scheduledAt,
+    scheduledAt: scheduledAt!,
     address: address.value.trim(),
     serviceListingId: serviceListingId.value || null,
     expiresInHours: expiresInHours.value === KEEP_EXPIRY ? null : expiresInHours.value,
@@ -138,53 +122,13 @@ const firstServerError = computed(() => Object.values(props.errors ?? {})[0] ?? 
       class="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1"
       @submit.prevent="handleSubmit"
     >
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label
-            for="quote-base-price"
-            class="mb-1.5 block text-xs font-bold"
-          >{{ t('dashboard.messages.quote.basePriceLabel') }}</label>
-          <UiInput
-            id="quote-base-price"
-            :model-value="basePriceUsd ? `${symbol}${basePriceUsd}` : ''"
-            inputmode="decimal"
-            :placeholder="t('dashboard.messages.quote.basePricePlaceholder', { symbol })"
-            @update:model-value="(v) => (basePriceUsd = parseAmount(v))"
-          />
-        </div>
-        <div>
-          <label
-            for="quote-base-hours"
-            class="mb-1.5 block text-xs font-bold"
-          >{{ t('dashboard.messages.quote.baseHoursLabel') }}</label>
-          <!-- Whole hours only (the server stores a small integer); non-digits are dropped as you type. -->
-          <UiInput
-            id="quote-base-hours"
-            :model-value="baseHours ? String(baseHours) : ''"
-            inputmode="numeric"
-            :placeholder="t('dashboard.messages.quote.baseHoursPlaceholder')"
-            @update:model-value="(v) => (baseHours = parseWholeNumber(v))"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label
-          for="quote-when"
-          class="mb-1.5 block text-xs font-bold"
-        >{{ t('dashboard.messages.quote.whenLabel') }}</label>
-        <input
-          id="quote-when"
-          v-model="scheduledAtLocal"
-          type="datetime-local"
-          :min="minDateTime"
-          :lang="locale"
-          class="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
-        >
-        <p class="mt-1.5 text-xs text-black/50 dark:text-white/50">
-          {{ t('dashboard.messages.quote.whenHelp') }}
-        </p>
-      </div>
+      <DashboardOfferFields
+        v-model:price="basePriceUsd"
+        v-model:hours="baseHours"
+        v-model:extra-rate="extraHourlyRateUsd"
+        v-model:when="scheduledAtLocal"
+        id-prefix="quote"
+      />
 
       <div>
         <label
@@ -221,23 +165,6 @@ const firstServerError = computed(() => Object.values(props.errors ?? {})[0] ?? 
             {{ service.title }}
           </option>
         </select>
-      </div>
-
-      <div>
-        <label
-          for="quote-extra-rate"
-          class="mb-1.5 block text-xs font-bold"
-        >{{ t('dashboard.messages.quote.extraRateLabel') }}</label>
-        <UiInput
-          id="quote-extra-rate"
-          :model-value="extraHourlyRateUsd ? `${symbol}${extraHourlyRateUsd}` : ''"
-          inputmode="decimal"
-          :placeholder="t('dashboard.messages.quote.extraRatePlaceholder', { symbol })"
-          @update:model-value="(v) => (extraHourlyRateUsd = parseAmount(v))"
-        />
-        <p class="mt-1.5 text-xs text-black/50 dark:text-white/50">
-          {{ t('dashboard.messages.quote.extraRateHelp') }}
-        </p>
       </div>
 
       <div>

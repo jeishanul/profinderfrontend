@@ -86,7 +86,15 @@
       "cancelledError": "Sign-in was cancelled. You can try again or use your email and password.",
       "failedError": "We couldn't sign you in with that account. Please try again.",
       "noEmailError": "That account didn't share an email address, so we can't sign you in with it.",
-      "deactivatedError": "You deactivated this account. Log in with your email and password to reactivate it."
+      "emailUnverifiedError": "That account hasn't confirmed its email address with the provider yet. Confirm it there, or use your email and password.",
+      "deactivatedError": "You deactivated this account. Sign in with the same provider again to reactivate it.",
+      "reactivateWith": "Reactivate and sign in with {provider}",
+      "expiredError": "That sign-in took too long. Please start again.",
+      "terms": {
+        "heading": "One last step",
+        "subheading": "Accept our terms to finish creating your account. Nothing is created until you do.",
+        "submit": "Create my account"
+      }
     },
     "back": "Back",
     "forgotPassword": {
@@ -171,9 +179,6 @@
     "tagline2": "Made for people who get things done.",
     "copyright": "© {year} {name}. All rights reserved.",
     "getTheApp": "Get the app",
-    "legal": {
-      "heading": "Company"
-    },
     "customers": {
       "heading": "For customers",
       "browseServices": "Browse services",
@@ -183,17 +188,8 @@
       "heading": "For providers",
       "becomeProvider": "Become a provider"
     },
-    "categories": {
-      "heading": "Popular categories"
-    },
     "contact": {
-      "heading": "Contact",
-      "hours": "Support available 24/7"
-    },
-    "social": {
-      "facebook": "Facebook",
-      "x": "X",
-      "instagram": "Instagram"
+      "heading": "Contact"
     }
   },
   "home": {
@@ -204,7 +200,8 @@
     "seoTitle": "Error",
     "notFound": "Page not found",
     "somethingWrong": "Something went wrong",
-    "goHome": "Go home"
+    "goHome": "Go home",
+    "retry": "Try again"
   },
   "marketplace": {
     "uncategorised": "Other",
@@ -212,7 +209,8 @@
       "title": {
         "provider": "Report this provider",
         "review": "Report this review",
-        "message": "Report this message"
+        "message": "Report this message",
+        "job_post": "Report this job post"
       },
       "subtitle": "Tell us what's wrong. Our team reviews every report; the person you report isn't told it was you.",
       "reasonLabel": "What's the problem?",
@@ -289,7 +287,9 @@
           "headline": "A spotless home, on your schedule.",
           "sub": "Book trusted, rated cleaning pros for a one-time deep clean or a regular routine."
         }
-      }
+      },
+      "previous": "Previous slide",
+      "next": "Next slide"
     },
     "howItWorks": {
       "eyebrow": "How it works",
@@ -324,9 +324,10 @@
       "browseAll": "Browse all providers",
       "heading": "Top-rated pros",
       "headingWithLocation": "Top-rated pros near {province}",
-      "subheading": "A sample of the professionals available in your area.",
+      "subheading": "A sample of our top-rated, verified professionals.",
       "viewMore": "View more pros",
-      "showFewer": "Show fewer pros"
+      "showFewer": "Show fewer pros",
+      "subheadingLocal": "Top-rated, verified professionals working in this province."
     },
     "provider": {
       "yearsExperience": "{years} yrs experience",
@@ -346,7 +347,7 @@
       "scrollHintLabel": "Why choose us",
       "reasons": {
         "verified": "Verified & insured pros",
-        "support": "24/7 customer support",
+        "support": "Responsive customer support",
         "payments": "Transparent pricing, no markups",
         "reviews": "Rated by real customers"
       }
@@ -406,6 +407,7 @@
       "titleAll": "{count} pros near {location}",
       "anywhere": "you",
       "seoEyebrow": "Browse & filter",
+      "shareTitle": "Browse verified local pros",
       "seoDescription": "Filter verified local professionals by category, location, rating and availability.",
       "searchPlaceholder": "Search by name, skill or keyword",
       "sortLabel": "Sort by",
@@ -469,7 +471,9 @@
         "responseTime": "Response time",
         "responseTimeValue": "< {hours} hr",
         "repeatClients": "Repeat clients"
-      }
+      },
+      "moreInCity": "More pros in {city}",
+      "moreInProvince": "More pros in {province}"
     }
   },
   "dashboard": {
@@ -490,7 +494,10 @@
       "myPurchases": "My purchases",
       "savedProviders": "Saved providers",
       "settings": "Settings",
-      "logOut": "Log out"
+      "logOut": "Log out",
+      "seekJob": "Seek Job",
+      "findJobs": "Find jobs",
+      "myApplications": "My applications"
     },
     "roleSwitch": {
       "provider": "Provider",
@@ -807,7 +814,7 @@
         "bio": "Bio",
         "phone": "Phone",
         "email": "Email",
-        "emailHelp": "Change your email from Account settings.",
+        "emailHelp": "Change your email in Settings → Account → Edit details.",
         "address": "Address",
         "addressPlaceholder": "House/unit no., street name",
         "primaryCategory": "Primary category",
@@ -922,7 +929,8 @@
       "preview": {
         "quote": "Sent a quote",
         "attachment": "Sent an attachment",
-        "system": "Booking update"
+        "system": "Booking update",
+        "job_application": "Chat about a job"
       },
       "deleteConfirm": {
         "title": "Delete this message?",
@@ -1046,6 +1054,18 @@
         },
         "acceptedBooked": "Booked — see it in your bookings.",
         "verifyToSend": "Verify your identity to send quotes"
+      },
+      "jobApplication": {
+        "heading": "Job application",
+        "unavailable": "This application is no longer available.",
+        "status": {
+          "pending": "Waiting for the client's decision",
+          "hired": "Hired for this job",
+          "not_selected": "The client chose another provider",
+          "declined": "Declined",
+          "withdrawn": "Withdrawn"
+        },
+        "providerHint": "To be hired for this job, the client uses Hire on your application. A quote sent in this chat won't book it."
       }
     },
     "notificationsPage": {
@@ -1066,7 +1086,8 @@
         "payments": "Payments",
         "messages": "Messages",
         "account": "Account",
-        "system": "System"
+        "system": "System",
+        "jobs": "Jobs"
       },
       "today": "Today",
       "earlier": "Earlier",
@@ -1130,11 +1151,11 @@
         "body": "{category} · {amount} — open it to see the new time and price."
       },
       "listing_paused": {
-        "title": "One of your services was paused",
+        "title": "Your service \"{subject}\" was paused",
         "body": "Contact support if you think this is a mistake."
       },
       "listing_removed": {
-        "title": "One of your services was removed",
+        "title": "Your service \"{subject}\" was removed",
         "body": "Contact support if you think this is a mistake."
       },
       "provider_profile_removed": {
@@ -1180,6 +1201,66 @@
       "booking_reminder": {
         "title": "Reminder: booking with {name} coming up",
         "body": "{category} — open it for the details."
+      },
+      "job_post_application": {
+        "title": "New application on \"{subject}\"",
+        "body": "{name} applied to your job post."
+      },
+      "job_post_offer_updated": {
+        "title": "An offer was updated",
+        "body": "{name} updated their offer on \"{subject}\"."
+      },
+      "job_post_hired": {
+        "title": "You were hired!",
+        "body": "{name} chose you for \"{subject}\". Open the booking to see the details."
+      },
+      "job_post_not_selected": {
+        "title": "Another provider was chosen",
+        "body": "Thanks for applying to \"{subject}\". The client went with someone else this time."
+      },
+      "job_post_application_declined": {
+        "title": "Your application was declined",
+        "body": "{name} declined your application for \"{subject}\"."
+      },
+      "job_post_updated": {
+        "title": "A job you applied to changed",
+        "body": "\"{subject}\" was edited. Take another look at the details and your offer."
+      },
+      "job_post_reopened": {
+        "title": "A job is open again",
+        "body": "\"{subject}\" is open again and your offer is back on it."
+      },
+      "job_post_closed": {
+        "title": "A job was closed",
+        "body": "\"{subject}\" is no longer taking applications."
+      },
+      "job_post_hire_blocked": {
+        "title": "Verify to be hired",
+        "body": "A client wants to hire you for \"{subject}\". Finish identity verification so they can."
+      },
+      "job_post_applicant_verified": {
+        "title": "{name} is now verified",
+        "body": "You can now hire {name} for \"{subject}\"."
+      },
+      "job_post_expiring": {
+        "title": "Your job post expires soon",
+        "body": "\"{subject}\" stops taking applications soon. Choose a provider before then, or reopen it later."
+      },
+      "job_post_expired": {
+        "title": "Your job post expired",
+        "body": "\"{subject}\" was closed. Reopen it any time to get more offers."
+      },
+      "job_post_booking_cancelled": {
+        "title": "Booking cancelled",
+        "body": "The booking for \"{subject}\" was cancelled. Reopen the post to hear from the other providers."
+      },
+      "job_post_removed": {
+        "title": "Your job post was removed",
+        "body": "\"{subject}\" was removed by our team. Contact support if you think this is a mistake."
+      },
+      "job_post_match": {
+        "title": "New job in your area",
+        "body": "{category}: \"{subject}\". Apply with your offer."
       }
     },
     "services": {
@@ -1270,7 +1351,7 @@
         "phone": "Phone",
         "editProfile": "Edit profile",
         "editPersonalInfo": "Edit details",
-        "editHint": "Name, email and phone are all managed from your profile.",
+        "editHint": "Change your name, email and phone here. Your public profile, photos and rates are under Edit profile.",
         "editHintPersonal": "Your name, phone number and email.",
         "emailChangeHelp": "If you change it, we'll send a code to the new address to confirm it.",
         "personalInfoTitle": "Your details",
@@ -1311,6 +1392,16 @@
           "heading": "Turn off two-factor authentication",
           "body": "Enter your current password to confirm. This removes the extra login step from your account.",
           "confirm": "Turn off"
+        },
+        "setPassword": "Set a password",
+        "setPasswordBody": "You signed up with a provider like Google, so this account has no password yet. Set one to also sign in with your email.",
+        "reauth": {
+          "codeLabel": "Confirmation code",
+          "hint": "We'll email a 6-digit code to the address on your account.",
+          "sentHint": "Check your email for the code. It expires in 10 minutes.",
+          "send": "Email me a code",
+          "resend": "Send again",
+          "sent": "Confirmation code sent."
         }
       },
       "notifications": {
@@ -1319,7 +1410,8 @@
         "messages": "Messages",
         "marketing": "Product tips & marketing",
         "saved": "Saved",
-        "saveError": "Couldn't save that change. Please try again."
+        "saveError": "Couldn't save that change. Please try again.",
+        "jobAlerts": "New jobs that match my services"
       },
       "language": {
         "heading": "Language & region",
@@ -1343,6 +1435,486 @@
       "loadMore": "Load more",
       "loadingMore": "Loading…",
       "loadMoreFailed": "Couldn't load more. Try again."
+    }
+  },
+  "seo": {
+    "filters": {
+      "search": "Search providers",
+      "sort": "Sort providers",
+      "searchIn": "Search providers in {place}…",
+      "searchCategory": "Search {name} professionals…"
+    },
+    "list": {
+      "results": "({count} results)",
+      "previous": "Previous page",
+      "next": "Next page",
+      "pagination": "Pagination",
+      "browseAll": "Browse all providers"
+    },
+    "category": {
+      "title": "{name} Services",
+      "subtitle": "Find verified, high-rated {name} experts across the Philippines.",
+      "allServices": "All services",
+      "heading": "Verified providers",
+      "emptyTitle": "No providers found matching your criteria.",
+      "emptyHint": "Try clearing your search or explore all available services.",
+      "related": "Explore related categories",
+      "about": "About {name} services on {site}"
+    },
+    "province": {
+      "badge": "Province in the Philippines",
+      "title": "Service professionals in {name}",
+      "subtitle": "Compare verified service providers, ratings and instant quotes in {name}.",
+      "allLocations": "All locations",
+      "heading": "Available professionals",
+      "emptyTitle": "No providers currently listed in {name}.",
+      "emptyHint": "Browse nearby locations or view all providers nationwide.",
+      "cities": "Cities and municipalities in {name}",
+      "guide": "Local services guide: {name}"
+    },
+    "city": {
+      "badge": "City / municipality",
+      "inProvince": "in {province}",
+      "title": "Service professionals in {name}",
+      "subtitle": "Find and hire verified home and business service experts in {name}, {province}.",
+      "allOfProvince": "All of {province}",
+      "heading": "Available professionals in {name}",
+      "emptyTitle": "No providers currently listed directly in {name}.",
+      "emptyHint": "Browse nearby locations in {province} or explore all services.",
+      "viewProvince": "View providers in {province}",
+      "barangays": "Barangays in {name}",
+      "about": "About local services in {name}"
+    },
+    "barangay": {
+      "badge": "Barangay",
+      "inCity": "in {city}, {province}",
+      "title": "Service professionals in {name}",
+      "subtitle": "Book trusted local service experts in {name}, {city}.",
+      "allOfCity": "All of {city}",
+      "heading": "Available professionals in {name}",
+      "headingFallback": "Professionals serving {name} (via {city})",
+      "fallbackNote": "Showing verified experts across {city} who are available to service {name}.",
+      "emptyTitle": "No providers currently listed in {name} or {city}.",
+      "emptyHint": "Browse nearby areas or explore all services.",
+      "others": "Other barangays in {city}",
+      "about": "About local services in {name}"
+    }
+  },
+  "seekJob": {
+    "title": "Seek Job",
+    "subtitle": "Post what you need done and let providers come to you with offers.",
+    "postJob": "Post a job",
+    "tabs": {
+      "open": "Open",
+      "hired": "Hired",
+      "completed": "Completed",
+      "closed": "Closed"
+    },
+    "empty": {
+      "title": "No posts here yet",
+      "openHint": "Post a job, add what needs doing and where, and providers will send you offers.",
+      "otherHint": "Posts will show up here as they move along."
+    },
+    "status": {
+      "open": "Open",
+      "hired": "Hired",
+      "completed": "Completed",
+      "closed": "Closed",
+      "removed": "Removed"
+    },
+    "closedReason": {
+      "by_consumer": "You closed this post",
+      "expired": "Expired without a hire",
+      "booking_cancelled": "The booking was cancelled",
+      "by_admin": "Closed by our team"
+    },
+    "budget": {
+      "label": "Budget",
+      "open": "Open to offers",
+      "fixed": "Around {amount}",
+      "range": "{min} to {max}"
+    },
+    "time": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "flexible": "Flexible time"
+    },
+    "card": {
+      "applicants": "No applicants yet | {count} applicant | {count} applicants",
+      "newApplicants": "{count} new",
+      "expires": "Open until {when}",
+      "posted": "Posted {when}",
+      "anyDate": "Any date",
+      "tasks": "{count} tasks",
+      "photos": "{count} photos",
+      "noLocation": "Location not set"
+    },
+    "form": {
+      "titleNew": "Post a job",
+      "titleEdit": "Edit your post",
+      "subtitleNew": "Tell providers what you need. They apply with a price, and you choose who to hire.",
+      "subtitleEdit": "Changes are shown to providers who already applied.",
+      "fields": {
+        "title": {
+          "label": "What do you need?",
+          "placeholder": "e.g. Clean two rooms before a move-in"
+        },
+        "description": {
+          "label": "Details",
+          "placeholder": "Anything a provider should know: size of the place, access, materials, timing…"
+        },
+        "tasks": {
+          "label": "Tasks",
+          "hint": "A checklist of what the job includes. Providers price against it, and the hired provider sees it on the booking.",
+          "placeholder": "e.g. Mop the floors",
+          "add": "Add a task",
+          "remove": "Remove task",
+          "moveUp": "Move up",
+          "moveDown": "Move down",
+          "count": "{count} of {max}"
+        },
+        "category": {
+          "label": "Category",
+          "placeholder": "Choose a category",
+          "search": "Search categories"
+        },
+        "location": {
+          "label": "Where is the job?"
+        },
+        "address": {
+          "label": "Street address",
+          "placeholder": "House or unit number, street, landmark",
+          "hint": "Only shared with the provider you hire. Other providers see just the area."
+        },
+        "date": {
+          "label": "Preferred date",
+          "hint": "Optional. The post stays open until this day."
+        },
+        "time": {
+          "label": "Time of day"
+        },
+        "budget": {
+          "label": "Budget",
+          "min": "Amount",
+          "minRange": "From",
+          "max": "To",
+          "types": {
+            "open": "Open to offers",
+            "fixed": "A set amount",
+            "range": "A range"
+          }
+        },
+        "photos": {
+          "label": "Photos",
+          "hint": "Optional. Up to {max}. Only providers looking at your post can see them.",
+          "add": "Add photos",
+          "remove": "Remove photo",
+          "existing": "Current photos",
+          "unavailable": "Photo no longer available"
+        }
+      },
+      "lockedHint": "The category and location can no longer be changed because providers have applied. To change them, close this post and post a new one.",
+      "submitNew": "Post job",
+      "submitEdit": "Save changes",
+      "cancel": "Cancel",
+      "created": "Your job is posted. Matching providers have been told.",
+      "saved": "Changes saved.",
+      "errors": {
+        "title": "Give your job a short title.",
+        "description": "Describe what you need.",
+        "tasks": "Add at least one task.",
+        "category": "Choose a category.",
+        "location": "Choose the province and city.",
+        "address": "Enter the street address.",
+        "budgetMin": "Enter an amount.",
+        "budgetMax": "The top of the range must be at least the amount.",
+        "submit": "We couldn't save your post. Please try again.",
+        "photos": "Some photos couldn't be uploaded."
+      }
+    },
+    "photoErrors": {
+      "notAnImage": "That file isn't an image.",
+      "tooLarge": "Photos can be up to 5 MB each.",
+      "tooMany": "A post can have up to {max} photos."
+    },
+    "detail": {
+      "back": "All my posts",
+      "banner": {
+        "open": "Providers can apply to this post until {when}.",
+        "hired": "You hired {name}. The booking is under My purchases.",
+        "hiredNoName": "You hired a provider. The booking is under My purchases.",
+        "completed": "This job is done.",
+        "expired": "This post expired. Reopen it to hear from more providers.",
+        "by_consumer": "You closed this post. Reopen it any time.",
+        "booking_cancelled": "The booking was cancelled, so this post is closed. Reopen it and the other providers who applied will be back on the list.",
+        "by_admin": "This post was closed by our team.",
+        "removed": "This post was removed by our team."
+      },
+      "actions": {
+        "edit": "Edit",
+        "close": "Close post",
+        "reopen": "Reopen",
+        "delete": "Delete",
+        "viewBooking": "View booking"
+      },
+      "close": {
+        "title": "Close this post?",
+        "message": "Providers will be told it is closed. You can reopen it later.",
+        "confirm": "Close post",
+        "done": "Post closed."
+      },
+      "delete": {
+        "title": "Delete this post?",
+        "message": "Nobody has applied, so it will simply be removed.",
+        "confirm": "Delete",
+        "done": "Post deleted."
+      },
+      "reopen": {
+        "title": "Reopen this post?",
+        "message": "Providers can apply again, and anyone whose offer was passed over comes back.",
+        "dateTitle": "Choose a new date",
+        "dateMessage": "The preferred date has passed. Pick a new one to reopen this post.",
+        "dateLabel": "New preferred date",
+        "confirm": "Reopen",
+        "done": "Post reopened."
+      },
+      "applicants": {
+        "heading": "Applicants",
+        "sort": {
+          "label": "Sort by",
+          "recommended": "Recommended",
+          "price": "Lowest price",
+          "newest": "Newest"
+        },
+        "filters": {
+          "active": "Waiting",
+          "all": "All",
+          "pending": "Pending",
+          "hired": "Hired",
+          "not_selected": "Not selected",
+          "declined": "Declined",
+          "withdrawn": "Withdrawn"
+        },
+        "emptyTitle": "No applicants yet",
+        "emptyHint": "Providers whose services match this post have been told about it. Offers appear here as they come in.",
+        "emptyFilter": "No applicants in this filter."
+      },
+      "lastEdited": "Edited {when}"
+    },
+    "applicant": {
+      "verified": "Verified",
+      "unverified": "Verification pending",
+      "topMatch": "Top match",
+      "new": "New",
+      "hiredBadge": "Hired",
+      "status": {
+        "not_selected": "Not selected",
+        "declined": "Declined",
+        "withdrawn": "Withdrawn"
+      },
+      "rating": "{rating} · {count} reviews",
+      "ratingOne": "{rating} · 1 review",
+      "noReviews": "No reviews yet",
+      "jobsDone": "{count} jobs done",
+      "sameCity": "Same city",
+      "sameProvince": "Same province",
+      "offer": {
+        "price": "{amount} for {hours} h",
+        "date": "Proposed for {when}",
+        "extra": "+{rate} per extra hour",
+        "beforeEdit": "Offer made before your last edit",
+        "updated": "Updated {when}"
+      },
+      "actions": {
+        "message": "Message",
+        "hire": "Hire",
+        "decline": "Decline",
+        "profile": "View profile"
+      },
+      "hints": {
+        "mustVerify": "They must finish verification before you can hire them.",
+        "datePassed": "The date in this offer has passed. Ask them to update it."
+      }
+    },
+    "hire": {
+      "title": "Hire {name}?",
+      "body": "This books {name} for the price and date they offered.",
+      "summary": {
+        "price": "Price",
+        "hours": "Included hours",
+        "date": "Date",
+        "address": "Address"
+      },
+      "consequence": "The other applicants will be told the job is filled. You can reopen the post if this booking is cancelled.",
+      "confirm": "Hire {name}",
+      "cancel": "Cancel",
+      "done": "{name} is hired. Your booking is ready."
+    },
+    "decline": {
+      "title": "Decline this offer?",
+      "message": "They will be told you declined. They can't apply again to this post.",
+      "confirm": "Decline",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "e.g. Outside my budget",
+      "done": "Offer declined."
+    },
+    "errors": {
+      "email_unverified": "Please verify your email address first.",
+      "too_many_open_posts": "You have too many open posts. Close or complete one to post another.",
+      "post_not_open": "This post is no longer open.",
+      "post_not_closed": "Only a closed post can be reopened.",
+      "post_closed_by_admin": "This post was closed by our team, so it can't be reopened. Contact support if you think this is a mistake.",
+      "post_date_passed": "The preferred date has passed. Choose a new date.",
+      "post_fields_locked": "The category and location can't be changed once providers have applied.",
+      "post_has_applications": "Providers have applied to this post, so it can only be closed.",
+      "too_many_photos": "A post can have up to 5 photos.",
+      "provider_unverified": "This provider must finish verification before you can hire them.",
+      "offer_date_passed": "The date in this offer has passed. Ask the provider to update it.",
+      "application_not_pending": "This application can no longer be changed.",
+      "offer_changed": "The provider changed their offer. Check the new terms, then confirm again.",
+      "post_not_deletable": "This post can no longer be deleted.",
+      "application_not_messageable": "You can't message this applicant any more.",
+      "recipient_deleted": "This provider is no longer available.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "nav": {
+      "newApplicants": "New applicants"
+    },
+    "fromPost": "From job post: {title}",
+    "banner": {
+      "open": "No open posts | {count} open post | {count} open posts",
+      "none": "Post what you need and providers will come to you with offers.",
+      "view": "My posts"
+    }
+  },
+  "findJobs": {
+    "title": "Find jobs",
+    "subtitle": "Open jobs from clients. Apply with a note and your price.",
+    "scopes": {
+      "matching": "Matching my services",
+      "all": "All jobs"
+    },
+    "filters": {
+      "category": "Category",
+      "allCategories": "All categories",
+      "location": "Location",
+      "budgetMin": "Budget at least",
+      "search": "Search jobs",
+      "sort": "Sort by",
+      "clear": "Clear filters"
+    },
+    "sort": {
+      "newest": "Newest",
+      "soonest": "Soonest date",
+      "budget": "Highest budget"
+    },
+    "empty": {
+      "title": "No jobs here right now",
+      "matchingHint": "No open jobs match your services and area at the moment. Try \"All jobs\", and we'll alert you when a new match is posted.",
+      "allHint": "Nothing matches these filters. Try loosening them."
+    },
+    "card": {
+      "applied": "Applied",
+      "posted": "Posted {when}",
+      "by": "by {name}",
+      "applicants": "No applicants yet | {count} applicant | {count} applicants",
+      "apply": "View and apply",
+      "viewApplication": "View my application"
+    },
+    "detail": {
+      "back": "All jobs",
+      "postedBy": "Posted by {name}",
+      "area": "Area",
+      "areaHint": "The exact address is shared only with the provider who is hired.",
+      "apply": "Apply with an offer",
+      "applyAgain": "Apply again",
+      "closedBanner": {
+        "hired": "This job has been filled.",
+        "completed": "This job is done.",
+        "closed": "This job is closed.",
+        "removed": "This job was removed.",
+        "expired": "This job is no longer taking applications."
+      },
+      "myApplication": "Your application",
+      "unverifiedBanner": "You can apply, but you must finish identity verification before a client can hire you.",
+      "verifyCta": "Finish verification",
+      "applied": "You applied {when}",
+      "editOffer": "Edit offer",
+      "withdraw": "Withdraw",
+      "statusText": {
+        "pending": "Waiting for the client's answer.",
+        "hired": "You were hired for this job. Open the booking to see the details.",
+        "not_selected": "The client chose another provider this time.",
+        "declined": "The client declined this application.",
+        "withdrawn": "You withdrew this application."
+      },
+      "viewBooking": "View booking",
+      "withdrawConfirm": {
+        "title": "Withdraw your application?",
+        "message": "The client will no longer see your offer. You can apply again while the job is open.",
+        "confirm": "Withdraw",
+        "done": "Application withdrawn."
+      },
+      "report": "Report this job"
+    },
+    "apply": {
+      "title": "Apply to \"{title}\"",
+      "titleEdit": "Edit your offer",
+      "subtitle": "Say why you are a good fit and name your price. If the client hires you, this offer becomes the booking.",
+      "noteLabel": "Your note",
+      "notePlaceholder": "Tell the client how you would do the job and why you are a good choice.",
+      "jobSummary": "The job",
+      "tasks": "{count} tasks",
+      "submit": "Send application",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "done": "Application sent. The client has been told.",
+      "saved": "Offer updated.",
+      "errors": {
+        "note": "Write a short note for the client.",
+        "submit": "We couldn't send your application. Please try again."
+      }
+    },
+    "applications": {
+      "title": "My applications",
+      "subtitle": "Every job you applied to, and where it stands.",
+      "tabs": {
+        "all": "All",
+        "pending": "Waiting",
+        "hired": "Hired",
+        "not_selected": "Not selected",
+        "declined": "Declined",
+        "withdrawn": "Withdrawn"
+      },
+      "empty": {
+        "title": "No applications here yet",
+        "hint": "Find a job that matches your services and apply.",
+        "cta": "Find jobs"
+      },
+      "row": {
+        "offer": "{amount} for {hours} h",
+        "applied": "Applied {when}",
+        "viewJob": "View job",
+        "postClosed": "Job {status}"
+      }
+    },
+    "errors": {
+      "provider_required": "Become a provider to browse and apply to jobs.",
+      "provider_profile_incomplete": "Finish your provider profile (category, rate and location) to browse and apply to jobs.",
+      "already_applied": "You have already applied to this job.",
+      "applications_full": "This job already has enough applicants.",
+      "own_post": "You can't apply to your own job post.",
+      "post_not_open": "This job is no longer taking applications.",
+      "application_not_pending": "This application can no longer be changed.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "banner": {
+      "matching": "No matching jobs right now | {count} job matches your services | {count} jobs match your services",
+      "pending": "Waiting for answers on {count} application",
+      "none": "Browse open jobs from clients and apply with your price.",
+      "view": "Find jobs",
+      "applications": "My applications"
     }
   }
 }

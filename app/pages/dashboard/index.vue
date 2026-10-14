@@ -119,6 +119,18 @@ useSeoMeta({
         </template>
       </div>
 
+      <DashboardSeekJobBanner
+        v-if="!isProvider"
+        :open-posts="summary.seekJob.consumer.openPosts"
+        :new-applicants="summary.seekJob.consumer.newApplicants"
+      />
+
+      <DashboardFindJobsBanner
+        v-if="isProvider"
+        :matching-jobs="summary.seekJob.provider.matchingJobs"
+        :pending-applications="summary.seekJob.provider.pendingApplications"
+      />
+
       <DashboardKycBanner
         v-if="isProvider"
         :kyc="summary.kyc"

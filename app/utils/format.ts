@@ -1,6 +1,6 @@
 export function formatDate(date: Date | string, locale = 'en-US'): string {
   const value = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(value)
+  return cachedDateTimeFormat(locale, { dateStyle: 'medium' }).format(value)
 }
 
 /** Caps a notification-style count badge at "9+" instead of ever growing unbounded. */
@@ -11,7 +11,7 @@ export function formatBadgeCount(count: number): string {
 /** "Oct 5, 2026, 10:00 AM" — a date with its time, in the viewer's locale. */
 export function formatDateTime(date: Date | string, locale = 'en-US'): string {
   const value = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(value)
+  return cachedDateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(value)
 }
 
 /**
@@ -38,7 +38,7 @@ export function fromDateTimeLocalValue(value: string): string | null {
 export function formatRelativeDate(date: Date | string, locale = 'en-US', now: Date = new Date()): string {
   const value = typeof date === 'string' ? new Date(date) : date
   const days = Math.floor((now.getTime() - value.getTime()) / 86_400_000)
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const formatter = cachedRelativeTimeFormat(locale, { numeric: 'auto' })
 
   if (days < 30) return formatter.format(-Math.max(0, days), 'day')
   if (days < 365) return formatter.format(-Math.floor(days / 30), 'month')

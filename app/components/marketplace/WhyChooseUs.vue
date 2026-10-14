@@ -1,5 +1,11 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
+
 // Auto-imported as <MarketplaceWhyChooseUs />.
+const props = defineProps<{
+  section: HomeSection
+}>()
+
 const { t } = useI18n()
 
 const FALLBACK: Array<{ id: string, icon: IconName, tone: 'primary' | 'accent' }> = [
@@ -10,9 +16,8 @@ const FALLBACK: Array<{ id: string, icon: IconName, tone: 'primary' | 'accent' }
 ]
 
 // The admin's points, else the built-in four.
-const content = useContentSection('why_choose_us')
-const reasons = computed(() => content.value.length > 0
-  ? content.value.map((item, index) => ({
+const reasons = computed(() => props.section.items.length > 0
+  ? props.section.items.map((item, index) => ({
       id: `cms-${index}`,
       icon: knownIcon(item.icon, FALLBACK[index % FALLBACK.length]!.icon),
       tone: (index % 2 === 0 ? 'primary' : 'accent') as 'primary' | 'accent',
@@ -20,10 +25,10 @@ const reasons = computed(() => content.value.length > 0
     }))
   : FALLBACK.map(reason => ({ ...reason, label: t(`marketplace.whyChooseUs.reasons.${reason.id}`) })))
 
-// The first item with an image supplies the visual alongside the points —
-// admins can attach one via the content editor; otherwise a placeholder.
-const featuredImage = computed(() => content.value.find(item => item.imageUrl)?.imageUrl ?? null)
-const featuredDescription = computed(() => content.value.find(item => item.description)?.description ?? null)
+// The section's own photo (set in the admin), else a placeholder.
+const featuredImage = computed(() => props.section.imageUrl)
+const featuredImageAlt = computed(() => cmsText(props.section.imageAlt, cmsText(props.section.heading, t('marketplace.whyChooseUs.heading'))))
+const hasCta = computed(() => Boolean(props.section.ctaUrl && cmsOptionalText(props.section.ctaLabel)))
 
 const toneClasses: Record<'primary' | 'accent', string> = {
   primary: 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100',
@@ -33,16 +38,25 @@ const toneClasses: Record<'primary' | 'accent', string> = {
 
 <template>
   <section
-    id="why-choose-us"
+    :id="sectionAnchor(section, 'why-choose-us')"
     class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
   >
     <div class="mb-9 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">
       <span class="inline-block h-px w-6 bg-black/40 dark:bg-white/40" />
-      {{ t('marketplace.whyChooseUs.eyebrow') }}
+      {{ cmsText(section.eyebrow, t('marketplace.whyChooseUs.eyebrow')) }}
     </div>
-    <h2 class="mb-9 max-w-xl font-display text-3xl font-bold sm:text-4xl">
-      {{ t('marketplace.whyChooseUs.heading') }}
+    <h2
+      class="max-w-xl font-display text-3xl font-bold sm:text-4xl"
+      :class="section.subheading ? 'mb-3' : 'mb-9'"
+    >
+      {{ cmsText(section.heading, t('marketplace.whyChooseUs.heading')) }}
     </h2>
+    <p
+      v-if="section.subheading"
+      class="mb-9 max-w-2xl text-black/60 dark:text-white/60"
+    >
+      {{ section.subheading }}
+    </p>
 
     <div class="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
       <div class="grid grid-cols-2 gap-4">
@@ -71,7 +85,7 @@ const toneClasses: Record<'primary' | 'accent', string> = {
         <NuxtImg
           v-if="featuredImage"
           :src="featuredImage"
-          :alt="t('marketplace.whyChooseUs.heading')"
+          :alt="featuredImageAlt"
           width="560"
           height="380"
           class="h-full w-full object-cover"
@@ -86,15 +100,24 @@ const toneClasses: Record<'primary' | 'accent', string> = {
             name="shield-check"
             :size="16"
           />
-          {{ t('marketplace.whyChooseUs.trustGuarantee') }}
+          {{ sectionText(section.settings, 'bannerText', t('marketplace.whyChooseUs.trustGuarantee')) }}
         </div>
       </div>
     </div>
-    <p
-      v-if="featuredDescription"
-      class="mt-6 max-w-2xl text-black/60 dark:text-white/60"
+    <UiRichText
+      :html="section.body"
+      class="mt-6 max-w-2xl"
+    />
+    <div
+      v-if="hasCta"
+      class="mt-6"
     >
-      {{ featuredDescription }}
-    </p>
+      <CmsLink
+        :to="section.ctaUrl"
+        :class="linkButtonClass('primary')"
+      >
+        {{ section.ctaLabel }}
+      </CmsLink>
+    </div>
   </section>
 </template>

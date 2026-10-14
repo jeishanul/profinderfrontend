@@ -40,6 +40,8 @@ export interface BookingAbilities {
 /** Fields every Purchases / Clients-served row carries. */
 interface BookingRowBase {
   id: string
+  /** The Seek Job post this booking came from, if any. */
+  jobPost: { id: string, title: string } | null
   /** Calendar date only; `scheduledAt` has the time. */
   date: string
   scheduledAt: string
@@ -68,6 +70,8 @@ export interface BookingDetail {
   amountUsd: number
   address: string | null
   notes: string | null
+  /** Set when the booking was made by hiring an applicant on a Seek Job post. */
+  jobPost: { id: string, title: string } | null
   categoryId: string | null
   categoryName: string | null
   service: { id: string, title: string } | null
@@ -146,10 +150,16 @@ export interface ActivityItem {
   kind: ActivityKind
   personName: string
   categoryId: string
+  categoryName?: string | null
   amountUsd?: number
   ratingGiven?: number
   timeAgoHours: number
   link?: string | null
+}
+
+export interface SeekJobSummary {
+  consumer: { openPosts: number, newApplicants: number }
+  provider: { matchingJobs: number, pendingApplications: number }
 }
 
 export interface DashboardSummary {
@@ -158,6 +168,7 @@ export interface DashboardSummary {
   consumerKpis: ConsumerKpis
   activity: ActivityItem[]
   kyc: KycState
+  seekJob: SeekJobSummary
 }
 
 export interface RecentWorkPhoto {
@@ -257,7 +268,7 @@ export interface QuotePayload {
 
 /** Structured, non-text content a message can carry. */
 export interface MessageMeta {
-  type: 'job_request' | 'booking_created' | 'quote_declined' | 'admin_notice'
+  type: 'job_request' | 'job_application' | 'booking_created' | 'quote_declined' | 'admin_notice'
   // job_request
   serviceListingId?: string | null
   serviceTitle?: string | null
@@ -270,6 +281,32 @@ export interface MessageMeta {
   // quote_declined
   quoteId?: string
   reason?: string
+  // job_application: a snapshot from when the chat was opened, plus the live state for whoever is looking
+  jobPostId?: string
+  applicationId?: string
+  title?: string
+  offerPrice?: number
+  offerHours?: number
+  proposedAt?: string
+  current?: JobApplicationThreadState | null
+}
+
+/** The live state of an application, for the card in the chat thread. */
+export interface JobApplicationThreadState {
+  applicationId: string
+  postId: string
+  postTitle: string
+  postStatus: 'open' | 'hired' | 'completed' | 'closed' | 'removed'
+  status: 'pending' | 'hired' | 'not_selected' | 'declined' | 'withdrawn'
+  offerPrice: number
+  offerHours: number
+  extraHourlyRate: number | null
+  proposedAt: string
+  bookingId: string | null
+  /** The viewer posted the job (otherwise they are the provider who applied). */
+  isConsumer: boolean
+  canHire: boolean
+  canEditOffer: boolean
 }
 
 export interface ConversationMessage {
@@ -279,12 +316,12 @@ export interface ConversationMessage {
   /** Only meaningful for `fromMe` messages — the other side's messages are
    * always effectively "seen" by the time we render them. */
   status?: MessageStatus
-  attachment?: MessageAttachment
+  attachment?: MessageAttachment | null
   /** ISO instant the message was sent. */
   createdAt?: string
   /** Present when this message is a structured price quote rather than a
    * plain text/attachment message — see `Quote`. */
-  quote?: Quote
+  quote?: Quote | null
   /** Job requests and system notices ("booking confirmed") — see `MessageMeta`. */
   meta?: MessageMeta | null
   /** The sender removed it — the row stays (so the thread's shape doesn't shift for the other
@@ -296,11 +333,12 @@ export interface Conversation {
   id: string
   personName: string
   role: ConversationRole
-  categoryId: string
+  /** Null when the thread has no category (the conversation was started without one). */
+  categoryId: string | null
   categoryName?: string | null
   /** Text of the newest message; empty for quotes/attachments/system notices (see `lastMessageType`). */
   lastMessagePreview: string
-  lastMessageType: 'none' | 'text' | 'job_request' | 'quote' | 'attachment' | 'system'
+  lastMessageType: 'none' | 'text' | 'job_request' | 'job_application' | 'quote' | 'attachment' | 'system'
   timeAgoHours: number
   unread: boolean
   unreadCount: number
@@ -318,7 +356,7 @@ export interface Conversation {
   providerId?: string
 }
 
-export type NotificationTopic = 'bookings' | 'payments' | 'messages' | 'account' | 'system'
+export type NotificationTopic = 'bookings' | 'payments' | 'messages' | 'jobs' | 'account' | 'system'
 
 export type NotificationKind
   = | 'new_booking'
@@ -348,6 +386,21 @@ export type NotificationKind
     | 'provider_profile_removed'
     | 'provider_profile_restored'
     | 'report_resolved'
+    | 'job_post_application'
+    | 'job_post_offer_updated'
+    | 'job_post_hired'
+    | 'job_post_not_selected'
+    | 'job_post_application_declined'
+    | 'job_post_updated'
+    | 'job_post_reopened'
+    | 'job_post_closed'
+    | 'job_post_hire_blocked'
+    | 'job_post_applicant_verified'
+    | 'job_post_expiring'
+    | 'job_post_expired'
+    | 'job_post_booking_cancelled'
+    | 'job_post_removed'
+    | 'job_post_match'
     | 'report_dismissed'
 
 export interface NotificationItem {
@@ -355,7 +408,11 @@ export interface NotificationItem {
   kind: NotificationKind
   topic: NotificationTopic
   personName?: string
+  /** The thing the notification is about (a service's title, a job post's title) — a template param, never the copy itself. */
+  subjectName?: string
   categoryId?: string
+  /** The category's name as the admin has it, so a rename shows up (older rows only have the slug in `categoryId`). */
+  categoryName?: string | null
   amountUsd?: number
   ratingGiven?: number
   /** Free text — only set for kinds that carry their own copy (admin announcements). */
@@ -403,6 +460,8 @@ export interface NotificationPreferences {
   bookingRequests: boolean
   messages: boolean
   marketing: boolean
+  /** New Seek Job posts that match a provider's services. */
+  jobAlerts: boolean
 }
 
 export interface AccountSettings {
@@ -410,6 +469,8 @@ export interface AccountSettings {
   email: string
   phone: string | null
   twoFactorEnabled: boolean
+  /** False for an account created by social sign-in: it confirms sensitive actions with an emailed code and can set a password. */
+  hasPassword: boolean
   passwordChangedLabel: string
   notificationPreferences: NotificationPreferences
   language: string

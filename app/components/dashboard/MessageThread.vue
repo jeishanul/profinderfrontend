@@ -40,6 +40,7 @@ const emit = defineEmits<{
   'accept-quote': [quote: Quote]
   'decline-quote': [quoteId: string]
   'view-booking': [bookingId: string]
+  'hire-application': [payload: { postId: string, applicationId: string }]
   'load-older': []
   /** Mobile-only back button (see `messages.vue`'s list/thread split) — a
    * no-op on desktop, where nothing listens for it since the list stays
@@ -161,14 +162,6 @@ const latestBookingId = computed(() => {
   }
   return null
 })
-
-/** Quotes and system notices are part of a booking's record — they can't be deleted. */
-const isDeletable = (message: ConversationMessage) =>
-  !message.deleted && message.fromMe && !message.quote && (!message.meta || message.meta.type === 'job_request')
-
-/** Reportable: the other person's own words, not a quote or a system-generated notice. */
-const isReportable = (message: ConversationMessage) =>
-  !message.deleted && !message.fromMe && !message.quote && (!message.meta || message.meta.type === 'job_request')
 
 const reportTargetId = ref<string | null>(null)
 
@@ -345,7 +338,7 @@ function handleKeydown(event: KeyboardEvent) {
         <button
           v-if="isDeletable(message)"
           type="button"
-          class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/5 hover:text-red-600 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-red-400"
+          class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:bg-black/5 hover:text-red-600 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-red-400"
           :aria-label="t('dashboard.messages.deleteMessage')"
           @click="$emit('delete', message.id)"
         >
@@ -366,7 +359,7 @@ function handleKeydown(event: KeyboardEvent) {
         </div>
         <!-- System notices ("booking confirmed", "quote declined") sit centred, not in a bubble. -->
         <div
-          v-else-if="message.meta && message.meta.type !== 'job_request'"
+          v-else-if="message.meta && message.meta.type !== 'job_request' && message.meta.type !== 'job_application'"
           class="mx-auto my-1.5 max-w-[80%] rounded-2xl bg-black/5 px-3.5 py-1.5 text-center text-xs font-semibold text-black/60 dark:bg-white/10 dark:text-white/60"
         >
           <template v-if="message.meta.type === 'booking_created'">
@@ -402,6 +395,13 @@ function handleKeydown(event: KeyboardEvent) {
           @decline="$emit('decline-quote', message.quote.id)"
           @edit="openEditQuote(message.quote)"
           @withdraw="$emit('withdraw-quote', message.quote.id)"
+          @view-booking="(id) => $emit('view-booking', id)"
+        />
+        <DashboardJobApplicationCard
+          v-else-if="message.meta?.type === 'job_application'"
+          :meta="message.meta"
+          :from-me="message.fromMe"
+          @hire="(payload) => $emit('hire-application', payload)"
           @view-booking="(id) => $emit('view-booking', id)"
         />
         <DashboardJobRequestCard
@@ -496,21 +496,9 @@ function handleKeydown(event: KeyboardEvent) {
         </div>
 
         <button
-          v-if="message.fromMe"
+          v-if="isReportable(message)"
           type="button"
-          class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/5 hover:text-red-600 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-red-400"
-          :aria-label="t('dashboard.messages.deleteMessage')"
-          @click="$emit('delete', message.id)"
-        >
-          <UiIcon
-            name="trash"
-            :size="14"
-          />
-        </button>
-        <button
-          v-else-if="isReportable(message)"
-          type="button"
-          class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-white"
+          class="mb-1 shrink-0 rounded-full p-1.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:bg-black/5 hover:text-black dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-white"
           :aria-label="t('dashboard.messages.reportMessage')"
           @click="reportTargetId = message.id"
         >

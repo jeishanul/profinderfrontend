@@ -1,21 +1,27 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
+
 // Auto-imported as <MarketplaceHowItWorksSteps />. As the user scrolls past
 // each step, `useScrollSpy` reports which one is active and the sticky visual
 // on the left swaps to match.
+const props = defineProps<{
+  section: HomeSection
+}>()
+
 const { t } = useI18n()
 
 const FALLBACK_IDS = ['request', 'compare', 'book', 'review'] as const
 const STEP_ICONS: IconName[] = ['search', 'calendar', 'lock', 'star']
 
 // The admin's steps, else the built-in four.
-const content = useContentSection('how_it_works')
-const steps = computed(() => content.value.length > 0
-  ? content.value.map((item, index) => ({
+const steps = computed(() => props.section.items.length > 0
+  ? props.section.items.map((item, index) => ({
       id: `cms-${index}`,
       icon: knownIcon(item.icon, STEP_ICONS[index % STEP_ICONS.length]!),
       title: item.title ?? '',
       description: item.description ?? '',
       imageUrl: item.imageUrl,
+      imageAlt: item.imageAlt,
     }))
   : FALLBACK_IDS.map((id, index) => ({
       id,
@@ -23,6 +29,7 @@ const steps = computed(() => content.value.length > 0
       title: t(`marketplace.howItWorks.steps.${id}.title`),
       description: t(`marketplace.howItWorks.steps.${id}.description`),
       imageUrl: null as string | null,
+      imageAlt: null as string | null,
     })))
 
 const stepRefs = ref<Array<HTMLElement | null>>([])
@@ -41,16 +48,25 @@ onMounted(recalculate)
 
 <template>
   <section
-    id="how-it-works"
+    :id="sectionAnchor(section, 'how-it-works')"
     class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
   >
     <div class="mb-10 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">
       <span class="inline-block h-px w-6 bg-black/40 dark:bg-white/40" />
-      {{ t('marketplace.howItWorks.eyebrow') }}
+      {{ cmsText(section.eyebrow, t('marketplace.howItWorks.eyebrow')) }}
     </div>
-    <h2 class="mb-10 font-display text-3xl font-bold sm:text-4xl">
-      {{ t('marketplace.howItWorks.heading') }}
+    <h2
+      class="font-display text-3xl font-bold sm:text-4xl"
+      :class="section.subheading ? 'mb-3' : 'mb-10'"
+    >
+      {{ cmsText(section.heading, t('marketplace.howItWorks.heading')) }}
     </h2>
+    <p
+      v-if="section.subheading"
+      class="mb-10 max-w-2xl text-black/60 dark:text-white/60"
+    >
+      {{ section.subheading }}
+    </p>
 
     <div class="grid gap-10 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-16">
       <div class="sticky top-28 hidden self-start lg:block">
@@ -63,7 +79,7 @@ onMounted(recalculate)
               v-if="steps[activeIndex]?.imageUrl"
               :key="steps[activeIndex]?.id"
               :src="steps[activeIndex]?.imageUrl!"
-              :alt="steps[activeIndex]?.title ?? ''"
+              :alt="steps[activeIndex]?.imageAlt ?? steps[activeIndex]?.title ?? ''"
               width="440"
               height="420"
               class="h-full w-full object-cover"

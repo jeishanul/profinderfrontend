@@ -7,5 +7,7 @@ export default defineEventHandler((event): Promise<ProviderProfile> => {
     throw createError({ statusCode: 404, statusMessage: 'Provider not found' })
   }
 
-  return callApi<ProviderProfile>(event, `/providers/${id}`)
+  // The owner sees their own unlisted profile, and the reviews carry whether *you* may reply: cached for visitors
+  // without a session only.
+  return getPublicApi<ProviderProfile>(event, `/providers/${id}`, {}, { viewerDependent: true })
 })

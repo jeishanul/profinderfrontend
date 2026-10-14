@@ -6,5 +6,5 @@ export default defineEventHandler((event): Promise<GalleryItem[]> => {
   const query = getQuery(event)
   const tab = VALID_TABS.includes(query.tab as GalleryTab) ? (query.tab as GalleryTab) : 'home'
 
-  return callApi<GalleryItem[]>(event, '/gallery', { query: { tab } })
+  return getPublicApi<GalleryItem[]>(event, '/gallery', { tab })
 })

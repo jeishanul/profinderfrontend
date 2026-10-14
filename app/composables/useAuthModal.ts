@@ -1,4 +1,4 @@
-export type AuthModalView = 'login' | 'register' | 'forgot-password' | 'otp' | 'reset-password' | 'two-factor' | 'verify-email'
+export type AuthModalView = 'login' | 'register' | 'forgot-password' | 'otp' | 'reset-password' | 'two-factor' | 'verify-email' | 'social-terms'
 
 export interface AuthModalOptions {
   /** Where to go after a successful login/sign-up — e.g. the page that required it. */

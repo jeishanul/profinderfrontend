@@ -4,7 +4,6 @@ export default defineEventHandler((event): Promise<PagedResult<Review>> => {
   const id = getRouterParam(event, 'id')
   const query = getQuery(event)
 
-  return callApi<PagedResult<Review>>(event, `/providers/${id}/reviews`, {
-    query: { page: query.page, perPage: query.perPage },
-  })
+  // Each review says whether *you* may reply to it: cached for visitors without a session only.
+  return getPublicApi<PagedResult<Review>>(event, `/providers/${id}/reviews`, { page: query.page, perPage: query.perPage }, { viewerDependent: true })
 })

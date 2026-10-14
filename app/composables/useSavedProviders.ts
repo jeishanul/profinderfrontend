@@ -28,6 +28,17 @@ export function useSavedProviders() {
     }
   }
 
+  /**
+   * For server-rendered pages. Hearts are personal, so they stay out of the server render (one API call fewer on
+   * every page a signed-in person opens) and fill in right after the page mounts. Not awaited during hydration:
+   * that would change the markup mid-hydration. Call it from page setup.
+   */
+  function loadAfterMount() {
+    onMounted(() => {
+      void ensureLoaded()
+    })
+  }
+
   /** Forget what was loaded — the person behind the session may have changed. */
   function reset() {
     savedIds.value = []
@@ -53,5 +64,10 @@ export function useSavedProviders() {
     else await save(providerId)
   }
 
-  return { ensureLoaded, reset, isSaved, toggle, save, unsave }
+  /** For a "save" that was queued behind the login modal: it must end saved, never flip a provider that already was. */
+  async function ensureSaved(providerId: string) {
+    if (!isSaved(providerId)) await save(providerId)
+  }
+
+  return { ensureLoaded, loadAfterMount, reset, isSaved, toggle, save, unsave, ensureSaved }
 }

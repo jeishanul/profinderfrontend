@@ -96,6 +96,8 @@ export function usePagedList<T extends { id: string }, M extends ListPageMeta = 
     loadingMore,
     loadMoreFailed,
     status: request.status,
+    /** The first page's error (e.g. a 403 with a `code`), so a page can say why it has nothing to show. */
+    error: request.error,
     pending: computed(() => request.status.value === 'pending'),
     refresh,
     execute: request.execute,

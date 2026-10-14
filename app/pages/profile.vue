@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { DashboardSummary, ProviderProfileDetail, RecentWorkPhoto } from '#shared/types/dashboard'
-import type { ServiceCategory } from '#shared/types/marketplace'
 
 // Reached from Home's quick tiles or the More sheet, never a bottom-nav tab
 // — mobile gets a back button instead of the tab bar (see `UiBackButton`).
@@ -29,11 +28,7 @@ const { data: summary, refresh: refreshSummary } = await useApi<DashboardSummary
   key: 'dashboard-summary-provider',
   query: { role: 'provider' },
 })
-const { data: categories } = await useApi<ServiceCategory[]>('/categories', {
-  key: 'categories-with-skills',
-  query: { include: 'skills' },
-  default: () => [],
-})
+const { data: categories } = await useCategories({ withSkills: true })
 
 // The active tab lives in the URL (`?tab=kyc`), not local state, so the
 // sidebar's "Verification" link can both open this tab directly and know

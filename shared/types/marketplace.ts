@@ -10,6 +10,9 @@ export interface ServiceCategory {
    * i18n lookup, since admins can add categories with no matching i18n key. */
   name: string
   icon: string | null
+  /** The category's picture and its alt text (admin-set); the icon is used until there is one. */
+  imageUrl?: string | null
+  imageAlt?: string | null
   providerCount: number
   /** Only present when requested with `?include=skills`. */
   skills?: { id: string, name: string }[]
@@ -25,7 +28,18 @@ export interface SiteSettings {
   contactEmail: string | null
   contactPhone: string | null
   supportHours: string | null
+  /** The three networks the site once had fixed fields for; the full list is in `NavigationData.social`. */
   social: { facebook: string | null, x: string | null, instagram: string | null }
+  /** Footer copyright line; `{year}` and `{siteName}` are filled in. */
+  footerCopyright: string | null
+  footerTaglineSecondary: string | null
+  /** Site-wide images the admin set (URLs), each used wherever a more specific image is missing. */
+  defaultProviderCoverUrl: string | null
+  defaultAvatarUrl: string | null
+  defaultOgImageUrl: string | null
+  appStoreBadgeUrl: string | null
+  playStoreBadgeUrl: string | null
+  defaultGalleryImageUrl: string | null
   defaultLocale: string
   defaultCurrency: string
   seoDefaultTitle: string | null
@@ -40,6 +54,10 @@ export interface StaticPageContent {
   title: string
   /** Sanitised HTML — safe to render with `v-html`. */
   content: string
+  /** The picture at the top of the page, and the one shown when it is shared. */
+  heroImageUrl?: string | null
+  heroImageAlt?: string | null
+  ogImageUrl?: string | null
   metaTitle: string | null
   metaDescription: string | null
   updatedAt: string | null
@@ -60,6 +78,8 @@ export interface Review {
 
 export interface ProviderSummary {
   id: string
+  /** The owning account, so a card can tell it is the viewer's own profile. */
+  userId: string
   name: string
   headline: string | null
   avatarUrl: string | null
@@ -85,14 +105,15 @@ export interface ProviderSummary {
 }
 
 export interface ProviderProfile extends ProviderSummary {
+  /** Slugs of the province and city landing pages this provider's area links to. */
+  provinceSlug: string | null
+  citySlug: string | null
   bio: string | null
   jobsCompleted: number
   repeatClientPercent: number
   responseTimeHours: number
   /** Null when the provider hasn't set one. */
   minVisitFee: number | null
-  /** The provider's user id, to recognise your own profile. */
-  userId: string
   /** Null when the provider hasn't set a service radius. */
   serviceAreaKm: number | null
   /** Day ids (`'mon'`..`'sun'`) — see `formatAvailabilityDays` in `app/utils/availability.ts`. */
@@ -136,25 +157,8 @@ export interface GalleryItem {
   categoryName: string
   title: string | null
   imageUrl: string | null
+  imageAlt: string | null
 }
-
-/**
- * A single admin-managed item within a homepage content section (hero
- * slides, trust stats, how-it-works steps, why-choose-us points, app-download
- * badges). The section-level heading/eyebrow copy stays in i18n — only the
- * repeatable items themselves come from the API. See `/api/content/[section]`.
- */
-export interface ContentItem {
-  title: string | null
-  subtitle: string | null
-  description: string | null
-  icon: string | null
-  value: string | null
-  imageUrl: string | null
-  linkUrl: string | null
-}
-
-export type ContentSectionKey = 'hero_badge' | 'hero_slides' | 'trust_stats' | 'how_it_works' | 'why_choose_us' | 'app_download'
 
 export interface PagedResult<T> {
   items: T[]

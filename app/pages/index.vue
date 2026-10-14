@@ -5,51 +5,74 @@ import type {
   GalleryTab,
   PagedResult,
   ProviderSummary,
-  ServiceCategory,
   Testimonial,
 } from '#shared/types/marketplace'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const session = useSession()
-const { unreadNotifications } = useUnreadCounts()
 
-// Mobile-only, logged-in-only quick-tap row (see CLAUDE.md's native-feel
-// redesign notes) — one-tap access to the destinations that don't have a
-// bottom-nav tab of their own, without touching the marketing content below
-// (hero, trust stats, etc.) that anonymous/SEO traffic still needs to see.
-const quickTiles = computed(() => [
-  { to: '/dashboard', icon: 'grid' as const, tint: 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100', label: t('dashboard.sidebar.dashboard') },
-  { to: '/purchases', icon: 'bag' as const, tint: 'bg-accent-50 text-accent-700 dark:bg-accent-700/20 dark:text-accent-100', label: t('dashboard.sidebar.myPurchases') },
-  { to: '/notifications', icon: 'bell' as const, tint: 'bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70', label: t('dashboard.sidebar.notifications') },
-  { to: '/settings', icon: 'gear' as const, tint: 'bg-black/5 text-black/70 dark:bg-white/10 dark:text-white/70', label: t('dashboard.sidebar.settings') },
-])
+// Data loads in two rounds, each a single parallel batch (a request awaited on its own would add a full round trip to
+// every render). Round 1: the layout, plus the categories, which don't depend on it.
+// The landing page's layout: which sections exist, in what order, with the admin's text and images. If that request
+// fails the default layout renders with built-in copy (see `resolveHomeSections`).
+const categoriesRequest = useCategories()
+const [{ sections, heroBadge }] = await Promise.all([useHomeSections(), categoriesRequest])
+const { data: categories } = categoriesRequest
+const sectionFor = (key: string) => sections.value.find(section => section.key === key)
+// In the template, every section except the hero, the quick tiles and the scroll hint is `Lazy…` + `hydrate-on-visible`.
+// The server still renders them all, but the browser only downloads and runs a section's code when someone scrolls to
+// it. The admin decides the order, so nothing assumes what is below the fold: a section already in view hydrates at once.
+// The floating "keep scrolling" hint points at the why-choose-us section, wherever the admin put it (or not at all).
+const whyChooseUs = computed(() => sectionFor('why_choose_us'))
 
-const { data: categories } = await useApi<ServiceCategory[]>('/categories')
-// "Top-rated pros": verified, best-rated first — not just whoever signed up last.
-const { data: providersPage } = await useApi<PagedResult<ProviderSummary>>('/providers', {
-  query: { perPage: 8, sort: 'rating', verifiedOnly: true },
-})
-const { data: testimonials } = await useApi<Testimonial[]>('/testimonials')
-const { data: faqItems } = await useApi<FaqItem[]>('/faq')
-
-// Loaded once here (a page, safe for top-level await) so every
-// <MarketplaceProviderCard/> in <MarketplaceFeaturedProviders/> below can
-// read `isSaved` synchronously.
-await useSavedProviders().ensureLoaded()
-
+// Round 2: the lists for the sections the admin left on the page; a hidden section costs no request. They depend
+// only on which sections exist, not on each other, so they all start before any is awaited.
+// "Top-rated pros": verified, best-rated first — not just whoever signed up last. Or, when the admin set the section
+// to manual, exactly the providers they featured.
+const featuredSettings = sectionFor('featured_providers')?.settings
+const featuredLimit = sectionNumber(featuredSettings, 'maxItems', 8)
+const mode = featuredMode(featuredSettings)
+const providersRequest = sectionFor('featured_providers')
+  ? useApi<PagedResult<ProviderSummary>>('/providers', {
+      query: featuredQuery(mode, featuredLimit),
+      key: `home-featured-${mode}-${featuredLimit}`,
+    })
+  : null
+// When the visitor searched a province earlier this visit, prefer that province's pros — but only if it has enough
+// to fill the row; a near-empty "Top-rated near X" would look worse than the national list.
+const lastSearch = useLastSearch()
+const FEATURED_MIN = 4
+const provinceRequest = providersRequest && mode === 'auto' && lastSearch.value?.provinceCode
+  ? useApi<PagedResult<ProviderSummary>>('/providers', {
+      query: featuredQuery(mode, featuredLimit, lastSearch.value.provinceCode),
+      key: 'home-featured-province',
+    })
+  : null
+const testimonialsRequest = sectionFor('testimonials') ? useApi<Testimonial[]>('/testimonials') : null
+const faqRequest = sectionFor('faq') ? useApi<FaqItem[]>('/faq') : null
 const GALLERY_TABS: GalleryTab[] = ['home', 'recommended', 'trending']
-const galleryResponses = await Promise.all(
-  GALLERY_TABS.map(tab => useApi<GalleryItem[]>('/gallery', { query: { tab }, key: `home-gallery-${tab}` })),
-)
+const galleryResponses = sectionFor('jobs_gallery')
+  ? GALLERY_TABS.map(tab => useApi<GalleryItem[]>('/gallery', { query: { tab }, key: `home-gallery-${tab}` }))
+  : []
+
+await Promise.all([providersRequest, provinceRequest, testimonialsRequest, faqRequest, ...galleryResponses])
+
+const providersPage = providersRequest?.data ?? null
+const provincePage = provinceRequest?.data ?? null
+const featuredIsLocal = computed(() => (provincePage?.value?.items.length ?? 0) >= FEATURED_MIN)
+const featuredProviders = computed(() => (featuredIsLocal.value ? provincePage!.value!.items : providersPage?.value?.items ?? []))
+const testimonials = testimonialsRequest?.data ?? null
+const faqItems = faqRequest?.data ?? null
 const galleryItemsByTab = computed(() => Object.fromEntries(
   GALLERY_TABS.map((tab, index) => [tab, galleryResponses[index]?.data.value ?? []]),
 ) as Record<GalleryTab, GalleryItem[]>)
 
-const lastSearch = useLastSearch()
+// The hearts on <MarketplaceProviderCard/> in <MarketplaceFeaturedProviders/>: personal, so filled in after mount.
+if (providersPage) useSavedProviders().loadAfterMount()
 
 function handleHeroSearch({ category, province, city, barangay }: { category: string, province: string, city: string, barangay: string }) {
   lastSearch.value = province ? { provinceCode: province } : null
+
   navigateTo(localePath({
     path: '/browse',
     query: {
@@ -66,62 +89,93 @@ useSeoMeta({
   title: () => settings.value.seoDefaultTitle ?? t('home.seoTitle'),
   description: () => settings.value.seoDefaultDescription ?? t('home.seoDescription', { name: settings.value.siteName ?? t('brand.name') }),
 })
-defineOgImage('DefaultSatori', {
-  title: t('home.seoTitle'),
-  description: t('home.seoDescription'),
+useShareImage(null, 'DefaultSatori', {
+  title: settings.value.seoDefaultTitle ?? t('home.seoTitle'),
+  description: settings.value.seoDefaultDescription ?? t('home.seoDescription', { name: settings.value.siteName ?? t('brand.name') }),
 })
 useSchemaOrg([defineWebPage()])
 </script>
 
 <template>
   <div>
-    <MarketplaceHeroSlider
-      :categories="categories ?? []"
-      @search="handleHeroSearch"
-    />
+    <!-- The quick-tap row sits under the hero; with no hero on the page it goes first. -->
+    <MarketplaceQuickTiles v-if="!sectionFor('hero_slides')" />
 
-    <div
-      v-if="session.isAuthenticated.value"
-      class="mx-auto grid max-w-6xl grid-cols-4 gap-3 px-4 pt-6 pb-1 sm:px-6 md:hidden"
+    <template
+      v-for="section in sections"
+      :key="section.key"
     >
-      <NuxtLinkLocale
-        v-for="tile in quickTiles"
-        :key="tile.to"
-        :to="tile.to"
-        class="flex flex-col items-center gap-1.5"
-      >
-        <span
-          class="relative flex h-14 w-14 items-center justify-center rounded-2xl"
-          :class="tile.tint"
-        >
-          <UiIcon
-            :name="tile.icon"
-            :size="21"
-          />
-          <span
-            v-if="tile.to === '/notifications' && unreadNotifications > 0"
-            class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-600 px-1 text-[10px] font-bold text-white"
-          >{{ formatBadgeCount(unreadNotifications) }}</span>
-        </span>
-        <span class="text-center text-[11px] font-semibold text-black/70 dark:text-white/70">{{ tile.label }}</span>
-      </NuxtLinkLocale>
-    </div>
+      <template v-if="section.key === 'hero_slides'">
+        <MarketplaceHeroSlider
+          :section="section"
+          :badge="heroBadge"
+          :categories="categories ?? []"
+          @search="handleHeroSearch"
+        />
+        <MarketplaceQuickTiles />
+      </template>
+      <LazyMarketplaceTrustStats
+        v-else-if="section.key === 'trust_stats'"
+        hydrate-on-visible
+        :section="section"
+      />
+      <LazyMarketplaceHowItWorksSteps
+        v-else-if="section.key === 'how_it_works'"
+        hydrate-on-visible
+        :section="section"
+      />
+      <LazyMarketplaceCategoryCarousel
+        v-else-if="section.key === 'categories'"
+        hydrate-on-visible
+        :section="section"
+        :categories="categories ?? []"
+      />
+      <LazyMarketplaceFeaturedProviders
+        v-else-if="section.key === 'featured_providers'"
+        hydrate-on-visible
+        :section="section"
+        :providers="featuredProviders"
+        :local="featuredIsLocal"
+        :categories="categories ?? []"
+      />
+      <LazyMarketplaceWhyChooseUs
+        v-else-if="section.key === 'why_choose_us'"
+        hydrate-on-visible
+        :section="section"
+      />
+      <LazyMarketplaceJobsGallery
+        v-else-if="section.key === 'jobs_gallery'"
+        hydrate-on-visible
+        :section="section"
+        :items-by-tab="galleryItemsByTab"
+        :categories="categories ?? []"
+      />
+      <LazyMarketplaceTestimonialSlider
+        v-else-if="section.key === 'testimonials'"
+        hydrate-on-visible
+        :section="section"
+        :testimonials="testimonials ?? []"
+      />
+      <LazyMarketplaceDownloadAppSection
+        v-else-if="section.key === 'app_download'"
+        hydrate-on-visible
+        :section="section"
+      />
+      <LazyMarketplaceFaqAccordion
+        v-else-if="section.key === 'faq'"
+        hydrate-on-visible
+        :section="section"
+        :items="faqItems ?? []"
+      />
+      <CmsBlock
+        v-else
+        :section="section"
+      />
+    </template>
 
-    <MarketplaceTrustStats />
-    <MarketplaceHowItWorksSteps />
-    <MarketplaceCategoryCarousel :categories="categories ?? []" />
-    <MarketplaceFeaturedProviders
-      :providers="providersPage?.items ?? []"
-      :categories="categories ?? []"
+    <MarketplaceScrollHintArrow
+      v-if="whyChooseUs"
+      :target="sectionAnchor(whyChooseUs, 'why-choose-us')!"
     />
-    <MarketplaceWhyChooseUs />
-    <MarketplaceJobsGallery
-      :items-by-tab="galleryItemsByTab"
-      :categories="categories ?? []"
-    />
-    <MarketplaceTestimonialSlider :testimonials="testimonials ?? []" />
-    <MarketplaceDownloadAppSection />
-    <MarketplaceFaqAccordion :items="faqItems ?? []" />
-    <MarketplaceScrollHintArrow />
   </div>
 </template>

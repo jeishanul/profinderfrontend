@@ -4,77 +4,16 @@ import type { PagedResult, ProviderSummary, ServiceCategory } from '#shared/type
 const { t, locale } = useI18n()
 const route = useRoute()
 
+// The page's requests are started without awaiting each one, then awaited together below: none depends on another,
+// and one awaited on its own would add a full round trip to every render.
 // With skills, so the sidebar can offer them once a single category is chosen.
-const { data: categories } = await useApi<ServiceCategory[]>('/categories', {
-  key: 'categories-with-skills',
-  query: { include: 'skills' },
-})
+const categoriesRequest = useCategories({ withSkills: true })
+const { data: categories } = categoriesRequest
 
-// Loaded once here (a page, safe for top-level await) so every
-// <MarketplaceProviderCard/> below can read `isSaved` synchronously.
-await useSavedProviders().ensureLoaded()
+// The hearts on every <MarketplaceProviderCard/> below: personal, so filled in after mount.
+useSavedProviders().loadAfterMount()
 
-const SORTS = ['recommended', 'rating', 'reviews', 'price_asc', 'price_desc', 'newest'] as const
-type Sort = (typeof SORTS)[number]
-
-interface Filters {
-  q: string
-  sort: Sort
-  categories: string[]
-  skills: string[]
-  availableDay: string | null
-  province: string | null
-  city: string | null
-  barangay: string | null
-  minRating: number
-  verifiedOnly: boolean
-  minPrice: number
-  maxPrice: number
-  page: number
-}
-
-const list = (value: unknown) => (typeof value === 'string' && value ? value.split(',').filter(Boolean) : [])
-const text = (value: unknown) => (typeof value === 'string' && value ? value : null)
-
-/** The URL is the source of truth: every filter lives in it, so links, back/forward and reloads all agree. */
-function fromQuery(query: typeof route.query): Filters {
-  const sort = text(query.sort) as Sort | null
-  return {
-    q: text(query.q) ?? '',
-    sort: sort && SORTS.includes(sort) ? sort : 'recommended',
-    categories: list(query.categories),
-    skills: list(query.skills),
-    availableDay: text(query.availableDay),
-    province: text(query.province),
-    city: text(query.city),
-    barangay: text(query.barangay),
-    minRating: query.minRating ? Number(query.minRating) : 0,
-    verifiedOnly: query.verifiedOnly === 'true',
-    minPrice: query.minPrice ? Number(query.minPrice) : PRICE_MIN,
-    maxPrice: query.maxPrice ? Number(query.maxPrice) : PRICE_MAX,
-    page: query.page ? Math.max(1, Number(query.page)) : 1,
-  }
-}
-
-function toQuery(f: Filters) {
-  return {
-    ...(f.q ? { q: f.q } : {}),
-    ...(f.sort !== 'recommended' ? { sort: f.sort } : {}),
-    ...(f.categories.length > 0 ? { categories: f.categories.join(',') } : {}),
-    ...(f.skills.length > 0 ? { skills: f.skills.join(',') } : {}),
-    ...(f.availableDay ? { availableDay: f.availableDay } : {}),
-    ...(f.province ? { province: f.province } : {}),
-    ...(f.city ? { city: f.city } : {}),
-    ...(f.barangay ? { barangay: f.barangay } : {}),
-    ...(f.minRating ? { minRating: String(f.minRating) } : {}),
-    ...(f.verifiedOnly ? { verifiedOnly: 'true' } : {}),
-    ...(f.minPrice > PRICE_MIN ? { minPrice: String(f.minPrice) } : {}),
-    ...(f.maxPrice < PRICE_MAX ? { maxPrice: String(f.maxPrice) } : {}),
-    ...(f.page > 1 ? { page: String(f.page) } : {}),
-  }
-}
-
-const filters = reactive<Filters>(fromQuery(route.query))
+const filters = reactive<BrowseFilters>(parseBrowseQuery(route.query))
 
 // Set while `fromQuery` is applying an external route change (a link that
 // sets a filter AND a page at once, back/forward, a footer category link) so
@@ -86,7 +25,7 @@ let applyingRouteChange = false
 // changes the URL but not this component — pull the change in.
 watch(() => route.query, (query) => {
   applyingRouteChange = true
-  Object.assign(filters, fromQuery(query))
+  Object.assign(filters, parseBrowseQuery(query))
   searchInput.value = filters.q
   nextTick(() => {
     applyingRouteChange = false
@@ -100,7 +39,7 @@ watch(() => JSON.stringify({ ...filters, page: 0 }), () => {
 })
 // ...and every change is reflected in the URL.
 watch(() => JSON.stringify(filters), () => {
-  navigateTo({ path: route.path, query: toQuery(filters) }, { replace: true })
+  navigateTo({ path: route.path, query: toBrowseRouteQuery(filters) }, { replace: true })
 })
 
 // Search is debounced so typing doesn't refetch on every keystroke.
@@ -114,46 +53,35 @@ const activeCategories = computed<ServiceCategory[]>(
   () => (categories.value ?? []).filter(category => filters.categories.includes(category.id)),
 )
 
-const providerQuery = computed(() => ({
-  q: filters.q || undefined,
-  sort: filters.sort !== 'recommended' ? filters.sort : undefined,
-  categories: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
-  skills: filters.skills.length > 0 ? filters.skills.join(',') : undefined,
-  availableDay: filters.availableDay ?? undefined,
-  province: filters.province ?? undefined,
-  city: filters.city ?? undefined,
-  barangay: filters.barangay ?? undefined,
-  minRating: filters.minRating || undefined,
-  verifiedOnly: filters.verifiedOnly || undefined,
-  minRate: filters.minPrice > PRICE_MIN ? filters.minPrice : undefined,
-  maxRate: filters.maxPrice < PRICE_MAX ? filters.maxPrice : undefined,
-  page: filters.page,
-  perPage: 6,
-}))
+const providerQuery = computed(() => toProviderApiQuery(filters, 6))
 
-const { data: providersPage } = await useApi<PagedResult<ProviderSummary>>('/providers', {
+const providersRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
   query: providerQuery,
   key: 'browse-providers',
 })
+const { data: providersPage } = providersRequest
 
 // Resolved just for the page title's "near {location}" text — the filter
 // sidebar's own <UiLocationPicker> resolves names internally for its own
 // display, this is a separate lookup for this page-level string.
-const { data: allProvinces } = await useApi<{ code: string, name: string }[]>('/locations/provinces', {
+const provincesRequest = useApi<{ code: string, name: string, slug?: string }[]>('/locations/provinces', {
   key: 'ph-provinces',
   default: () => [],
 })
-const { data: citiesInProvince } = useApi<{ code: string, name: string }[]>('/locations/cities', {
+const { data: allProvinces } = provincesRequest
+const { data: citiesInProvince } = useApi<{ code: string, name: string, slug?: string }[]>('/locations/cities', {
   key: 'ph-cities-browse-title',
   query: computed(() => ({ province: filters.province ?? undefined })),
   default: () => [],
 })
 const locationTitle = computed(() => {
   if (filters.barangay) return filters.barangay
-  if (filters.city) return citiesInProvince.value?.find(c => c.code === filters.city)?.name ?? t('marketplace.browse.anywhere')
-  if (filters.province) return allProvinces.value?.find(p => p.code === filters.province)?.name ?? t('marketplace.browse.anywhere')
+  if (filters.city) return citiesInProvince.value?.find(c => c.code === filters.city || (c.slug && c.slug === filters.city))?.name ?? t('marketplace.browse.anywhere')
+  if (filters.province) return allProvinces.value?.find(p => p.code === filters.province || (p.slug && p.slug === filters.province))?.name ?? t('marketplace.browse.anywhere')
   return t('marketplace.browse.anywhere')
 })
+
+await Promise.all([categoriesRequest, providersRequest, provincesRequest])
 
 // Remembers the province for the homepage's "Featured" section (see `useLastSearch`).
 const lastSearch = useLastSearch()
@@ -166,7 +94,7 @@ watch(() => filters.province, (province) => {
 // behind a half-open sheet shouldn't reshuffle the results under it. (The
 // desktop sidebar edits `filters` directly and applies live.)
 const filterSheetOpen = ref(false)
-const draft = reactive<Filters>(fromQuery({}))
+const draft = reactive<BrowseFilters>(parseBrowseQuery({}))
 
 watch(filterSheetOpen, (open) => {
   if (open) Object.assign(draft, { ...filters, categories: [...filters.categories], skills: [...filters.skills] })
@@ -178,7 +106,7 @@ function applyDraft() {
 }
 
 function resetDraft() {
-  Object.assign(draft, fromQuery({}), { q: filters.q, sort: filters.sort })
+  Object.assign(draft, parseBrowseQuery({}), { q: filters.q, sort: filters.sort })
 }
 
 const pages = computed(() => pageNumbers(providersPage.value?.page ?? 1, providersPage.value?.totalPages ?? 1))
@@ -205,8 +133,10 @@ useSeoMeta({
   title: pageTitle,
   description: t('marketplace.browse.seoDescription'),
 })
-defineOgImage('MarketplaceSatori', {
-  title: pageTitle,
+// One share image for every filter combination (a fixed title, not the filtered count): each distinct title was a
+// separate satori render on the server, and the combinations are unbounded. The admin's default image wins when set.
+useShareImage(null, 'MarketplaceSatori', {
+  title: t('marketplace.browse.shareTitle'),
   eyebrow: t('marketplace.browse.seoEyebrow'),
 })
 useSchemaOrg([defineWebPage()])
@@ -273,7 +203,7 @@ useSchemaOrg([defineWebPage()])
             class="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
           >
             <option
-              v-for="option in SORTS"
+              v-for="option in BROWSE_SORTS"
               :key="option"
               :value="option"
             >

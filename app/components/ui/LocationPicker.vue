@@ -36,6 +36,7 @@
 interface LocationOption {
   code: string
   name: string
+  slug?: string
 }
 
 withDefaults(
@@ -72,14 +73,18 @@ const { data: provinces } = useApi<LocationOption[]>('/locations/provinces', {
   key: 'ph-provinces',
   default: () => [],
 })
+// Not requested until there is a province/city to list them for (the answer would be an empty list, on every
+// page and every picker, including during SSR); a later pick changes the query, which fetches them.
 const { data: cities } = useApi<LocationOption[]>('/locations/cities', {
   key: `ph-cities-${uid}`,
   query: computed(() => ({ province: provinceCode.value ?? undefined })),
+  immediate: !!provinceCode.value,
   default: () => [],
 })
 const { data: barangays } = useApi<{ name: string }[]>('/locations/barangays', {
   key: `ph-barangays-${uid}`,
   query: computed(() => ({ city: cityCode.value ?? undefined })),
+  immediate: !!cityCode.value,
   default: () => [],
 })
 
@@ -97,8 +102,8 @@ watch(cityCode, () => {
   barangay.value = null
 })
 
-const provinceName = computed(() => provinces.value?.find(p => p.code === provinceCode.value)?.name ?? null)
-const cityName = computed(() => cities.value?.find(c => c.code === cityCode.value)?.name ?? null)
+const provinceName = computed(() => provinces.value?.find(p => p.code === provinceCode.value || (p.slug && p.slug === provinceCode.value))?.name ?? null)
+const cityName = computed(() => cities.value?.find(c => c.code === cityCode.value || (c.slug && c.slug === cityCode.value))?.name ?? null)
 
 const summary = computed(() => {
   const parts = [provinceName.value, cityName.value, barangay.value].filter((part): part is string => !!part)

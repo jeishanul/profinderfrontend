@@ -37,6 +37,81 @@ interface ApiCallOptions {
   query?: Record<string, unknown>
   /** Set false for routes that must never send the caller's token (there are none today, but keeps intent explicit). */
   auth?: boolean
+  /** Milliseconds before giving up on Laravel; defaults to `API_TIMEOUT_MS` for the method. */
+  timeout?: number
+}
+
+/**
+ * How long a call to Laravel may take. Reads sit on the SSR critical path, so they fail fast and the page falls
+ * back (settings and navigation to their defaults, a page to its error view) instead of hanging the render.
+ * Without a timeout, Node waits up to 300 s for response headers. Writes can include uploads and image
+ * processing, so they get longer.
+ */
+export const API_TIMEOUT_MS = { read: 5000, write: 30000 } as const
+
+/** What `callApi` needs from the server runtime. Injected so the proxy's rules can be tested without a running Nitro. */
+export interface ApiProxyDeps {
+  apiBaseUrl: () => string
+  fetch: (path: string, options: Record<string, unknown>) => Promise<unknown>
+  getAuthToken: (event: H3Event) => string | undefined
+  clearAuthToken: (event: H3Event) => void
+  getClientIp: (event: H3Event) => string | undefined
+  createError: (input: { statusCode: number, statusMessage: string, data?: unknown }) => Error
+  /** Called after every call, with how long it took and Laravel's own Server-Timing header (when Server-Timing is on). */
+  recordTiming?: (event: H3Event, timing: { path: string, ms: number, backend: string | null }) => void
+}
+
+export function createCallApi(deps: ApiProxyDeps) {
+  return async function callApi<T>(event: H3Event, path: string, options: ApiCallOptions = {}): Promise<T> {
+    const token = options.auth !== false ? deps.getAuthToken(event) : undefined
+    const clientIp = deps.getClientIp(event)
+    const method = options.method ?? 'GET'
+    const started = performance.now()
+    let backendTiming: string | null = null
+
+    try {
+      const response = await deps.fetch(path, {
+        baseURL: `${deps.apiBaseUrl()}/api/v1`,
+        method,
+        body: options.body,
+        query: options.query,
+        timeout: options.timeout ?? (method === 'GET' ? API_TIMEOUT_MS.read : API_TIMEOUT_MS.write),
+        // No retries here: a page's own useApi call already retries in the browser, and a retried timeout would
+        // double how long the render waits. One visitor request is at most one Laravel request.
+        retry: 0,
+        onResponse: ({ response }: { response: Response }) => {
+          backendTiming = response.headers.get('server-timing')
+        },
+        headers: {
+          Accept: 'application/json',
+          // Laravel only sees this server as the client; hand it the real address so IP-keyed
+          // rate limits (login, register, OTP) apply per visitor instead of per Nuxt host.
+          ...(clientIp ? { 'X-Forwarded-For': clientIp } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+      return response as T
+    }
+    catch (error) {
+      const fetchError = error as { response?: { status?: number, _data?: { message?: string } }, cause?: { name?: string } }
+
+      // The token we just sent is no good: drop the cookie so the browser stops presenting it.
+      if (token && fetchError.response?.status === 401) deps.clearAuthToken(event)
+
+      if (!fetchError.response && fetchError.cause?.name === 'TimeoutError') {
+        throw deps.createError({ statusCode: 504, statusMessage: 'The server took too long to respond.' })
+      }
+
+      throw deps.createError({
+        statusCode: fetchError.response?.status ?? 500,
+        statusMessage: fetchError.response?._data?.message ?? 'Something went wrong.',
+        data: fetchError.response?._data,
+      })
+    }
+    finally {
+      deps.recordTiming?.(event, { path, ms: performance.now() - started, backend: backendTiming })
+    }
+  }
 }
 
 /**
@@ -44,44 +119,32 @@ interface ApiCallOptions {
  * (`{message, errors}`) is preserved on `data` so a catch block can surface
  * field-level validation errors exactly as Laravel sent them.
  */
-export async function callApi<T>(event: H3Event, path: string, options: ApiCallOptions = {}): Promise<T> {
-  const config = useRuntimeConfig()
-  const token = options.auth !== false ? getAuthToken(event) : undefined
-  const clientIp = getRequestIP(event, { xForwardedFor: true })
+export const callApi = createCallApi({
+  apiBaseUrl: () => useRuntimeConfig().apiBaseUrl,
+  // `$fetch`'s route-typed overloads are far too heavy for the type checker here; this call is untyped on purpose.
+  fetch: (path, options) => ($fetch as unknown as (path: string, options: unknown) => Promise<unknown>)(path, options),
+  getAuthToken,
+  clearAuthToken,
+  // Never the browser's own X-Forwarded-For (a visitor could rotate it to dodge Laravel's per-IP limits): the
+  // address `server/plugins/client-ip.ts` worked out from the connection, trusting only nginx's hop. SSR
+  // sub-requests inherit it from the page request, which `getRequestIP` alone would miss (they have no socket).
+  getClientIp: event => getVisitorIp(event),
+  createError: input => createError(input),
+  recordTiming: (event, timing) => {
+    if (useRuntimeConfig().serverTiming) recordApiTiming(event, timing)
+  },
+})
 
-  try {
-    const response = await $fetch(path, {
-      baseURL: `${config.apiBaseUrl}/api/v1`,
-      method: options.method ?? 'GET',
-      body: options.body as BodyInit | Record<string, unknown> | null | undefined,
-      query: options.query,
-      headers: {
-        Accept: 'application/json',
-        // Laravel only sees this server as the client; hand it the real address so IP-keyed
-        // rate limits (login, register, OTP) apply per visitor instead of per Nuxt host.
-        ...(clientIp ? { 'X-Forwarded-For': clientIp } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    })
-    return response as T
-  }
-  catch (error) {
-    const fetchError = error as { response?: { status?: number, _data?: { message?: string } } }
+const LIST_QUERY_KEYS = ['page', 'perPage', 'q', 'status', 'archived', 'sort'] as const
 
-    // The token we just sent is no good: drop the cookie so the browser stops presenting it.
-    if (token && fetchError.response?.status === 401) clearAuthToken(event)
+const SEEK_JOB_QUERY_KEYS = ['scope', 'category', 'province', 'city', 'budgetMin', 'q', 'sort', 'page', 'perPage'] as const
 
-    throw createError({
-      statusCode: fetchError.response?.status ?? 500,
-      statusMessage: fetchError.response?._data?.message ?? 'Something went wrong.',
-      data: fetchError.response?._data,
-    })
-  }
+/** The filters the Seek Job feed understands — nothing else is forwarded. */
+export function pickSeekJobQuery(query: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(SEEK_JOB_QUERY_KEYS.filter(key => query[key] !== undefined && query[key] !== '').map(key => [key, query[key]]))
 }
 
-const LIST_QUERY_KEYS = ['page', 'perPage', 'q', 'status', 'archived'] as const
-
-/** The paging/filter params the account-area list endpoints understand — nothing else is forwarded. */
+/** The paging/filter/sort params the account-area list endpoints understand — nothing else is forwarded. */
 export function pickListQuery(query: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(LIST_QUERY_KEYS.filter(key => query[key] !== undefined && query[key] !== '').map(key => [key, query[key]]))
 }

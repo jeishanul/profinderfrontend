@@ -42,6 +42,7 @@ const filterOptions = computed(() => {
     { value: 'bookings', label: t('dashboard.notificationsPage.filters.bookings'), count: countFor('bookings') },
     { value: 'payments', label: t('dashboard.notificationsPage.filters.payments'), count: countFor('payments') },
     { value: 'messages', label: t('dashboard.notificationsPage.filters.messages'), count: countFor('messages') },
+    { value: 'jobs', label: t('dashboard.notificationsPage.filters.jobs'), count: countFor('jobs') },
     { value: 'account', label: t('dashboard.notificationsPage.filters.account'), count: countFor('account') },
     { value: 'system', label: t('dashboard.notificationsPage.filters.system'), count: countFor('system') },
   ]

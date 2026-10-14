@@ -7,9 +7,13 @@ const { t } = useI18n()
 const moreMenu = useMoreMenu()
 const session = useSession()
 const authModal = useAuthModal()
-const { unreadNotifications } = useUnreadCounts()
+const { unreadNotifications, newApplicants } = useUnreadCounts()
 
 const isProvider = computed(() => session.activeRole.value === 'provider')
+
+// Extra links the admin added to the mobile menu (see `useNavigation`), for everyone, under an optional heading.
+const { navigation, viewer } = useNavigation()
+const extraLinks = computed(() => visibleLinks(navigation.value.mobileMore.items, viewer.value))
 
 function go() {
   moreMenu.close()
@@ -119,6 +123,24 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
           {{ t('dashboard.sidebar.myPurchases') }}
         </NuxtLinkLocale>
         <NuxtLinkLocale
+          v-if="!isProvider"
+          to="/seek-job"
+          :class="itemClass"
+          @click="go"
+        >
+          <span :class="iconWrapClass">
+            <UiIcon
+              name="briefcase"
+              :size="17"
+            />
+          </span>
+          <span class="flex-1">{{ t('dashboard.sidebar.seekJob') }}</span>
+          <span
+            v-if="newApplicants > 0"
+            class="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-600 px-1 text-[11px] font-bold text-white"
+          >{{ formatBadgeCount(newApplicants) }}</span>
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
           to="/notifications"
           :class="itemClass"
           @click="go"
@@ -165,6 +187,32 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
               />
             </span>
             {{ t('dashboard.sidebar.myServices') }}
+          </NuxtLinkLocale>
+          <NuxtLinkLocale
+            to="/find-jobs"
+            :class="itemClass"
+            @click="go"
+          >
+            <span :class="iconWrapClass">
+              <UiIcon
+                name="search"
+                :size="17"
+              />
+            </span>
+            {{ t('dashboard.sidebar.findJobs') }}
+          </NuxtLinkLocale>
+          <NuxtLinkLocale
+            to="/find-jobs/applications"
+            :class="itemClass"
+            @click="go"
+          >
+            <span :class="iconWrapClass">
+              <UiIcon
+                name="check-circle"
+                :size="17"
+              />
+            </span>
+            {{ t('dashboard.sidebar.myApplications') }}
           </NuxtLinkLocale>
         </template>
 
@@ -220,6 +268,34 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
           </UiButton>
         </div>
       </template>
+
+      <div
+        v-if="extraLinks.length > 0"
+        class="mt-3"
+      >
+        <div
+          v-if="navigation.mobileMore.title"
+          class="mt-3 mb-1 px-1 text-[11px] font-bold tracking-wide text-black/40 uppercase dark:text-white/40"
+        >
+          {{ navigation.mobileMore.title }}
+        </div>
+        <CmsLink
+          v-for="link in extraLinks"
+          :key="`${link.url}|${link.label}`"
+          :to="link.url"
+          :new-tab="link.newTab"
+          :class="itemClass"
+          @click="go"
+        >
+          <span :class="iconWrapClass">
+            <UiIcon
+              :name="knownIcon(link.icon, 'globe')"
+              :size="17"
+            />
+          </span>
+          {{ link.label }}
+        </CmsLink>
+      </div>
 
       <div class="mt-6 border-t border-black/10 pt-2 dark:border-white/10">
         <AppFooterCompact />

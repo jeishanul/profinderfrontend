@@ -49,6 +49,21 @@ const ICON_BY_KIND: Record<NotificationItem['kind'], IconName> = {
   provider_profile_restored: 'check-circle',
   report_resolved: 'shield-check',
   report_dismissed: 'shield-check',
+  job_post_application: 'briefcase',
+  job_post_offer_updated: 'briefcase',
+  job_post_hired: 'check-circle',
+  job_post_not_selected: 'briefcase',
+  job_post_application_declined: 'briefcase',
+  job_post_updated: 'briefcase',
+  job_post_reopened: 'briefcase',
+  job_post_closed: 'x',
+  job_post_hire_blocked: 'shield-check',
+  job_post_applicant_verified: 'shield-check',
+  job_post_expiring: 'calendar',
+  job_post_expired: 'calendar',
+  job_post_booking_cancelled: 'x',
+  job_post_removed: 'lock',
+  job_post_match: 'search',
 }
 
 // Good news is brand green, money is amber, problems are red, everything else neutral.
@@ -88,14 +103,30 @@ const TINT_BY_KIND: Record<NotificationItem['kind'], string> = {
   provider_profile_restored: TINT.brand,
   report_resolved: TINT.brand,
   report_dismissed: TINT.neutral,
+  job_post_application: TINT.accent,
+  job_post_offer_updated: TINT.accent,
+  job_post_hired: TINT.brand,
+  job_post_not_selected: TINT.neutral,
+  job_post_application_declined: TINT.neutral,
+  job_post_updated: TINT.accent,
+  job_post_reopened: TINT.brand,
+  job_post_closed: TINT.neutral,
+  job_post_hire_blocked: TINT.danger,
+  job_post_applicant_verified: TINT.brand,
+  job_post_expiring: TINT.accent,
+  job_post_expired: TINT.neutral,
+  job_post_booking_cancelled: TINT.danger,
+  job_post_removed: TINT.danger,
+  job_post_match: TINT.brand,
 }
 
 // Copy the server wrote itself (announcements, account notices, a cancellation
 // reason) wins; every other notification is a translated template for its kind.
 const params = computed(() => ({
   name: props.item.personName ?? '',
+  subject: props.item.subjectName ?? '',
   rating: props.item.ratingGiven ?? '',
-  category: categoryLabel(props.item.categoryId),
+  category: props.item.categoryName ?? categoryLabel(props.item.categoryId),
   amount: money(props.item.amountUsd ?? 0),
   site: settings.value.siteName ?? t('brand.name'),
 }))

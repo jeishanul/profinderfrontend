@@ -120,6 +120,62 @@ composable or util — never copy-pasted.**
   actions with side effects, devtools-inspectable). Simple per-feature state stays in a
   composable over `useState`.
 
+## CMS-driven landing page
+
+The landing page (`app/pages/index.vue`) is a loop over the sections the admin configured, not a fixed list. The
+backend owns the layout; this app renders it.
+
+- `useHomeSections()` (awaited in `index.vue`) reads `/api/home` (Nitro proxy -> Laravel `/v1/home`): the active
+  sections in the admin's order, each a `HomeSection` (`shared/types/cms.ts`) with eyebrow/heading/subheading, rich
+  `body`, image + alt, background image, button, `settings` and `items`.
+- **i18n stays the fallback.** Every admin text field can be empty; components read it with `cmsText(value, t('...'))`
+  (`app/utils/cms.ts`), so clearing a field restores the built-in copy and a fresh install is never blank. Don't remove
+  the i18n keys a built-in section falls back to.
+- If `/api/home` *fails*, `resolveHomeSections` renders the default layout (`DEFAULT_HOME_SECTION_KEYS`). A successful
+  but empty list means the admin hid everything and is respected.
+- Built-in sections (`hero_slides`, `trust_stats`, `how_it_works`, `categories`, `featured_providers`,
+  `why_choose_us`, `jobs_gallery`, `testimonials`, `app_download`, `faq`) are matched by `section.key` in `index.vue`.
+  Their list data (providers, gallery, testimonials, FAQ, categories) still comes from their own endpoints and is only
+  fetched when that section is on the page. Sections added by the admin render through `<CmsBlock>`
+  (`app/components/cms/`) by `section.type`; an unknown type renders nothing.
+- **Featured providers** has a `mode` setting: `auto` (best-rated verified, may prefer the visitor's province) or
+  `manual` (only providers the admin featured, no province preference, section hidden when none). The query for each
+  is `featuredQuery()` in `app/utils/featuredProviders.ts`; keep both modes working when touching the home page fetch.
+- **Adding a block type:** add it to the backend's `config/content_blocks.php`, add a `Cms*` component and a `v-else-if`
+  in `CmsBlock.vue`, with a test in `components/cms/Cms.test.ts`.
+- Section wrappers carry `:id="sectionAnchor(section, ...)"` so menu links like `/#how-it-works` work; anything that
+  points at a section (e.g. `ScrollHintArrow`) takes the anchor as a prop and only renders when that section exists.
+- Admin-typed links go through `<CmsLink>` (site paths stay in-app, external links open safely, anything unsafe renders
+  as plain text) and admin HTML through `<UiRichText>`. Never put admin values straight into `href` or `v-html`.
+- Images from the admin are `<NuxtImg>` with the admin's alt text; the old icon/`UiPlaceholderMedia` stays as the
+  fallback until an image is uploaded.
+- **Image fallbacks, most specific first:** a gallery tile's photo, then its category's picture, then the site's default
+  gallery photo (`settings.defaultGalleryImageUrl`), then the icon placeholder; a provider's cover, then
+  `defaultProviderCoverUrl`; a person's photo, then `defaultAvatarUrl`, then initials (`UiAvatar`); a store's badge
+  image (`appStoreBadgeUrl` / `playStoreBadgeUrl`) replaces its text badge. Each default is empty until the admin sets
+  it, so nothing changes until then.
+
+## CMS-driven header, footer and mobile menu
+
+The header links, footer columns and rows, bottom links, social icons and the mobile menu's extra links come from the
+admin, like the landing page.
+
+- `app.vue` fetches `/api/navigation` (Nitro proxy -> Laravel `/v1/navigation`) next to the settings; `useNavigation()`
+  reads it from that shared cache and returns `{ navigation, viewer }`. Footer copyright and the second tagline come
+  from the settings (`useFooterText()`; `{year}` and `{siteName}` are filled in).
+- Links are already resolved to final addresses by the backend (a link to a page, category or home-page section
+  arrives as its path, `/#anchor` for a section). Render them with `<CmsLink :to :new-tab>`, never a raw `href`.
+- **Visibility is decided here**, not by the backend (its payload is cached and shared): filter with
+  `visibleLinks` / `visibleMenus` / `visibleColumns` (`app/utils/navigation.ts`) using `viewer`. A menu or column left
+  empty for the visitor is dropped. "Everyone except providers" is how the header hides "Become a provider".
+- Footer columns are arrays of stacked menus (`NavMenu[][]`); the grid width is `columns + 3` (brand, contact, app).
+  The phone footer shows only the page-list menus plus the bottom links (`compactFooterLinks`).
+- **If `/api/navigation` fails**, `defaultNavigation(t, settings)` supplies the built-in links (the i18n keys under
+  `nav.*` and `footer.customers/providers.*` exist for exactly this), so keep those keys. An admin-emptied menu is
+  respected; only a failed request falls back.
+- Social networks come as `{ network, label, url }`; the network is also the icon name (`socialIconName`). To add a
+  network: backend `config/social_networks.php` plus a drawing in `app/utils/icons.ts`.
+
 ## Data fetching rules
 
 - Critical, SEO-relevant data: `await useApi(...)` (blocks navigation, lands in SSR payload,
@@ -130,6 +186,37 @@ composable or util — never copy-pasted.**
 - Never call `$fetch` alone at the top of `<script setup>` for a component's initial data — it
   double-fetches (once on the server, once on the client). Use `useApi`/`useFetch`/`useAsyncData`.
 - Trim payload size with `pick`/`transform` when the full response isn't needed client-side.
+- **Never `await` independent requests one after another.** Each `await` is a full round trip added to every
+  server render. Start every request the page needs (`const xRequest = useApi(...)`, which hands back its `data`
+  ref at once), then `await Promise.all([...])` once. Only a request that needs another's *answer* may wait for
+  it: the home page's lists need `/home` to know which sections exist, and the city/barangay pages need the SEO
+  response for the city code (city slugs repeat across provinces). Today's floor is 3 rounds on `/` (shell, then
+  layout + categories, then lists) and 2 on every other public page. Keep it there.
+- **Personal data stays out of the server render.** Saved-provider hearts use `useSavedProviders().loadAfterMount()`,
+  and the unread badges use `server: false`. Never `await` personal data in page setup: in the browser that
+  changes the markup mid-hydration. The session is the exception, since the header must be right on first paint.
+  The global middleware *starts* it, and `app.vue` awaits it together with settings and navigation
+  (`useSession().loadUser()`, one shared request). Await `loadUser()`, not `fetchUser()`, anywhere that needs
+  the answer.
+- **Public reads are cached in Nitro.** A `server/api/*` handler for data that is the same for every visitor calls
+  `getPublicApi(event, path, query)` (`server/utils/publicApi.ts`), not `callApi`. It is served from Nitro's shared
+  cache (Redis in production) for 60 s, then stale-while-revalidate, so an admin's edit shows within about a minute
+  with no purge step. It never sends the visitor's token, so first check that the Laravel endpoint doesn't read the
+  user: grep its controller and resources for `->user(`.
+  - An answer that changes for a signed-in viewer (the provider page: owner preview, `canReply`) passes
+    `{ viewerDependent: true }`. Only visitors without a session are then served from the cache.
+  - Personal data and writes keep `callApi`. So do free-text searches (`/providers?q=`): every phrasing would be
+    its own entry.
+  - `NUXT_API_CACHE=false` switches the cache off.
+- **Fetched data is shallow** (`useAsyncData.deep: false`, Nuxt 4's default). Never change it in place
+  (`data.value.items.push(...)`, `row.read = true`): replace `data.value` as a whole, or copy it into a local `ref`
+  first, as `ProviderReviews.vue` does.
+- **A browser-only request that several components share** (same key, `server: false`, like the unread badges in
+  `useUnreadCounts`) needs `dedupe: 'defer'`. With the default `cancel`, each component that mounts aborts the
+  previous request and sends its own, and the aborted ones still reach the server.
+- App-shell components (header, footer, layouts) run on every page, so they must not fetch for something only one
+  page shows. The header's docked search reads the home page's categories with `useNuxtData('categories')` and is
+  only rendered on `/`.
 
 ## Internationalization (i18n)
 
@@ -188,9 +275,12 @@ instead of a rework.
 1. `useSeoMeta({ title, description, ...})` (translated via `t()` — see Internationalization
    above) — title is picked up by the `titleTemplate` set in `app/app.vue` (renders as
    `"<page title> · ProFinder"`).
-2. `defineOgImage('<ComponentName>', { ... })` using a component from `app/components/OgImage/`
-   (see the renderer-suffix note below). Add a new template there for new content types instead
-   of overloading `Default.satori.vue`.
+2. `useShareImage(adminImageUrl, '<TemplateName>', { ... })` (not `defineOgImage` directly): the admin's own
+   share image for the page wins, then the site's default share image (Settings), and only with neither does it
+   fall back to a generated card from `app/components/OgImage/` (see the renderer-suffix note below). Add a new
+   template there for new content types instead of overloading `Default.satori.vue`. The SEO module re-bases a
+   non-https `og:image` onto this site's origin, so `/storage/**` is proxied to the backend (`routeRules` in
+   `nuxt.config.ts`); keep that rule.
 3. `useSchemaOrg([...])` with the appropriate `define*()` (`defineWebPage`, `defineArticle`,
    `defineProduct`, `defineBreadcrumb`, etc. — see `nuxt-seo` skill reference).
 4. Anything that shouldn't be indexed (admin, previews, etc.) sets `robots` via `routeRules` or
@@ -251,7 +341,29 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   first confirming the SEO module stack tolerates it.
 - Heavy/below-the-fold components: use `Lazy` + a hydration strategy
   (`hydrate-on-visible`, `hydrate-on-interaction`, `hydrate-on-idle`, etc.) instead of eager
-  hydration.
+  hydration. The home sections below the hero do (`pages/index.vue`): measured at −6% main-thread work under 6× CPU
+  throttling.
+- **Overlays most visitors never open** (the login modal, the mobile "More" sheet, the confirm dialog) are
+  `<Lazy… v-if="mounted">` with `mounted = useMountWhenNeeded(() => isOpen)`. This keeps their code and CSS off
+  the first page load and their closed markup out of every server render. Do the same for any new global overlay.
+  Note: `hydrate-never` is **not** enough to keep a component's JavaScript out: Nuxt still `modulepreload`s every
+  module rendered on the server.
+- **The QR code is an `<img>` of `/api/qr`** (SVG made on the server, cached a day), so the QR encoder never ships
+  to browsers.
+- **Price and date formatting** go through the cached formatters in `utils/intl.ts`
+  (`cachedNumberFormat`/`cachedDateTimeFormat`/`cachedRelativeTimeFormat`). Never call `new Intl.*Format` in code
+  that runs per card or per row.
+- **`server/plugins/runtime-config.ts` must stay.** @nuxtjs/i18n calls `useRuntimeConfig(event)` on every request,
+  sub-requests included, and Nitro then rebuilds the whole config from environment variables for that event. That
+  was ~37% of the SSR server's CPU. The plugin hands each request a plain copy of the start-up config first. If a
+  module upgrade changes how runtime config is read, re-profile (`node --cpu-prof .output/server/index.mjs` under
+  load) before removing it.
+- **Finding a slow page:** set `NUXT_SERVER_TIMING=true` (frontend) and `SERVER_TIMING=true` (backend). The page's
+  `Server-Timing` header then lists the render time and every backend call it made, each with Laravel's database time
+  and query count (devtools > Network > Timing). `npm run perf:smoke -- <base-url> [paths]` checks the key pages
+  against the performance budget in PERFORMANCE_PLAN.md and exits non-zero when one misses it.
+- Generated OG images: keep the props to a bounded set (a fixed title per page type, not a filtered count). Every
+  distinct set of props is its own satori render on the server.
 - Images go through `<NuxtImg>`/`<NuxtPicture>` (`@nuxt/image`), never a bare `<img>` for
   content images. Fonts go through `@nuxt/fonts`, never a manual Google Fonts `<link>`.
 - `NuxtLink` prefetches on visibility by default (see `experimental.defaults.nuxtLink`) — no
@@ -327,16 +439,38 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   don't widen it to `*`.
 - **CSRF is on** (`nuxt-csurf`). Every POST/PUT/PATCH/DELETE needs the `csrf-token` header, which
   `useApiFetch` attaches for you (see Calling our API below). A raw `$fetch` mutation fails with 403.
-- **Rate limiting is on by default** (150 requests / 5 min / IP) using the `lruCache` in-memory
-  driver. That driver is per-process — fine for a single instance, but it resets on redeploy and
-  doesn't share state across horizontally-scaled instances. If/when this deploys to more than one
-  instance behind a load balancer, switch `security.rateLimiter.driver` to a shared store (e.g.
-  Redis) or rate limiting won't be effective.
+- **Rate limiting is on**: 600 requests / 5 min / IP globally, and 60 / 5 min on `/api/auth/**`
+  (`security.rateLimiter` and `routeRules` in `nuxt.config.ts`), using the `lruCache` in-memory
+  driver. Laravel throttles per account/IP as well.
+- **Visitor address (`server/utils/clientIp.ts`, tagged by `server/plugins/client-ip.ts`).** Every request from
+  outside is tagged in Nitro's `request` hook, before any middleware runs. The tag is the socket address, or
+  `X-Forwarded-For` read from the right, but only when the socket peer is a trusted proxy (`NUXT_TRUSTED_PROXIES`,
+  loopback by default, which is nginx). Never trust the browser's own `X-Forwarded-For`: a visitor could rotate it
+  to dodge per-IP limits. That is also why nginx must *overwrite* the header with `$remote_addr`.
+  - SSR sub-requests are in-process (node-mock-http, marked `__unenv__`) and have no socket. They inherit the
+    tag, because Nitro copies the page request's headers onto them. `callApi` forwards that tag to Laravel as
+    `X-Forwarded-For`, so use `getVisitorIp(event)`, never `getRequestIP(event)`, which is empty on a sub-request.
+  - The limiter keys on `x-profinder-rate-limit-key` (`security.rateLimiter.ipHeader`). Sub-requests carry the
+    white-listed internal key, so a page view costs one token, not one per API call. External requests always
+    get both tags overwritten, so a browser can't claim to be internal.
+  - Laravel's `api` limiter gives GETs relayed by this server (a trusted proxy) a separate 1200/min bucket.
+    Writes and direct calls keep 240/min.
+- **Timeouts.** `callApi` gives Laravel 5 s for a read and 30 s for a write (`API_TIMEOUT_MS`), never retries,
+  and turns a timeout into a 504. `useApi` allows 8 s and doesn't retry during SSR. A slow API therefore degrades
+  a page to its fallbacks instead of hanging the render. `useApiFetch` (browser-only actions and uploads)
+  deliberately has no timeout.
+- The rate-limit driver is per-process, so production (a PM2 cluster, `deploy/pm2/ecosystem.config.cjs`)
+  sets `NUXT_REDIS_URL`: `server/plugins/redis-storage.ts` then remounts the limiter's storage (and Nitro's
+  `cache` storage) on Redis at runtime, shared by every worker, with an expiry the limiter itself never sets.
+  Without `NUXT_REDIS_URL` (local dev) both stay in memory. Don't configure `security.rateLimiter.driver`
+  in `nuxt.config.ts` instead: that is fixed at build time.
 - **Production host binding**: when self-hosting the Nitro `node-server` output directly (not
   behind Vercel/Netlify/Cloudflare's own edge), bind it to `127.0.0.1` (`NITRO_HOST=127.0.0.1`)
   and put a reverse proxy (Nginx/Caddy) in front — don't bind `0.0.0.0` directly to the public
-  internet. Not configurable from this repo (it's a deployment-environment setting), but note it
-  before choosing a hosting setup.
+  internet. `deploy/pm2/ecosystem.config.cjs` sets this, and `deploy/nginx/profinder.conf` is the proxy.
+  Deploys go through `deploy/deploy.sh`: each build is copied to `.releases/<timestamp>` and `.current` is
+  swapped atomically, and `/_nuxt` chunks accumulate in `.assets` so pages rendered by the previous build
+  still load. Don't point PM2 or nginx at `.output` directly; it is rebuilt in place.
 - **OG image signing secret**: `nuxt-og-image` signs its generated URLs with an auto-generated
   secret by default, which changes on every build/restart. Harmless for local dev and a
   single-instance deploy. For a rolling deploy or more than one instance, set
@@ -422,6 +556,55 @@ absolute`, use `@nuxt/fonts` for custom fonts.
 - Pass new list params through the BFF with `pickListQuery(getQuery(event))` (`server/utils/apiProxy.ts`),
   which forwards only `page`, `perPage`, `q`, `status`, `archived`.
 - Public Browse keeps its filters in the URL (the URL is the source of truth) — see `pages/browse.vue`.
+
+### Head tags on SEO landing pages
+
+- `app.vue` emits the canonical, hreflang and og:locale tags for every route. A landing page
+  (`/category/*`, `/ph/**`) calls **`useSeoLanding(meta, eyebrow)`** for its title, description, robots,
+  schema.org and OG image; it overrides the canonical only when an admin set a custom one
+  (`useCanonicalOverride`), so a page never emits two canonical tags. Never add a `<link rel="canonical">` per page.
+- These pages are keyed by path (`definePageMeta({ key: route => route.path })`) so moving between two of them
+  builds a fresh component; head and filter state never go stale. Search/sort/page state is
+  `useSeoProviderFilters()`; the URL is the source of truth (back/forward restore it).
+- All text on them is in `en.json` under `seo.*`.
+- The favicon links live in `app.vue` (an admin-uploaded favicon replaces the built-in set), and `updateSiteConfig`
+  there feeds the site name/description to structured data and OG tags.
+
+### Categories
+
+`useCategories({ withSkills?, lazy? })` is the only way to load categories: two cached variants
+(`categories`, `categories-with-skills`), so a page never refetches what another one already has.
+
+### Social sign-in and re-authentication
+
+- The OAuth round trip lives in `server/api/auth/social/*`. What the person asked for before leaving (remember me,
+  the page they were on, reactivating) travels in the httpOnly state cookie; a 2FA challenge or a "finish creating
+  your account" token waits in a second httpOnly cookie (`SOCIAL_PENDING_COOKIE`) and is picked up by the BFF
+  (`two-factor/challenge`, `social/complete`). Nothing sensitive goes in the URL. `safeReturnTo` only accepts
+  same-site paths.
+- Accounts created by social sign-in have no password (`AccountSettings.hasPassword`). Anything that asks for "your
+  password" (change password, delete account, turn off 2FA, start 2FA setup) uses `<DashboardReauthField>` and
+  `reauthBody()`, which switch to an emailed one-time code for those accounts.
+
+### Seek Job (consumer-posted jobs)
+
+- Consumer pages `/seek-job`, `/seek-job/new`, `/seek-job/[id]`, `/seek-job/[id]/edit`; provider pages `/find-jobs`, `/find-jobs/[id]`, `/find-jobs/applications` (`middleware: ['auth','provider']`). All are `ssr: false` + `robots: false` in `routeRules`.
+- Shared helpers: `utils/jobPost.ts` (status/expiry helpers), `utils/offer.ts` + `<DashboardOfferFields>` (price/hours/extra rate/when — shared with `QuoteFormModal`), `useJobLabels()`, `useJobErrors()` (maps API `code` to `seekJob.errors.<code>` then `findJobs.errors.<code>`).
+- BFF routes under `server/api/dashboard/{job-posts,seek-jobs,job-post-applications}/**`; query keys are whitelisted with `pickSeekJobQuery`.
+- Hiring: `/seek-job/{id}?hire={applicationId}` opens the hire modal (used by the "Hire" button on the chat's job-application card).
+- "New applicants" count rides on the `/dashboard/conversations/unread-count` poll (`UNREAD_APPLICANTS_KEY`), no extra request.
+- Job photos and the exact address are private: photos stream through the BFF with the session; never put the post title in a notification `title/body`, only as the `subjectName` param.
+
+### Testing the BFF
+
+`callApi` is built by `createCallApi(deps)` (`server/utils/apiProxy.ts`) so its rules (token, client address,
+401 clears the cookie) are unit-tested with plain fakes (`apiProxy.test.ts`). A handler that only forwards a body can
+be tested by stubbing the Nitro globals (see `two-factor/setup.post.test.ts`, `// @vitest-environment node`).
+
+### Browse filters
+
+The pure URL/API query helpers for Browse live in `utils/browseQuery.ts` (`parseBrowseQuery`,
+`toBrowseRouteQuery`, `toProviderApiQuery`) with tests; `pages/browse.vue` only wires them to the router.
 
 ### Private files through the BFF
 

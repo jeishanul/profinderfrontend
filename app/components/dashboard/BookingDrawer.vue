@@ -212,6 +212,17 @@ const timeline = computed<TimelineEntry[]>(() => {
           <p class="mt-0.5 text-sm text-black/60 dark:text-white/60">
             {{ t(booking.viewerRole === 'provider' ? 'dashboard.bookingDrawer.withClient' : 'dashboard.bookingDrawer.withProvider', { name: otherParty?.name ?? '' }) }}
           </p>
+          <NuxtLinkLocale
+            v-if="booking.jobPost"
+            :to="booking.viewerRole === 'provider' ? `/find-jobs/${booking.jobPost.id}` : `/seek-job/${booking.jobPost.id}`"
+            class="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-100"
+            @click="emit('close')"
+          >
+            <UiIcon
+              name="briefcase"
+              :size="12"
+            />{{ t('seekJob.fromPost', { title: booking.jobPost.title }) }}
+          </NuxtLinkLocale>
         </div>
         <div class="flex flex-col items-end gap-1.5">
           <DashboardStatusBadge :status="booking.status" />

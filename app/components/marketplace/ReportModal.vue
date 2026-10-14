@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // Auto-imported as <MarketplaceReportModal/>. "Report" for a provider, a review
-// or a message: pick a reason, add optional detail, and it lands in the
+// a message or a job post: pick a reason, add optional detail, and it lands in the
 // admins' moderation queue. Requires an account (the caller opens the login
 // modal first when logged out).
 const props = defineProps<{
   open: boolean
-  type: 'provider' | 'review' | 'message'
+  type: 'provider' | 'review' | 'message' | 'job_post'
   targetId: string
 }>()
 

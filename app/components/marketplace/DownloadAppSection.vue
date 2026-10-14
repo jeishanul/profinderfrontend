@@ -1,5 +1,11 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
+
 // Auto-imported as <MarketplaceDownloadAppSection />.
+const props = defineProps<{
+  section: HomeSection
+}>()
+
 const { t } = useI18n()
 const { settings } = useSiteSettings()
 const requestUrl = useRequestURL()
@@ -9,10 +15,10 @@ const requestUrl = useRequestURL()
 const hasAppLink = computed(() => Boolean(settings.value.appStoreUrl || settings.value.playStoreUrl))
 const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.playStoreUrl ?? requestUrl.origin)
 
-// An admin-uploaded screenshot for the phone mock, if one of the
-// `app_download` content items (the store badges) has an image attached.
-const content = useContentSection('app_download')
-const phoneImage = computed(() => content.value.find(item => item.imageUrl)?.imageUrl ?? null)
+// The promo copy and the phone screenshot are the section's own fields (set in the admin); the built-in copy and a
+// placeholder fill in until then. The store links themselves come from the site settings.
+const heading = computed(() => cmsText(props.section.heading, t('marketplace.downloadApp.heading')))
+const phoneImage = computed(() => props.section.imageUrl)
 
 const helplineHeading = computed(() => (settings.value.supportHours
   ? t('marketplace.downloadApp.helpline.headingWithHours', { hours: settings.value.supportHours })
@@ -21,17 +27,34 @@ const helplineHeading = computed(() => (settings.value.supportHours
 
 <template>
   <section
-    v-if="hasAppLink"
-    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10"
+    :id="sectionAnchor(section)"
+    class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
   >
-    <div class="grid items-center gap-12 lg:grid-cols-[400px_minmax(0,1fr)]">
-      <div class="relative mx-auto h-[360px] w-[220px]">
+    <div
+      v-if="hasAppLink"
+      class="relative grid items-center gap-12 overflow-hidden lg:grid-cols-[400px_minmax(0,1fr)]"
+      :class="section.backgroundImageUrl ? 'rounded-3xl p-6 sm:p-10' : ''"
+    >
+      <!-- Optional admin background: kept behind a strong neutral wash so the text stays readable in both themes. -->
+      <template v-if="section.backgroundImageUrl">
+        <NuxtImg
+          :src="section.backgroundImageUrl"
+          alt=""
+          sizes="100vw"
+          width="1200"
+          height="600"
+          loading="lazy"
+          class="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+        <div class="pointer-events-none absolute inset-0 bg-white/85 dark:bg-black/75" />
+      </template>
+      <div class="relative z-10 mx-auto h-[360px] w-[220px]">
         <div class="h-full w-full overflow-hidden rounded-[28px] bg-black/90 p-2 shadow-2xl">
           <div class="h-full w-full overflow-hidden rounded-[20px]">
             <NuxtImg
               v-if="phoneImage"
               :src="phoneImage"
-              :alt="t('marketplace.downloadApp.heading')"
+              :alt="cmsText(section.imageAlt, heading)"
               width="204"
               height="344"
               class="h-full w-full object-cover"
@@ -48,15 +71,23 @@ const helplineHeading = computed(() => (settings.value.supportHours
         </div>
       </div>
 
-      <div>
+      <div class="relative z-10">
         <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">
           <span class="inline-block h-px w-6 bg-black/40 dark:bg-white/40" />
-          {{ t('marketplace.downloadApp.eyebrow') }}
+          {{ cmsText(section.eyebrow, t('marketplace.downloadApp.eyebrow')) }}
         </div>
         <h2 class="font-display text-3xl font-bold sm:text-4xl">
-          {{ t('marketplace.downloadApp.heading') }}
+          {{ heading }}
         </h2>
-        <p class="mt-3.5 max-w-md text-black/60 dark:text-white/60">
+        <UiRichText
+          v-if="section.body"
+          :html="section.body"
+          class="mt-3.5 max-w-md"
+        />
+        <p
+          v-else
+          class="mt-3.5 max-w-md text-black/60 dark:text-white/60"
+        >
           {{ t('marketplace.downloadApp.description') }}
         </p>
 
@@ -75,7 +106,8 @@ const helplineHeading = computed(() => (settings.value.supportHours
 
     <div
       v-if="settings.contactPhone || settings.contactEmail"
-      class="mt-16 flex flex-col items-center justify-between gap-6 rounded-3xl border border-black/10 bg-white/70 p-9 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:flex-row"
+      :class="hasAppLink ? 'mt-16' : ''"
+      class="flex flex-col items-center justify-between gap-6 rounded-3xl border border-black/10 bg-white/70 p-9 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:flex-row"
     >
       <div>
         <p class="text-lg font-bold">

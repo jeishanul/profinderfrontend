@@ -8,9 +8,11 @@ import type { TwoFactorConfirmResult, TwoFactorSetup } from '#shared/types/auth'
 // brand-new secret (see `TwoFactorController::setup`), so closing without
 // confirming just discards that attempt — nothing is enabled until `confirm`
 // succeeds.
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   open: boolean
-}>()
+  /** False for an account created by social sign-in: confirms with an emailed code instead of a password. */
+  hasPassword?: boolean
+}>(), { hasPassword: true })
 
 const emit = defineEmits<{
   close: []
@@ -38,14 +40,14 @@ async function startSetup() {
   try {
     setup.value = await useApiFetch<TwoFactorSetup>('/api/dashboard/account/two-factor/setup', {
       method: 'POST',
-      body: { password: password.value },
+      body: reauthBody(props.hasPassword, password.value, 'password'),
     })
     step.value = 'qr'
   }
   catch (e) {
     // Back to the password step with the reason, instead of hanging on "Setting up…" forever.
     step.value = 'password'
-    error.value = apiFieldErrors(e).password ?? apiErrorMessage(e, t('ui.errors.generic'))
+    error.value = apiFieldErrors(e).password ?? apiFieldErrors(e).verificationCode ?? apiErrorMessage(e, t('ui.errors.generic'))
   }
   finally {
     password.value = ''
@@ -132,11 +134,10 @@ function handleClose() {
         class="flex flex-col gap-3"
         @submit.prevent="startSetup"
       >
-        <UiInput
+        <DashboardReauthField
+          id="two-factor-setup-reauth"
           v-model="password"
-          type="password"
-          autocomplete="current-password"
-          :placeholder="t('dashboard.settings.security.currentPasswordLabel')"
+          :has-password="hasPassword"
         />
         <p
           v-if="error"

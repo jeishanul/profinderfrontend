@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import { INTERNAL_RATE_LIMIT_KEY, RATE_LIMIT_KEY_HEADER } from './server/utils/clientIp'
 
 // Every deployed environment (staging, production) must set this explicitly — see the
 // production guard below. The `http://localhost:3838` fallback only exists so `npm run dev`
@@ -25,16 +26,11 @@ export default defineNuxtConfig({
   ],
   devtools: { enabled: true },
 
-  // Favicon matches the brand mark (green rounded square + white leaf, same
-  // as the header/footer logo badge) — see public/favicon.svg. SVG first
-  // (crisp at any size, modern browsers prefer it); PNG fallbacks for
-  // browsers/contexts that don't support SVG favicons.
+  // The favicon links live in `app.vue`: an admin-uploaded favicon replaces the built-in brand mark there instead of
+  // being added next to it. The apple-touch-icon stays static.
   app: {
     head: {
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
-        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
       ],
     },
@@ -68,6 +64,20 @@ export default defineNuxtConfig({
     socialRedirectBase: siteUrl,
     socialGoogleClientId: process.env.NUXT_SOCIAL_GOOGLE_CLIENT_ID || '',
     socialFacebookClientId: process.env.NUXT_SOCIAL_FACEBOOK_CLIENT_ID || '',
+    // Facebook Graph API version used by the login dialog (e.g. v19.0).
+    socialFacebookGraphVersion: process.env.NUXT_SOCIAL_FACEBOOK_GRAPH_VERSION || 'v19.0',
+    // Shared store for the rate limiter and Nitro's cache across Node processes (server/plugins/redis-storage.ts).
+    // Empty keeps them in memory (local dev, single instance). Read at runtime, so set NUXT_REDIS_URL in the process env.
+    redisUrl: '',
+    // Socket peers whose X-Forwarded-For is believed (comma-separated). Empty = loopback only, which is nginx on the
+    // same machine (deploy/nginx/profinder.conf). See server/utils/clientIp.ts.
+    trustedProxies: '',
+    // Nitro's cache of public Laravel answers (server/utils/publicApi.ts). NUXT_API_CACHE=false sends every call
+    // straight to Laravel again, the rollback switch if a cached answer ever looks wrong.
+    apiCache: true,
+    // Server-Timing headers (render time, each backend call with Laravel's PHP/MySQL split) for finding what makes a
+    // page slow: server/plugins/server-timing.ts. Off by default; NUXT_SERVER_TIMING=true turns it on.
+    serverTiming: false,
   },
 
   // --- Hybrid rendering defaults; extend per-route as pages are added ---
@@ -82,6 +92,16 @@ export default defineNuxtConfig({
     '/saved-providers': { ssr: false, robots: false },
     '/settings': { ssr: false, robots: false },
     '/become-a-provider': { ssr: false, robots: false },
+    '/seek-job/**': { ssr: false, robots: false },
+    '/seek-job': { ssr: false, robots: false },
+    '/find-jobs/**': { ssr: false, robots: false },
+    '/find-jobs': { ssr: false, robots: false },
+    // Credential endpoints: Laravel also throttles per account/IP, this just caps a single address hammering them.
+    '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
+    // The backend's public files (admin-uploaded pictures). Images on the pages come straight from the backend's own
+    // address, but the SEO module re-bases a non-https og:image address onto this site's origin, so the share image of a
+    // plain-http setup would 404 without this. Harmless over https: those addresses are left alone.
+    '/storage/**': { proxy: `${process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000'}/storage/**` },
     '/terms': { redirect: '/legal/terms-of-service' },
     '/privacy': { redirect: '/legal/privacy-policy' },
     '/about': { redirect: '/legal/about' },
@@ -100,10 +120,19 @@ export default defineNuxtConfig({
   experimental: {
     defaults: {
       nuxtLink: { prefetch: true, prefetchOn: { visibility: true } },
-      useAsyncData: { deep: true },
+      // Nuxt 4's default: fetched data is a shallowRef. Deep reactivity proxied every nested object of every response
+      // (SSR and hydration cost) for code that never changes fetched data in place. Replace `data.value` as a whole
+      // (or copy it into a local `ref`, as ProviderReviews does) instead of mutating it.
+      useAsyncData: { deep: false },
     },
   },
   compatibilityDate: '2025-07-15',
+
+  // Ship .gz/.br next to every public asset at build time, so nginx (gzip_static/brotli_static, see
+  // deploy/nginx/profinder.conf) and Nitro serve them pre-compressed instead of compressing per request.
+  nitro: {
+    compressPublicAssets: true,
+  },
 
   vite: {
     plugins: [tailwindcss()],
@@ -176,9 +205,17 @@ export default defineNuxtConfig({
   security: {
     csrf: true,
     // The defaults (150 / 5 min / IP) are within reach of one idle messages tab (thread poll every 10 s, inbox
-    // and badges every 30 s) and shared NATs. Generous globally; login/register/OTP are throttled by Laravel
-    // per account/IP and get a tighter cap on /api/auth/** below.
-    rateLimiter: false,
+    // and badges every 30 s) and shared NATs, so the global cap is generous. Login/register/OTP are throttled
+    // by Laravel per account/IP and get a much tighter cap on /api/auth/** (see routeRules).
+    rateLimiter: {
+      tokensPerInterval: 600,
+      interval: 300000,
+      // Keyed on the address server/plugins/client-ip.ts tagged (the real visitor behind nginx, not 127.0.0.1).
+      // The in-process sub-requests a page render makes carry the white-listed key instead, so a page view costs
+      // one token, not one per API call it makes.
+      ipHeader: RATE_LIMIT_KEY_HEADER,
+      whiteList: [INTERNAL_RATE_LIMIT_KEY],
+    },
     corsHandler: {
       origin: siteUrl,
     },

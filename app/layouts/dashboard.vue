@@ -25,6 +25,12 @@ function isActive(path: string) {
   return route.path === localePath(path)
 }
 
+// Seek Job has several pages (/seek-job, /seek-job/new, /seek-job/12…); the sidebar entry stays lit on all of them.
+// Find jobs has the feed, a job's page and "My applications"; the two sidebar entries split them.
+const isOnFindJobs = computed(() => route.path === localePath('/find-jobs') || route.path.startsWith(`${localePath('/find-jobs')}/`))
+const isOnMyApplications = computed(() => route.path === localePath('/find-jobs/applications'))
+const isOnSeekJob = computed(() => route.path === localePath('/seek-job') || route.path.startsWith(`${localePath('/seek-job')}/`))
+
 // "My profile" and "Verification" both live on `/profile`, split by a
 // `?tab=` query param (see `pages/profile.vue`) rather than separate routes
 // — so unlike every other sidebar link, their active state depends on the
@@ -69,7 +75,7 @@ function closeBookingDrawer() {
   }
 }
 
-const { unreadMessages, unreadNotifications } = useUnreadCounts()
+const { unreadMessages, unreadNotifications, newApplicants } = useUnreadCounts()
 const firstName = computed(() => session.name.value.split(' ')[0] ?? '')
 
 const mobileNavItems = computed(() => [
@@ -79,12 +85,14 @@ const mobileNavItems = computed(() => [
         { to: '/profile', label: t('dashboard.sidebar.myProfile') },
         { to: '/clients', label: t('dashboard.sidebar.clientsServed') },
         { to: '/services', label: t('dashboard.sidebar.myServices') },
+        { to: '/find-jobs', label: t('dashboard.sidebar.findJobs') },
       ]
     : []),
   { to: '/browse', label: t('dashboard.sidebar.browseServices') },
   ...(isConsumer.value
     ? [
         { to: '/purchases', label: t('dashboard.sidebar.myPurchases') },
+        { to: '/seek-job', label: t('dashboard.sidebar.seekJob') },
         { to: '/saved-providers', label: t('dashboard.sidebar.savedProviders') },
       ]
     : []),
@@ -205,6 +213,24 @@ async function handleLogout() {
           />{{ t('dashboard.sidebar.myServices') }}
         </NuxtLinkLocale>
         <NuxtLinkLocale
+          to="/find-jobs"
+          :class="linkClassActive(isOnFindJobs && !isOnMyApplications)"
+        >
+          <UiIcon
+            name="search"
+            :size="18"
+          />{{ t('dashboard.sidebar.findJobs') }}
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
+          to="/find-jobs/applications"
+          :class="linkClassActive(isOnMyApplications)"
+        >
+          <UiIcon
+            name="check-circle"
+            :size="18"
+          />{{ t('dashboard.sidebar.myApplications') }}
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
           to="/clients"
           :class="linkClass('/clients')"
         >
@@ -246,6 +272,26 @@ async function handleLogout() {
             name="bag"
             :size="18"
           />{{ t('dashboard.sidebar.myPurchases') }}
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
+          to="/seek-job"
+          class="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
+          :class="isOnSeekJob
+            ? 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100'
+            : 'text-black/60 hover:bg-black/5 hover:text-black dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white'"
+        >
+          <span class="flex items-center gap-3 whitespace-nowrap">
+            <UiIcon
+              name="briefcase"
+              :size="18"
+              class="shrink-0"
+            />{{ t('dashboard.sidebar.seekJob') }}
+          </span>
+          <span
+            v-if="newApplicants > 0"
+            class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent-600 px-1 text-[11px] font-bold text-white"
+            :title="t('seekJob.nav.newApplicants')"
+          >{{ formatBadgeCount(newApplicants) }}</span>
         </NuxtLinkLocale>
         <NuxtLinkLocale
           to="/saved-providers"

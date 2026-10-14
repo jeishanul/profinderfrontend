@@ -1,40 +1,29 @@
 <script setup lang="ts">
-import type { ServiceCategory } from '#shared/types/marketplace'
-
 const { t } = useI18n()
 const { settings } = useSiteSettings()
+const { navigation, viewer } = useNavigation()
+const { copyright, tagline2 } = useFooterText()
 const requestUrl = useRequestURL()
-const year = new Date().getFullYear()
 
-const CUSTOMER_LINKS = [
-  { label: t('footer.customers.browseServices'), to: '/browse' },
-  { label: t('footer.customers.howItWorks'), to: '/#how-it-works' },
-]
-
-// Popular categories and legal pages come from the API (admins manage both),
-// not a hardcoded list that silently goes stale. Lazy: the footer is below
-// the fold and must never block the page.
-const { data: categories } = useApi<ServiceCategory[]>('/categories', { key: 'footer-categories', lazy: true, default: () => [] })
-const { data: legalPages } = useApi<{ slug: string, title: string }[]>('/pages', { key: 'footer-pages', lazy: true, default: () => [] })
-
-const popularCategories = computed(() => [...(categories.value ?? [])]
-  .filter(category => category.providerCount > 0)
-  .sort((a, b) => b.providerCount - a.providerCount)
-  .slice(0, 6))
-
-// Only the social networks the admin actually filled in (a dead "#" icon is worse than none).
-const socialLinks = computed(() => [
-  { label: t('footer.social.facebook'), icon: 'facebook' as IconName, filled: true, href: settings.value.social.facebook },
-  { label: t('footer.social.x'), icon: 'x' as IconName, filled: false, href: settings.value.social.x },
-  { label: t('footer.social.instagram'), icon: 'instagram' as IconName, filled: false, href: settings.value.social.instagram },
-].filter(link => Boolean(link.href)))
+// The columns, link rows, bottom links and social icons all come from the admin (see `useNavigation`); a menu or
+// link a visitor isn't meant to see is dropped here, and so is a column left empty by that.
+const columns = computed(() => visibleColumns(navigation.value.footerColumns, viewer.value))
+const rows = computed(() => visibleMenus(navigation.value.footerRows, viewer.value))
+const bottomLinks = computed(() => visibleLinks(navigation.value.footerBottom, viewer.value))
+// Brand + the admin's columns + contact + the app: the grid is as wide as that.
+const columnCount = computed(() => columns.value.length + 3)
 
 const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.playStoreUrl ?? requestUrl.origin)
+
+const linkClass = 'text-white/80 hover:text-white'
 </script>
 
 <template>
   <footer class="bg-brand-700 py-14 text-white/90 dark:bg-black">
-    <div class="mx-auto grid max-w-6xl gap-10 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-5 lg:px-10">
+    <div
+      class="mx-auto grid max-w-6xl gap-10 px-4 sm:grid-cols-2 sm:px-6 lg:[grid-template-columns:repeat(var(--footer-columns),minmax(0,1fr))] lg:px-10"
+      :style="{ '--footer-columns': columnCount }"
+    >
       <div class="sm:col-span-2 lg:col-span-1">
         <div class="font-display text-lg font-bold text-white">
           <AppBrand
@@ -46,94 +35,57 @@ const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.pla
           {{ settings.siteTagline ?? t('footer.tagline') }}
         </p>
         <div
-          v-if="socialLinks.length > 0"
-          class="mt-5 flex gap-2.5"
+          v-if="navigation.social.length > 0"
+          class="mt-5 flex flex-wrap gap-2.5"
         >
           <a
-            v-for="social in socialLinks"
-            :key="social.label"
-            :href="social.href!"
+            v-for="social in navigation.social"
+            :key="social.network"
+            :href="social.url"
             target="_blank"
             rel="noopener noreferrer"
             :aria-label="social.label"
             class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
           >
             <UiIcon
-              :name="social.icon"
-              :filled="social.filled"
+              :name="socialIconName(social.network)"
+              :filled="socialIconFilled(social.network)"
               :size="16"
             />
           </a>
         </div>
       </div>
 
-      <div>
-        <p class="mb-4 text-xs font-bold uppercase tracking-wide text-white/50">
-          {{ t('footer.customers.heading') }}
-        </p>
-        <ul class="flex flex-col gap-2.5 text-sm">
-          <li
-            v-for="link in CUSTOMER_LINKS"
-            :key="link.to"
+      <div
+        v-for="menus in columns"
+        :key="menus[0]!.key"
+      >
+        <template
+          v-for="(menu, menuIndex) in menus"
+          :key="menu.key"
+        >
+          <p
+            v-if="menu.title"
+            class="mb-4 text-xs font-bold uppercase tracking-wide text-white/50"
+            :class="menuIndex > 0 ? 'mt-6' : ''"
           >
-            <NuxtLinkLocale
-              :to="link.to"
-              class="text-white/80 hover:text-white"
-            >
-              {{ link.label }}
-            </NuxtLinkLocale>
-          </li>
-        </ul>
-        <p class="mt-6 mb-4 text-xs font-bold uppercase tracking-wide text-white/50">
-          {{ t('footer.providers.heading') }}
-        </p>
-        <ul class="flex flex-col gap-2.5 text-sm">
-          <li>
-            <NuxtLinkLocale
-              to="/become-a-provider"
-              class="text-white/80 hover:text-white"
-            >
-              {{ t('footer.providers.becomeProvider') }}
-            </NuxtLinkLocale>
-          </li>
-        </ul>
-        <template v-if="legalPages && legalPages.length > 0">
-          <p class="mt-6 mb-4 text-xs font-bold uppercase tracking-wide text-white/50">
-            {{ t('footer.legal.heading') }}
+            {{ menu.title }}
           </p>
           <ul class="flex flex-col gap-2.5 text-sm">
             <li
-              v-for="page in legalPages"
-              :key="page.slug"
+              v-for="link in menu.items"
+              :key="`${link.url}|${link.label}`"
             >
-              <NuxtLinkLocale
-                :to="`/legal/${page.slug}`"
-                class="text-white/80 hover:text-white"
+              <CmsLink
+                :to="link.url"
+                :new-tab="link.newTab"
+                :class="linkClass"
               >
-                {{ page.title }}
-              </NuxtLinkLocale>
+                {{ link.label }}
+              </CmsLink>
             </li>
           </ul>
         </template>
-      </div>
-
-      <div>
-        <p class="mb-4 text-xs font-bold uppercase tracking-wide text-white/50">
-          {{ t('footer.categories.heading') }}
-        </p>
-        <ul class="flex flex-col gap-2.5 text-sm">
-          <li
-            v-for="category in popularCategories"
-            :key="category.id"
-          >
-            <NuxtLinkLocale
-              :to="{ path: '/browse', query: { categories: category.id } }"
-              class="text-white/80 hover:text-white"
-            >
-              {{ category.name }}
-            </NuxtLinkLocale>
-          </li>
-        </ul>
       </div>
 
       <div>
@@ -191,9 +143,51 @@ const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.pla
       </div>
     </div>
 
+    <div
+      v-if="rows.length > 0"
+      class="mx-auto mt-10 flex max-w-6xl flex-col gap-6 px-4 sm:px-6 lg:px-10"
+    >
+      <div
+        v-for="row in rows"
+        :key="row.key"
+      >
+        <p
+          v-if="row.title"
+          class="mb-3 text-xs font-bold uppercase tracking-wide text-white/50"
+        >
+          {{ row.title }}
+        </p>
+        <ul class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          <li
+            v-for="link in row.items"
+            :key="`${link.url}|${link.label}`"
+          >
+            <CmsLink
+              :to="link.url"
+              :new-tab="link.newTab"
+              :class="linkClass"
+            >
+              {{ link.label }}
+            </CmsLink>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <div class="mx-auto mt-10 flex max-w-6xl flex-col gap-2 border-t border-white/15 px-4 pt-6 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">
-      <span>{{ t('footer.copyright', { year, name: settings.siteName ?? t('brand.name') }) }}</span>
-      <span>{{ t('footer.tagline2') }}</span>
+      <span>{{ copyright }}</span>
+      <span class="flex flex-wrap items-center gap-x-5 gap-y-1">
+        <CmsLink
+          v-for="link in bottomLinks"
+          :key="`${link.url}|${link.label}`"
+          :to="link.url"
+          :new-tab="link.newTab"
+          class="hover:text-white"
+        >
+          {{ link.label }}
+        </CmsLink>
+        <span>{{ tagline2 }}</span>
+      </span>
     </div>
   </footer>
 </template>

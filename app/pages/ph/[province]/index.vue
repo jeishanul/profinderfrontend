@@ -1,0 +1,128 @@
+<script setup lang="ts">
+import type { LocationSeoResponse } from '#shared/types/seo'
+import type { PagedResult, ProviderSummary } from '#shared/types/marketplace'
+
+definePageMeta({ key: route => route.path })
+
+const route = useRoute()
+const { t } = useI18n()
+
+const provinceSlug = String(route.params.province || '')
+
+const { currentPage, currentSort, searchInput, listQuery, goToPage } = useSeoProviderFilters()
+
+// The landing page's metadata and its provider list load together. The list asks by the slug from the URL, which
+// the API resolves to the province itself (province slugs are unique), so it doesn't wait for the metadata.
+const seoRequest = useApi<LocationSeoResponse>(`/seo/location/${encodeURIComponent(provinceSlug)}`, {
+  key: `seo-province-${provinceSlug}`,
+})
+const providerQuery = computed(() => ({ ...listQuery.value, province: provinceSlug }))
+const providersRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
+  query: providerQuery,
+  key: `province-${provinceSlug}-providers`,
+})
+await Promise.all([seoRequest, providersRequest])
+const { data: seoData, error: seoError } = seoRequest
+const { data: providersPage, status: providersStatus } = providersRequest
+
+if (seoError.value || !seoData.value) {
+  const status = seoError.value?.statusCode ?? 404
+  throw createError({
+    statusCode: status,
+    statusMessage: status === 404 ? t('errors.notFound') : t('errors.somethingWrong'),
+    fatal: true,
+  })
+}
+
+useSavedProviders().loadAfterMount()
+
+const meta = computed(() => seoData.value!.metadata)
+useSeoLanding(meta, seoData.value.entity.name)
+</script>
+
+<template>
+  <div
+    v-if="seoData"
+    class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10"
+  >
+    <MarketplaceSeoBreadcrumbs :items="meta.breadcrumbs" />
+
+    <MarketplaceSeoRichContent
+      v-if="meta.seo_header_content"
+      :content="meta.seo_header_content"
+      class="mb-8"
+    />
+
+    <div class="mb-8 rounded-3xl border border-black/10 bg-white/70 p-6 shadow-xs backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-black/30">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span class="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+            {{ t('seo.province.badge') }}
+          </span>
+          <h1 class="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            {{ t('seo.province.title', { name: seoData.entity.name }) }}
+          </h1>
+          <p class="mt-1 text-sm text-black/60 dark:text-white/60">
+            {{ t('seo.province.subtitle', { name: seoData.entity.name }) }}
+          </p>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2">
+          <NuxtLinkLocale
+            to="/browse"
+            class="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10"
+          >
+            {{ t('seo.province.allLocations') }} &rarr;
+          </NuxtLinkLocale>
+        </div>
+      </div>
+
+      <MarketplaceSeoFilters
+        v-model:search="searchInput"
+        v-model:sort="currentSort"
+        :placeholder="t('seo.filters.searchIn', { place: seoData.entity.name })"
+      />
+    </div>
+
+    <MarketplaceSeoProviderList
+      :heading="t('seo.province.heading')"
+      :result="providersPage"
+      :pending="providersStatus === 'pending'"
+      :current-page="currentPage"
+      :empty-title="t('seo.province.emptyTitle', { name: seoData.entity.name })"
+      :empty-hint="t('seo.province.emptyHint')"
+      @page="goToPage"
+    />
+
+    <div
+      v-if="seoData.cities && seoData.cities.length > 0"
+      class="mb-12 rounded-3xl border border-black/10 bg-white/50 p-6 backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-black/20"
+    >
+      <h2 class="mb-4 font-display text-xl font-bold sm:text-2xl">
+        {{ t('seo.province.cities', { name: seoData.entity.name }) }}
+      </h2>
+      <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <NuxtLinkLocale
+          v-for="city in seoData.cities"
+          :key="city.code"
+          :to="city.url"
+          class="flex items-center gap-2 rounded-xl border border-black/5 bg-white/80 px-3.5 py-2.5 text-xs font-semibold text-black/80 transition-transform hover:-translate-y-0.5 hover:border-brand-500 hover:text-brand-700 dark:border-white/5 dark:bg-white/5 dark:text-white/80 dark:hover:text-brand-400"
+        >
+          <UiIcon
+            name="map-pin"
+            :size="14"
+            class="shrink-0 text-brand-600 dark:text-brand-400"
+          />
+          <span class="truncate">{{ city.name }}</span>
+        </NuxtLinkLocale>
+      </div>
+    </div>
+
+    <MarketplaceSeoRichContent
+      v-if="meta.seo_footer_content"
+      :content="meta.seo_footer_content"
+      :heading="t('seo.province.guide', { name: seoData.entity.name })"
+      class="mt-8"
+    />
+  </div>
+</template>

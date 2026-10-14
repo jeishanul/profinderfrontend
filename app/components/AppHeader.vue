@@ -6,12 +6,10 @@ const { t } = useI18n()
 
 const session = useSession()
 
-const links = computed(() => [
-  { label: t('nav.howItWorks'), to: '/#how-it-works' },
-  { label: t('nav.browseServices'), to: '/browse' },
-  // Providers already have their own panel; everyone else (incl. guests) gets the CTA.
-  ...(session.isProvider.value ? [] : [{ label: t('nav.becomeProvider'), to: '/become-a-provider' }]),
-])
+// The links the admin set up (see `useNavigation`). "Become a provider" is marked "everyone except providers": they
+// already have their own panel.
+const { navigation, viewer } = useNavigation()
+const links = computed(() => visibleLinks(navigation.value.header, viewer.value))
 
 // Only the home page's hero ever docks its search bar into the header (see
 // `useHeroSearchDock`); guard on the route so a stale flag from a previous
@@ -21,7 +19,9 @@ const isHomeRoute = computed(() => String(route.name ?? '').startsWith('index'))
 const { isDocked } = useHeroSearchDock()
 const showDockedSearch = computed(() => isHomeRoute.value && isDocked.value)
 
-const { data: categories } = await useApi<ServiceCategory[]>('/categories', { lazy: true, default: () => [] })
+// Read, never fetched here: the docked search only exists on the home page, which loads the categories itself under
+// the same key. Fetching them from the header cost an API call on every page for a search bar no other page shows.
+const { data: categories } = useNuxtData<ServiceCategory[]>('categories')
 
 const authModal = useAuthModal()
 const { unreadMessages, unreadNotifications } = useUnreadCounts()
@@ -57,18 +57,21 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
       >
         <li
           v-for="link in links"
-          :key="link.to"
+          :key="`${link.url}|${link.label}`"
         >
-          <NuxtLinkLocale
-            :to="link.to"
+          <CmsLink
+            :to="link.url"
+            :new-tab="link.newTab"
             class="hover:text-brand-700"
           >
             {{ link.label }}
-          </NuxtLinkLocale>
+          </CmsLink>
         </li>
       </ul>
 
+      <!-- Rendered on the home page only, so other pages don't build the search bar (and its location lookups). -->
       <div
+        v-if="isHomeRoute"
         class="absolute left-1/2 hidden max-w-md flex-1 -translate-x-1/2 transition-all duration-300 md:flex"
         :class="showDockedSearch ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1.5 opacity-0'"
       >
