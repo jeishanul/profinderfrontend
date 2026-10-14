@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
 import type { FaqItem } from '#shared/types/marketplace'
 
 // Auto-imported as <MarketplaceFaqAccordion />.
 const props = defineProps<{
+  section: HomeSection
   items: FaqItem[]
 }>()
 
 const { t } = useI18n()
 
+const hasCta = computed(() => Boolean(props.section.ctaUrl && cmsOptionalText(props.section.ctaLabel)))
 const INITIAL_VISIBLE = 6
 const showAll = ref(false)
 const visibleItems = computed(() => (showAll.value ? props.items : props.items.slice(0, INITIAL_VISIBLE)))
@@ -22,14 +25,15 @@ function toggle(id: string) {
 <template>
   <section
     v-if="items.length > 0"
-    class="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-10"
+    :id="sectionAnchor(section)"
+    class="mx-auto max-w-3xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
   >
     <div class="mb-11 text-center">
       <h2 class="font-display text-3xl font-bold sm:text-4xl">
-        {{ t('marketplace.faq.heading') }}
+        {{ cmsText(section.heading, t('marketplace.faq.heading')) }}
       </h2>
       <p class="mt-2.5 text-black/60 dark:text-white/60">
-        {{ t('marketplace.faq.subheading') }}
+        {{ cmsText(section.subheading, t('marketplace.faq.subheading')) }}
       </p>
     </div>
 
@@ -65,15 +69,23 @@ function toggle(id: string) {
     </div>
 
     <div
-      v-if="items.length > INITIAL_VISIBLE"
-      class="mt-7 flex justify-center"
+      v-if="items.length > INITIAL_VISIBLE || hasCta"
+      class="mt-7 flex flex-wrap items-center justify-center gap-3"
     >
       <UiButton
+        v-if="items.length > INITIAL_VISIBLE"
         variant="ghost"
         @click="showAll = !showAll"
       >
         {{ showAll ? t('marketplace.faq.showFewer') : t('marketplace.faq.showMore') }}
       </UiButton>
+      <CmsLink
+        v-if="hasCta"
+        :to="section.ctaUrl"
+        :class="linkButtonClass('primary')"
+      >
+        {{ section.ctaLabel }}
+      </CmsLink>
     </div>
   </section>
 </template>

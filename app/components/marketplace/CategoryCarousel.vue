@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
 import type { ServiceCategory } from '#shared/types/marketplace'
 
 // Auto-imported as <MarketplaceCategoryCarousel />.
 const props = defineProps<{
+  section: HomeSection
   categories: ServiceCategory[]
 }>()
 
 const { t } = useI18n()
 
-const carousel = useCarousel(() => props.categories.length, { visibleCount: 4, intervalMs: 3000 })
+const shownCategories = computed(() => props.categories.slice(0, sectionNumber(props.section.settings, 'maxItems', 24)))
+const carousel = useCarousel(() => shownCategories.value.length, { visibleCount: 4, intervalMs: 3000 })
 
 const CARD_STEP_PX = 272
 // Below `sm` this is a native scroll-snap strip instead (see the template) —
@@ -23,14 +26,17 @@ const trackStyle = computed(() => (isDesktop.value
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10">
+  <section
+    :id="sectionAnchor(section)"
+    class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
+  >
     <div class="mb-9 flex items-end justify-between gap-4">
       <div>
         <h2 class="font-display text-3xl font-bold sm:text-4xl">
-          {{ t('marketplace.categories.heading') }}
+          {{ cmsText(section.heading, t('marketplace.categories.heading')) }}
         </h2>
         <p class="mt-2.5 text-black/60 dark:text-white/60">
-          {{ t('marketplace.categories.subheading') }}
+          {{ cmsText(section.subheading, t('marketplace.categories.subheading')) }}
         </p>
       </div>
       <div class="hidden shrink-0 gap-2.5 sm:flex">
@@ -70,7 +76,7 @@ const trackStyle = computed(() => (isDesktop.value
     <div
       role="region"
       class="-my-4 -mx-4 overflow-x-auto scrollbar-hide px-4 py-4 sm:mx-0 sm:overflow-hidden sm:px-0"
-      :aria-label="t('marketplace.categories.heading')"
+      :aria-label="cmsText(section.heading, t('marketplace.categories.heading'))"
       @mouseenter="carousel.pause()"
       @mouseleave="carousel.resume()"
       @focusin="carousel.pause()"
@@ -81,12 +87,24 @@ const trackStyle = computed(() => (isDesktop.value
         :style="trackStyle"
       >
         <NuxtLinkLocale
-          v-for="category in categories"
+          v-for="category in shownCategories"
           :key="category.id"
           :to="`/category/${category.id}`"
           class="flex w-[252px] shrink-0 snap-start items-center gap-4 rounded-2xl border border-black/10 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-shadow hover:shadow-lg dark:border-white/10 dark:bg-black/30"
         >
-          <div class="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100">
+          <NuxtImg
+            v-if="category.imageUrl"
+            :src="category.imageUrl"
+            :alt="category.imageAlt ?? ''"
+            loading="lazy"
+            width="52"
+            height="52"
+            class="h-[52px] w-[52px] shrink-0 rounded-2xl object-cover"
+          />
+          <div
+            v-else
+            class="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100"
+          >
             <UiIcon
               :name="asIconName(category.icon)"
               :size="24"
@@ -102,6 +120,18 @@ const trackStyle = computed(() => (isDesktop.value
           </div>
         </NuxtLinkLocale>
       </div>
+    </div>
+
+    <div
+      v-if="section.ctaUrl && cmsOptionalText(section.ctaLabel)"
+      class="mt-8 flex justify-center"
+    >
+      <CmsLink
+        :to="section.ctaUrl"
+        :class="linkButtonClass('ghost')"
+      >
+        {{ section.ctaLabel }}
+      </CmsLink>
     </div>
   </section>
 </template>

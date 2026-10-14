@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // Auto-imported as <MarketplaceAppStoreBadges />. Generic (non-trademarked)
-// badge styling — text-labelled rather than reproducing Apple/Google's
-// registered badge artwork. The links are the admin's Settings; a store with
-// no link set isn't shown (a dead "#" badge is worse than none).
+// text-labelled badges unless the admin uploaded the store's own badge image
+// (Settings), which then replaces that store's text badge. The links are the
+// admin's Settings; a store with no link set isn't shown (a dead "#" badge is
+// worse than none).
 withDefaults(
   defineProps<{
     tone?: 'light' | 'dark'
@@ -14,8 +15,8 @@ const { t } = useI18n()
 const { settings } = useSiteSettings()
 
 const stores = computed(() => [
-  { key: 'googlePlay', href: settings.value.playStoreUrl },
-  { key: 'appStore', href: settings.value.appStoreUrl },
+  { key: 'googlePlay', href: settings.value.playStoreUrl, badge: settings.value.playStoreBadgeUrl },
+  { key: 'appStore', href: settings.value.appStoreUrl, badge: settings.value.appStoreBadgeUrl },
 ].filter(store => Boolean(store.href)))
 </script>
 
@@ -30,16 +31,26 @@ const stores = computed(() => [
       :href="store.href!"
       target="_blank"
       rel="noopener noreferrer"
-      class="flex h-[38px] w-[134px] items-center justify-center gap-2 rounded-lg text-xs font-bold"
-      :class="tone === 'light'
-        ? 'border border-black/10 bg-white text-black'
-        : 'bg-white/10 text-white'"
+      :aria-label="store.badge ? t(`marketplace.downloadApp.${store.key}`) : undefined"
+      class="flex h-[38px] items-center justify-center gap-2 text-xs font-bold"
+      :class="store.badge
+        ? 'w-auto'
+        : ['w-[134px] rounded-lg', tone === 'light' ? 'border border-black/10 bg-white text-black' : 'bg-white/10 text-white']"
     >
-      <UiIcon
-        name="smartphone"
-        :size="15"
+      <NuxtImg
+        v-if="store.badge"
+        :src="store.badge"
+        :alt="t(`marketplace.downloadApp.${store.key}`)"
+        height="38"
+        class="h-[38px] w-auto"
       />
-      {{ t(`marketplace.downloadApp.${store.key}`) }}
+      <template v-else>
+        <UiIcon
+          name="smartphone"
+          :size="15"
+        />
+        {{ t(`marketplace.downloadApp.${store.key}`) }}
+      </template>
     </a>
   </div>
 </template>

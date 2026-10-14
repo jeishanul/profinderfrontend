@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
 import type { Testimonial } from '#shared/types/marketplace'
 
 // Auto-imported as <MarketplaceTestimonialSlider />.
 const props = defineProps<{
+  section: HomeSection
   testimonials: Testimonial[]
 }>()
 
@@ -15,12 +17,17 @@ const active = computed<Testimonial | undefined>(() => props.testimonials[carous
 <template>
   <section
     v-if="testimonials.length > 0"
-    class="bg-brand-50 py-20 dark:bg-brand-700/10"
+    :id="sectionAnchor(section)"
+    class="scroll-mt-24 bg-brand-50 py-20 dark:bg-brand-700/10"
   >
     <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-10">
-      <h2 class="mb-11 text-center font-display text-3xl font-bold sm:text-4xl">
-        {{ t('marketplace.testimonials.heading') }}
-      </h2>
+      <CmsSectionHeader
+        :eyebrow="section.eyebrow"
+        :heading="cmsText(section.heading, t('marketplace.testimonials.heading'))"
+        :subheading="section.subheading"
+        align="center"
+        class="mb-11!"
+      />
 
       <!-- Autoplay pause-on-hover/focus is a decorative enhancement — full
            manual control already exists via the dot controls below, so this
@@ -30,19 +37,17 @@ const active = computed<Testimonial | undefined>(() => props.testimonials[carous
         v-if="active"
         role="region"
         class="rounded-3xl border border-black/10 bg-white/70 p-8 text-center shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:p-12"
-        :aria-label="t('marketplace.testimonials.heading')"
+        :aria-label="cmsText(section.heading, t('marketplace.testimonials.heading'))"
         @mouseenter="carousel.pause()"
         @mouseleave="carousel.resume()"
         @focusin="carousel.pause()"
         @focusout="carousel.resume()"
       >
-        <NuxtImg
-          v-if="active.avatarUrl"
+        <UiAvatar
+          :name="active.reviewerName"
           :src="active.avatarUrl"
-          :alt="active.reviewerName"
-          width="56"
-          height="56"
-          class="mx-auto mb-4 h-14 w-14 rounded-full object-cover"
+          size-class="mx-auto mb-4 h-14 w-14 rounded-full"
+          text-class="text-lg"
         />
         <div
           class="mb-5 flex justify-center gap-1"

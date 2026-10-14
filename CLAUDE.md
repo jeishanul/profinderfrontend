@@ -120,6 +120,62 @@ composable or util — never copy-pasted.**
   actions with side effects, devtools-inspectable). Simple per-feature state stays in a
   composable over `useState`.
 
+## CMS-driven landing page
+
+The landing page (`app/pages/index.vue`) is a loop over the sections the admin configured, not a fixed list. The
+backend owns the layout; this app renders it.
+
+- `useHomeSections()` (awaited in `index.vue`) reads `/api/home` (Nitro proxy -> Laravel `/v1/home`): the active
+  sections in the admin's order, each a `HomeSection` (`shared/types/cms.ts`) with eyebrow/heading/subheading, rich
+  `body`, image + alt, background image, button, `settings` and `items`.
+- **i18n stays the fallback.** Every admin text field can be empty; components read it with `cmsText(value, t('...'))`
+  (`app/utils/cms.ts`), so clearing a field restores the built-in copy and a fresh install is never blank. Don't remove
+  the i18n keys a built-in section falls back to.
+- If `/api/home` *fails*, `resolveHomeSections` renders the default layout (`DEFAULT_HOME_SECTION_KEYS`). A successful
+  but empty list means the admin hid everything and is respected.
+- Built-in sections (`hero_slides`, `trust_stats`, `how_it_works`, `categories`, `featured_providers`,
+  `why_choose_us`, `jobs_gallery`, `testimonials`, `app_download`, `faq`) are matched by `section.key` in `index.vue`.
+  Their list data (providers, gallery, testimonials, FAQ, categories) still comes from their own endpoints and is only
+  fetched when that section is on the page. Sections added by the admin render through `<CmsBlock>`
+  (`app/components/cms/`) by `section.type`; an unknown type renders nothing.
+- **Featured providers** has a `mode` setting: `auto` (best-rated verified, may prefer the visitor's province) or
+  `manual` (only providers the admin featured, no province preference, section hidden when none). The query for each
+  is `featuredQuery()` in `app/utils/featuredProviders.ts`; keep both modes working when touching the home page fetch.
+- **Adding a block type:** add it to the backend's `config/content_blocks.php`, add a `Cms*` component and a `v-else-if`
+  in `CmsBlock.vue`, with a test in `components/cms/Cms.test.ts`.
+- Section wrappers carry `:id="sectionAnchor(section, ...)"` so menu links like `/#how-it-works` work; anything that
+  points at a section (e.g. `ScrollHintArrow`) takes the anchor as a prop and only renders when that section exists.
+- Admin-typed links go through `<CmsLink>` (site paths stay in-app, external links open safely, anything unsafe renders
+  as plain text) and admin HTML through `<UiRichText>`. Never put admin values straight into `href` or `v-html`.
+- Images from the admin are `<NuxtImg>` with the admin's alt text; the old icon/`UiPlaceholderMedia` stays as the
+  fallback until an image is uploaded.
+- **Image fallbacks, most specific first:** a gallery tile's photo, then its category's picture, then the site's default
+  gallery photo (`settings.defaultGalleryImageUrl`), then the icon placeholder; a provider's cover, then
+  `defaultProviderCoverUrl`; a person's photo, then `defaultAvatarUrl`, then initials (`UiAvatar`); a store's badge
+  image (`appStoreBadgeUrl` / `playStoreBadgeUrl`) replaces its text badge. Each default is empty until the admin sets
+  it, so nothing changes until then.
+
+## CMS-driven header, footer and mobile menu
+
+The header links, footer columns and rows, bottom links, social icons and the mobile menu's extra links come from the
+admin, like the landing page.
+
+- `app.vue` fetches `/api/navigation` (Nitro proxy -> Laravel `/v1/navigation`) next to the settings; `useNavigation()`
+  reads it from that shared cache and returns `{ navigation, viewer }`. Footer copyright and the second tagline come
+  from the settings (`useFooterText()`; `{year}` and `{siteName}` are filled in).
+- Links are already resolved to final addresses by the backend (a link to a page, category or home-page section
+  arrives as its path, `/#anchor` for a section). Render them with `<CmsLink :to :new-tab>`, never a raw `href`.
+- **Visibility is decided here**, not by the backend (its payload is cached and shared): filter with
+  `visibleLinks` / `visibleMenus` / `visibleColumns` (`app/utils/navigation.ts`) using `viewer`. A menu or column left
+  empty for the visitor is dropped. "Everyone except providers" is how the header hides "Become a provider".
+- Footer columns are arrays of stacked menus (`NavMenu[][]`); the grid width is `columns + 3` (brand, contact, app).
+  The phone footer shows only the page-list menus plus the bottom links (`compactFooterLinks`).
+- **If `/api/navigation` fails**, `defaultNavigation(t, settings)` supplies the built-in links (the i18n keys under
+  `nav.*` and `footer.customers/providers.*` exist for exactly this), so keep those keys. An admin-emptied menu is
+  respected; only a failed request falls back.
+- Social networks come as `{ network, label, url }`; the network is also the icon name (`socialIconName`). To add a
+  network: backend `config/social_networks.php` plus a drawing in `app/utils/icons.ts`.
+
 ## Data fetching rules
 
 - Critical, SEO-relevant data: `await useApi(...)` (blocks navigation, lands in SSR payload,
@@ -188,9 +244,12 @@ instead of a rework.
 1. `useSeoMeta({ title, description, ...})` (translated via `t()` — see Internationalization
    above) — title is picked up by the `titleTemplate` set in `app/app.vue` (renders as
    `"<page title> · ProFinder"`).
-2. `defineOgImage('<ComponentName>', { ... })` using a component from `app/components/OgImage/`
-   (see the renderer-suffix note below). Add a new template there for new content types instead
-   of overloading `Default.satori.vue`.
+2. `useShareImage(adminImageUrl, '<TemplateName>', { ... })` (not `defineOgImage` directly): the admin's own
+   share image for the page wins, then the site's default share image (Settings), and only with neither does it
+   fall back to a generated card from `app/components/OgImage/` (see the renderer-suffix note below). Add a new
+   template there for new content types instead of overloading `Default.satori.vue`. The SEO module re-bases a
+   non-https `og:image` onto this site's origin, so `/storage/**` is proxied to the backend (`routeRules` in
+   `nuxt.config.ts`); keep that rule.
 3. `useSchemaOrg([...])` with the appropriate `define*()` (`defineWebPage`, `defineArticle`,
    `defineProduct`, `defineBreadcrumb`, etc. — see `nuxt-seo` skill reference).
 4. Anything that shouldn't be indexed (admin, previews, etc.) sets `robots` via `routeRules` or

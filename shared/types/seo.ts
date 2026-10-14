@@ -15,6 +15,8 @@ export interface SeoOpenGraph {
   url: string
   site_name: string
   type: string
+  /** The admin's share image for this page, else the category's own picture; null when there is none. */
+  image?: string | null
 }
 
 export interface SeoMetadataPayload {
@@ -39,6 +41,8 @@ export interface CategorySeoEntity {
   name: string
   icon: string | null
   is_active: boolean
+  image_url?: string | null
+  image_alt?: string | null
 }
 
 export interface RelatedCategoryItem {

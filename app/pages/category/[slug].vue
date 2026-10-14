@@ -55,8 +55,16 @@ const { data: providersPage, status: providersStatus } = await useApi<PagedResul
     <div class="mb-8 rounded-3xl border border-black/10 bg-white/70 p-6 shadow-xs backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-black/30">
       <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
+          <NuxtImg
+            v-if="seoData.entity.image_url"
+            :src="seoData.entity.image_url"
+            :alt="seoData.entity.image_alt ?? seoData.entity.name"
+            width="80"
+            height="80"
+            class="h-20 w-20 shrink-0 rounded-2xl object-cover"
+          />
           <div
-            v-if="seoData.entity.icon"
+            v-else-if="seoData.entity.icon"
             class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100"
           >
             <UiIcon

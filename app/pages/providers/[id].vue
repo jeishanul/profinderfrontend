@@ -204,8 +204,8 @@ useSchemaOrg([
     <div class="relative mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-10">
       <div class="h-[220px] w-full overflow-hidden rounded-3xl">
         <NuxtImg
-          v-if="provider.coverPhotoUrl"
-          :src="provider.coverPhotoUrl"
+          v-if="provider.coverPhotoUrl || settings.defaultProviderCoverUrl"
+          :src="(provider.coverPhotoUrl || settings.defaultProviderCoverUrl)!"
           :alt="provider.name"
           width="1152"
           height="220"

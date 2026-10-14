@@ -179,9 +179,6 @@
     "tagline2": "Made for people who get things done.",
     "copyright": "© {year} {name}. All rights reserved.",
     "getTheApp": "Get the app",
-    "legal": {
-      "heading": "Company"
-    },
     "customers": {
       "heading": "For customers",
       "browseServices": "Browse services",
@@ -191,19 +188,8 @@
       "heading": "For providers",
       "becomeProvider": "Become a provider"
     },
-    "categories": {
-      "heading": "Popular categories"
-    },
     "contact": {
       "heading": "Contact"
-    },
-    "social": {
-      "facebook": "Facebook",
-      "x": "X",
-      "instagram": "Instagram"
-    },
-    "locations": {
-      "heading": "Popular locations"
     }
   },
   "home": {
@@ -301,7 +287,9 @@
           "headline": "A spotless home, on your schedule.",
           "sub": "Book trusted, rated cleaning pros for a one-time deep clean or a regular routine."
         }
-      }
+      },
+      "previous": "Previous slide",
+      "next": "Next slide"
     },
     "howItWorks": {
       "eyebrow": "How it works",

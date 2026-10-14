@@ -24,7 +24,7 @@ useSeoMeta({
   title: page.value.metaTitle ?? page.value.title,
   description: page.value.metaDescription ?? undefined,
 })
-defineOgImage('MarketplaceSatori', {
+useShareImage(page.value.ogImageUrl, 'MarketplaceSatori', {
   title: page.value.title,
   eyebrow: t('legal.eyebrow'),
 })
@@ -39,6 +39,15 @@ const updatedLabel = computed(() => (page.value?.updatedAt ? formatDate(page.val
     v-if="page"
     class="mx-auto max-w-3xl px-4 py-12 sm:px-6"
   >
+    <NuxtImg
+      v-if="page.heroImageUrl"
+      :src="page.heroImageUrl"
+      :alt="page.heroImageAlt ?? ''"
+      sizes="(min-width: 768px) 768px, 100vw"
+      width="1152"
+      height="384"
+      class="mb-8 aspect-[3/1] w-full rounded-3xl object-cover"
+    />
     <h1 class="font-display text-3xl font-bold sm:text-4xl">
       {{ page.title }}
     </h1>
@@ -50,7 +59,7 @@ const updatedLabel = computed(() => (page.value?.updatedAt ? formatDate(page.val
     </p>
     <!-- eslint-disable vue/no-v-html -->
     <div
-      class="mt-8 text-black/75 dark:text-white/75 [&_a]:text-brand-700 [&_a]:underline dark:[&_a]:text-brand-500 [&_blockquote]:border-l-4 [&_blockquote]:border-black/15 [&_blockquote]:pl-4 [&_blockquote]:italic [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-xl [&_h3]:font-bold [&_h4]:mt-4 [&_h4]:mb-2 [&_h4]:font-bold [&_li]:mb-1.5 [&_ol]:ml-6 [&_ol]:list-decimal [&_p]:mb-4 [&_ul]:ml-6 [&_ul]:list-disc"
+      class="mt-8 text-black/75 dark:text-white/75 [&_a]:text-brand-700 [&_a]:underline dark:[&_a]:text-brand-500 [&_blockquote]:border-l-4 [&_blockquote]:border-black/15 [&_blockquote]:pl-4 [&_blockquote]:italic [&_h2]:mt-8 [&_h2]:mb-3 [&_img]:my-6 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-xl [&_h3]:font-bold [&_h4]:mt-4 [&_h4]:mb-2 [&_h4]:font-bold [&_li]:mb-1.5 [&_ol]:ml-6 [&_ol]:list-decimal [&_p]:mb-4 [&_ul]:ml-6 [&_ul]:list-disc"
       v-html="page.content"
     />
     <!-- eslint-enable vue/no-v-html -->

@@ -4,12 +4,10 @@ const { t } = useI18n()
 
 const session = useSession()
 
-const links = computed(() => [
-  { label: t('nav.howItWorks'), to: '/#how-it-works' },
-  { label: t('nav.browseServices'), to: '/browse' },
-  // Providers already have their own panel; everyone else (incl. guests) gets the CTA.
-  ...(session.isProvider.value ? [] : [{ label: t('nav.becomeProvider'), to: '/become-a-provider' }]),
-])
+// The links the admin set up (see `useNavigation`). "Become a provider" is marked "everyone except providers": they
+// already have their own panel.
+const { navigation, viewer } = useNavigation()
+const links = computed(() => visibleLinks(navigation.value.header, viewer.value))
 
 // Only the home page's hero ever docks its search bar into the header (see
 // `useHeroSearchDock`); guard on the route so a stale flag from a previous
@@ -55,14 +53,15 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
       >
         <li
           v-for="link in links"
-          :key="link.to"
+          :key="`${link.url}|${link.label}`"
         >
-          <NuxtLinkLocale
-            :to="link.to"
+          <CmsLink
+            :to="link.url"
+            :new-tab="link.newTab"
             class="hover:text-brand-700"
           >
             {{ link.label }}
-          </NuxtLinkLocale>
+          </CmsLink>
         </li>
       </ul>
 

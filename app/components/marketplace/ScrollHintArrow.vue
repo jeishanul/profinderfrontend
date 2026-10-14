@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // Auto-imported as <MarketplaceScrollHintArrow />. Home-page only — invites
 // the visitor to keep scrolling toward "Why Choose Us"
-// (`app/components/marketplace/WhyChooseUs.vue`, `id="why-choose-us"`), and
-// hides itself once that section has been reached or scrolled past.
+// (`app/components/marketplace/WhyChooseUs.vue`), and hides itself once that
+// section has been reached or scrolled past. The section's element id is the
+// admin-editable anchor, so the page passes it in; the page also leaves this
+// out entirely when the admin has hidden the section.
 //
 // Its `bottom` offset clears `<AppBottomNav>` on mobile (both are `fixed`;
 // at the same `bottom-8` they visibly overlapped, this pill half-buried
@@ -10,18 +12,23 @@
 // boxes) and sits below it in stacking order too (`z-30` vs. the nav's
 // `z-40`) as a second line of defense. `md:bottom-8` restores the original
 // position once the bottom nav itself is hidden at that breakpoint.
+const props = defineProps<{
+  /** Element id of the section to scroll to. */
+  target: string
+}>()
+
 const { t } = useI18n()
 
 const visible = ref(true)
 
 function updateVisibility() {
-  const target = document.getElementById('why-choose-us')
-  if (!target) return
-  visible.value = target.getBoundingClientRect().top > 0
+  const target = document.getElementById(props.target)
+  // No such element on the page: nothing to point at.
+  visible.value = target ? target.getBoundingClientRect().top > 0 : false
 }
 
 function scrollToTarget() {
-  document.getElementById('why-choose-us')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  document.getElementById(props.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 if (import.meta.client) {

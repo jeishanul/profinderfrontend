@@ -40,7 +40,7 @@ export function useSeoLanding(meta: Ref<SeoMetadataPayload>, eyebrow: string) {
     }),
   ])
 
-  defineOgImage('MarketplaceSatori', {
+  useShareImage(meta.value.og.image, 'MarketplaceSatori', {
     title: meta.value.title,
     eyebrow,
   })

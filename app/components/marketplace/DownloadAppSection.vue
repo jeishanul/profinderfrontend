@@ -1,5 +1,11 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
+
 // Auto-imported as <MarketplaceDownloadAppSection />.
+const props = defineProps<{
+  section: HomeSection
+}>()
+
 const { t } = useI18n()
 const { settings } = useSiteSettings()
 const requestUrl = useRequestURL()
@@ -9,15 +15,10 @@ const requestUrl = useRequestURL()
 const hasAppLink = computed(() => Boolean(settings.value.appStoreUrl || settings.value.playStoreUrl))
 const qrTarget = computed(() => settings.value.appStoreUrl ?? settings.value.playStoreUrl ?? requestUrl.origin)
 
-// An admin-uploaded screenshot for the phone mock, if one of the
-// `app_download` content items (the store badges) has an image attached.
-const content = useContentSection('app_download')
-// The store badges are the items with a link. An item *without* one is the section's promo: its title and
-// description replace the built-in copy, and its image is the phone screenshot.
-const promo = computed(() => content.value.find(item => !item.linkUrl))
-const heading = computed(() => promo.value?.title || t('marketplace.downloadApp.heading'))
-const description = computed(() => promo.value?.description || t('marketplace.downloadApp.description'))
-const phoneImage = computed(() => promo.value?.imageUrl ?? content.value.find(item => item.imageUrl)?.imageUrl ?? null)
+// The promo copy and the phone screenshot are the section's own fields (set in the admin); the built-in copy and a
+// placeholder fill in until then. The store links themselves come from the site settings.
+const heading = computed(() => cmsText(props.section.heading, t('marketplace.downloadApp.heading')))
+const phoneImage = computed(() => props.section.imageUrl)
 
 const helplineHeading = computed(() => (settings.value.supportHours
   ? t('marketplace.downloadApp.helpline.headingWithHours', { hours: settings.value.supportHours })
@@ -25,18 +26,35 @@ const helplineHeading = computed(() => (settings.value.supportHours
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10">
+  <section
+    :id="sectionAnchor(section)"
+    class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
+  >
     <div
       v-if="hasAppLink"
-      class="grid items-center gap-12 lg:grid-cols-[400px_minmax(0,1fr)]"
+      class="relative grid items-center gap-12 overflow-hidden lg:grid-cols-[400px_minmax(0,1fr)]"
+      :class="section.backgroundImageUrl ? 'rounded-3xl p-6 sm:p-10' : ''"
     >
-      <div class="relative mx-auto h-[360px] w-[220px]">
+      <!-- Optional admin background: kept behind a strong neutral wash so the text stays readable in both themes. -->
+      <template v-if="section.backgroundImageUrl">
+        <NuxtImg
+          :src="section.backgroundImageUrl"
+          alt=""
+          sizes="100vw"
+          width="1200"
+          height="600"
+          loading="lazy"
+          class="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+        <div class="pointer-events-none absolute inset-0 bg-white/85 dark:bg-black/75" />
+      </template>
+      <div class="relative z-10 mx-auto h-[360px] w-[220px]">
         <div class="h-full w-full overflow-hidden rounded-[28px] bg-black/90 p-2 shadow-2xl">
           <div class="h-full w-full overflow-hidden rounded-[20px]">
             <NuxtImg
               v-if="phoneImage"
               :src="phoneImage"
-              :alt="heading"
+              :alt="cmsText(section.imageAlt, heading)"
               width="204"
               height="344"
               class="h-full w-full object-cover"
@@ -53,16 +71,24 @@ const helplineHeading = computed(() => (settings.value.supportHours
         </div>
       </div>
 
-      <div>
+      <div class="relative z-10">
         <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">
           <span class="inline-block h-px w-6 bg-black/40 dark:bg-white/40" />
-          {{ t('marketplace.downloadApp.eyebrow') }}
+          {{ cmsText(section.eyebrow, t('marketplace.downloadApp.eyebrow')) }}
         </div>
         <h2 class="font-display text-3xl font-bold sm:text-4xl">
           {{ heading }}
         </h2>
-        <p class="mt-3.5 max-w-md text-black/60 dark:text-white/60">
-          {{ description }}
+        <UiRichText
+          v-if="section.body"
+          :html="section.body"
+          class="mt-3.5 max-w-md"
+        />
+        <p
+          v-else
+          class="mt-3.5 max-w-md text-black/60 dark:text-white/60"
+        >
+          {{ t('marketplace.downloadApp.description') }}
         </p>
 
         <div class="mt-6 flex items-center gap-4">

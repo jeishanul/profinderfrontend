@@ -85,6 +85,10 @@ export default defineNuxtConfig({
     '/find-jobs': { ssr: false, robots: false },
     // Credential endpoints: Laravel also throttles per account/IP, this just caps a single address hammering them.
     '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
+    // The backend's public files (admin-uploaded pictures). Images on the pages come straight from the backend's own
+    // address, but the SEO module re-bases a non-https og:image address onto this site's origin, so the share image of a
+    // plain-http setup would 404 without this. Harmless over https: those addresses are left alone.
+    '/storage/**': { proxy: `${process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000'}/storage/**` },
     '/terms': { redirect: '/legal/terms-of-service' },
     '/privacy': { redirect: '/legal/privacy-policy' },
     '/about': { redirect: '/legal/about' },

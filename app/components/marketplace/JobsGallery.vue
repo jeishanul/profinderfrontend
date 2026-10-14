@@ -1,16 +1,30 @@
 <script setup lang="ts">
+import type { HomeSection } from '#shared/types/cms'
 import type { GalleryItem, GalleryTab, ServiceCategory } from '#shared/types/marketplace'
 
 // Auto-imported as <MarketplaceJobsGallery />.
 const props = defineProps<{
+  section: HomeSection
   itemsByTab: Record<GalleryTab, GalleryItem[]>
   categories: ServiceCategory[]
 }>()
 
 const { t } = useI18n()
 const categoryLabel = useCategoryLabel()
+const { settings } = useSiteSettings()
+
+// A tile's own photo, else its category's picture, else the site's default gallery photo; then the icon placeholder.
+function imageFor(item: GalleryItem): string | null {
+  return item.imageUrl
+    ?? props.categories.find(category => category.id === item.categoryId)?.imageUrl
+    ?? settings.value.defaultGalleryImageUrl
+}
 
 const ALL_TABS: GalleryTab[] = ['home', 'recommended', 'trending']
+// The admin can rename each tab; the setting keys are `tabLabelHome` / `tabLabelRecommended` / `tabLabelTrending`.
+function tabLabel(tab: GalleryTab): string {
+  return sectionText(props.section.settings, `tabLabel${tab.charAt(0).toUpperCase()}${tab.slice(1)}`, t(`marketplace.gallery.tabs.${tab}`))
+}
 // Hide a tab entirely rather than switch to it and show nothing.
 const tabs = computed(() => ALL_TABS.filter(tab => (props.itemsByTab[tab]?.length ?? 0) > 0))
 const hasAnyItems = computed(() => tabs.value.length > 0)
@@ -39,12 +53,26 @@ function selectTab(tab: GalleryTab) {
 <template>
   <section
     v-if="hasAnyItems"
-    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-10"
+    :id="sectionAnchor(section)"
+    class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
   >
-    <div class="mb-7 flex items-center justify-between gap-4">
+    <div class="mb-7">
+      <div
+        v-if="section.eyebrow"
+        class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50"
+      >
+        <span class="inline-block h-px w-6 bg-black/40 dark:bg-white/40" />
+        {{ section.eyebrow }}
+      </div>
       <h2 class="font-display text-3xl font-bold sm:text-4xl">
-        {{ t('marketplace.gallery.heading') }}
+        {{ cmsText(section.heading, t('marketplace.gallery.heading')) }}
       </h2>
+      <p
+        v-if="section.subheading"
+        class="mt-2.5 text-black/60 dark:text-white/60"
+      >
+        {{ section.subheading }}
+      </p>
     </div>
 
     <div class="mb-7 flex flex-wrap gap-2.5">
@@ -58,7 +86,7 @@ function selectTab(tab: GalleryTab) {
           : 'border border-black/10 bg-white text-black/60 dark:border-white/10 dark:bg-white/5 dark:text-white/60'"
         @click="selectTab(tab)"
       >
-        {{ t(`marketplace.gallery.tabs.${tab}`) }}
+        {{ tabLabel(tab) }}
       </button>
     </div>
 
@@ -70,7 +98,7 @@ function selectTab(tab: GalleryTab) {
       <div
         role="region"
         class="-mx-4 overflow-x-auto scrollbar-hide px-4 sm:mx-0 sm:overflow-hidden sm:px-0"
-        :aria-label="t(`marketplace.gallery.tabs.${activeTab}`)"
+        :aria-label="tabLabel(activeTab)"
         @mouseenter="carousel.pause()"
         @mouseleave="carousel.resume()"
         @focusin="carousel.pause()"
@@ -87,9 +115,9 @@ function selectTab(tab: GalleryTab) {
           >
             <div class="h-[190px] overflow-hidden rounded-2xl">
               <NuxtImg
-                v-if="item.imageUrl"
-                :src="item.imageUrl"
-                :alt="item.title ?? categoryLabel(item.categoryId, item.categoryName)"
+                v-if="imageFor(item)"
+                :src="imageFor(item)!"
+                :alt="item.imageAlt ?? item.title ?? categoryLabel(item.categoryId, item.categoryName)"
                 loading="lazy"
                 width="276"
                 height="190"

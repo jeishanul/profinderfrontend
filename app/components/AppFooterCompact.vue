@@ -2,35 +2,31 @@
 // Auto-imported as <AppFooterCompact />. The phone version of the footer: the
 // full footer is desktop-only, which left phones with no way to reach the
 // legal pages, contact details or social links at all.
-const { t } = useI18n()
 const { settings } = useSiteSettings()
-const year = new Date().getFullYear()
+const { navigation, viewer } = useNavigation()
+const { copyright } = useFooterText()
 
-const { data: legalPages } = useApi<{ slug: string, title: string }[]>('/pages', { key: 'footer-pages', lazy: true, default: () => [] })
-
-const socialLinks = computed(() => [
-  { label: t('footer.social.facebook'), icon: 'facebook' as IconName, filled: true, href: settings.value.social.facebook },
-  { label: t('footer.social.x'), icon: 'x' as IconName, filled: false, href: settings.value.social.x },
-  { label: t('footer.social.instagram'), icon: 'instagram' as IconName, filled: false, href: settings.value.social.instagram },
-].filter(link => Boolean(link.href)))
+// The bottom links plus the page lists (legal pages and the like); the footer's other columns stay desktop-only.
+const links = computed(() => compactFooterLinks(navigation.value, viewer.value))
 </script>
 
 <template>
   <footer class="border-t border-black/10 px-4 py-8 text-center text-sm text-black/60 dark:border-white/10 dark:text-white/60">
     <ul
-      v-if="legalPages && legalPages.length > 0"
+      v-if="links.length > 0"
       class="mb-4 flex flex-wrap justify-center gap-x-5 gap-y-2"
     >
       <li
-        v-for="page in legalPages"
-        :key="page.slug"
+        v-for="link in links"
+        :key="`${link.url}|${link.label}`"
       >
-        <NuxtLinkLocale
-          :to="`/legal/${page.slug}`"
+        <CmsLink
+          :to="link.url"
+          :new-tab="link.newTab"
           class="font-semibold underline-offset-2 hover:underline"
         >
-          {{ page.title }}
-        </NuxtLinkLocale>
+          {{ link.label }}
+        </CmsLink>
       </li>
     </ul>
 
@@ -58,28 +54,28 @@ const socialLinks = computed(() => [
     </div>
 
     <div
-      v-if="socialLinks.length > 0"
-      class="mb-4 flex justify-center gap-3"
+      v-if="navigation.social.length > 0"
+      class="mb-4 flex flex-wrap justify-center gap-3"
     >
       <a
-        v-for="social in socialLinks"
-        :key="social.label"
-        :href="social.href!"
+        v-for="social in navigation.social"
+        :key="social.network"
+        :href="social.url"
         target="_blank"
         rel="noopener noreferrer"
         :aria-label="social.label"
         class="flex h-9 w-9 items-center justify-center rounded-lg bg-black/5 dark:bg-white/10"
       >
         <UiIcon
-          :name="social.icon"
-          :filled="social.filled"
+          :name="socialIconName(social.network)"
+          :filled="socialIconFilled(social.network)"
           :size="16"
         />
       </a>
     </div>
 
     <p class="text-xs">
-      {{ t('footer.copyright', { year, name: settings.siteName ?? t('brand.name') }) }}
+      {{ copyright }}
     </p>
   </footer>
 </template>

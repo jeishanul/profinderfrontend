@@ -7,7 +7,11 @@
 // Admin-managed site settings (contact details, social links, branding,
 // currency) — fetched once here so every page and component reads the same
 // payload (see `useSiteSettings`). A failure falls back to the defaults.
-await useApi('/settings', { key: SITE_SETTINGS_KEY })
+// The header/footer links (see `useNavigation`) load alongside them; a failure falls back to the built-in links.
+await Promise.all([
+  useApi('/settings', { key: SITE_SETTINGS_KEY }),
+  useApi('/navigation', { key: NAVIGATION_KEY }),
+])
 const { settings } = useSiteSettings()
 const route = useRoute()
 

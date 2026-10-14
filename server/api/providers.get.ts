@@ -8,6 +8,7 @@ export default defineEventHandler((event): Promise<PagedResult<ProviderSummary>>
       categories: Array.isArray(query.categories) ? query.categories.join(',') : (query.categories || undefined),
       minRating: query.minRating,
       verifiedOnly: query.verifiedOnly,
+      featuredOnly: query.featuredOnly,
       minRate: query.minRate,
       maxRate: query.maxRate,
       province: query.province,

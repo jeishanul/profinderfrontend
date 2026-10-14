@@ -8,8 +8,11 @@ const props = withDefaults(
   defineProps<{
     categories: ServiceCategory[]
     variant?: 'large' | 'compact'
+    /** Admin-set copy (hero section settings); the built-in text is used when empty. */
+    placeholder?: string | null
+    submitLabel?: string | null
   }>(),
-  { variant: 'large' },
+  { variant: 'large', placeholder: null, submitLabel: null },
 )
 
 const emit = defineEmits<{
@@ -78,7 +81,7 @@ function handleSubmit() {
         :id="`${uid}-category`"
         v-model="categorySelectModel"
         :options="categoryOptions"
-        :placeholder="t('marketplace.search.categoryPlaceholder')"
+        :placeholder="cmsText(placeholder, t('marketplace.search.categoryPlaceholder'))"
         variant="bare"
         class="w-full"
       />
@@ -111,7 +114,7 @@ function handleSubmit() {
         name="search"
         :size="14"
       />
-      {{ t('marketplace.search.submit') }}
+      {{ cmsText(submitLabel, t('marketplace.search.submit')) }}
     </UiButton>
   </form>
 </template>

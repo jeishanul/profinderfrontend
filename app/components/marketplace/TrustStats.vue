@@ -1,12 +1,17 @@
 <script setup lang="ts">
-// Auto-imported as <MarketplaceTrustStats />.
+import type { HomeSection } from '#shared/types/cms'
+
+// Auto-imported as <MarketplaceTrustStats />. Also renders the custom `stats` block.
+const props = defineProps<{
+  section: HomeSection
+}>()
+
 const DEFAULT_ICONS: IconName[] = ['users', 'briefcase', 'star']
 
 // Only the admin's real figures (which can be live counts — see
 // `ContentTokens` on the backend) — no hardcoded "12,000+ pros" fallback
 // numbers that would show on a brand-new install with zero real providers.
-const content = useContentSection('trust_stats')
-const stats = computed(() => content.value.map((item, index) => ({
+const stats = computed(() => props.section.items.map((item, index) => ({
   id: `cms-${index}`,
   icon: knownIcon(item.icon, DEFAULT_ICONS[index % DEFAULT_ICONS.length]!),
   value: item.value ?? '',
@@ -17,8 +22,14 @@ const stats = computed(() => content.value.map((item, index) => ({
 <template>
   <section
     v-if="stats.length > 0"
+    :id="sectionAnchor(section)"
     class="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-24 lg:px-10"
   >
+    <CmsSectionHeader
+      :eyebrow="section.eyebrow"
+      :heading="section.heading"
+      :subheading="section.subheading"
+    />
     <div class="grid gap-6 rounded-3xl border border-black/10 bg-white/60 px-8 py-8 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:grid-cols-3">
       <div
         v-for="(stat, index) in stats"
