@@ -33,8 +33,9 @@ if (error.value || !provider.value) {
   })
 }
 
+// The save heart: personal, so filled in after mount.
 const savedProviders = useSavedProviders()
-await savedProviders.ensureLoaded()
+savedProviders.loadAfterMount()
 
 const toast = useToast()
 const isOpeningChat = ref(false)

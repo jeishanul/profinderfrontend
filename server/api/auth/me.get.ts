@@ -12,8 +12,9 @@ export default defineEventHandler(async (event) => {
     return await callApi(event, '/auth/me')
   }
   catch {
-    // Stale/expired/revoked token — clear it so future requests don't retry.
-    clearAuthToken(event)
+    // Render this page as logged out. The cookie is kept: a stale/expired/revoked token comes back as a 401, and
+    // `callApi` has already cleared it for that. Any other failure (a timeout, a 5xx) says nothing about the token,
+    // so clearing it here would log the person out over a passing backend hiccup.
     return null
   }
 })

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ServiceCategory } from '#shared/types/marketplace'
+
 // Nav labels come from i18n messages, not hardcoded strings.
 const { t } = useI18n()
 
@@ -17,7 +19,9 @@ const isHomeRoute = computed(() => String(route.name ?? '').startsWith('index'))
 const { isDocked } = useHeroSearchDock()
 const showDockedSearch = computed(() => isHomeRoute.value && isDocked.value)
 
-const { data: categories } = useCategories({ lazy: true })
+// Read, never fetched here: the docked search only exists on the home page, which loads the categories itself under
+// the same key. Fetching them from the header cost an API call on every page for a search bar no other page shows.
+const { data: categories } = useNuxtData<ServiceCategory[]>('categories')
 
 const authModal = useAuthModal()
 const { unreadMessages, unreadNotifications } = useUnreadCounts()
@@ -65,7 +69,9 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
         </li>
       </ul>
 
+      <!-- Rendered on the home page only, so other pages don't build the search bar (and its location lookups). -->
       <div
+        v-if="isHomeRoute"
         class="absolute left-1/2 hidden max-w-md flex-1 -translate-x-1/2 transition-all duration-300 md:flex"
         :class="showDockedSearch ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1.5 opacity-0'"
       >

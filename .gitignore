@@ -22,3 +22,9 @@ logs
 .env
 .env.*
 !.env.example
+
+# Production releases (deploy/deploy.sh)
+.releases
+.assets
+.current
+.current.next

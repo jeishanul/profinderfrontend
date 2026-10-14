@@ -186,6 +186,37 @@ admin, like the landing page.
 - Never call `$fetch` alone at the top of `<script setup>` for a component's initial data — it
   double-fetches (once on the server, once on the client). Use `useApi`/`useFetch`/`useAsyncData`.
 - Trim payload size with `pick`/`transform` when the full response isn't needed client-side.
+- **Never `await` independent requests one after another.** Each `await` is a full round trip added to every
+  server render. Start every request the page needs (`const xRequest = useApi(...)`, which hands back its `data`
+  ref at once), then `await Promise.all([...])` once. Only a request that needs another's *answer* may wait for
+  it: the home page's lists need `/home` to know which sections exist, and the city/barangay pages need the SEO
+  response for the city code (city slugs repeat across provinces). Today's floor is 3 rounds on `/` (shell, then
+  layout + categories, then lists) and 2 on every other public page. Keep it there.
+- **Personal data stays out of the server render.** Saved-provider hearts use `useSavedProviders().loadAfterMount()`,
+  and the unread badges use `server: false`. Never `await` personal data in page setup: in the browser that
+  changes the markup mid-hydration. The session is the exception, since the header must be right on first paint.
+  The global middleware *starts* it, and `app.vue` awaits it together with settings and navigation
+  (`useSession().loadUser()`, one shared request). Await `loadUser()`, not `fetchUser()`, anywhere that needs
+  the answer.
+- **Public reads are cached in Nitro.** A `server/api/*` handler for data that is the same for every visitor calls
+  `getPublicApi(event, path, query)` (`server/utils/publicApi.ts`), not `callApi`. It is served from Nitro's shared
+  cache (Redis in production) for 60 s, then stale-while-revalidate, so an admin's edit shows within about a minute
+  with no purge step. It never sends the visitor's token, so first check that the Laravel endpoint doesn't read the
+  user: grep its controller and resources for `->user(`.
+  - An answer that changes for a signed-in viewer (the provider page: owner preview, `canReply`) passes
+    `{ viewerDependent: true }`. Only visitors without a session are then served from the cache.
+  - Personal data and writes keep `callApi`. So do free-text searches (`/providers?q=`): every phrasing would be
+    its own entry.
+  - `NUXT_API_CACHE=false` switches the cache off.
+- **Fetched data is shallow** (`useAsyncData.deep: false`, Nuxt 4's default). Never change it in place
+  (`data.value.items.push(...)`, `row.read = true`): replace `data.value` as a whole, or copy it into a local `ref`
+  first, as `ProviderReviews.vue` does.
+- **A browser-only request that several components share** (same key, `server: false`, like the unread badges in
+  `useUnreadCounts`) needs `dedupe: 'defer'`. With the default `cancel`, each component that mounts aborts the
+  previous request and sends its own, and the aborted ones still reach the server.
+- App-shell components (header, footer, layouts) run on every page, so they must not fetch for something only one
+  page shows. The header's docked search reads the home page's categories with `useNuxtData('categories')` and is
+  only rendered on `/`.
 
 ## Internationalization (i18n)
 
@@ -310,7 +341,29 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   first confirming the SEO module stack tolerates it.
 - Heavy/below-the-fold components: use `Lazy` + a hydration strategy
   (`hydrate-on-visible`, `hydrate-on-interaction`, `hydrate-on-idle`, etc.) instead of eager
-  hydration.
+  hydration. The home sections below the hero do (`pages/index.vue`): measured at −6% main-thread work under 6× CPU
+  throttling.
+- **Overlays most visitors never open** (the login modal, the mobile "More" sheet, the confirm dialog) are
+  `<Lazy… v-if="mounted">` with `mounted = useMountWhenNeeded(() => isOpen)`. This keeps their code and CSS off
+  the first page load and their closed markup out of every server render. Do the same for any new global overlay.
+  Note: `hydrate-never` is **not** enough to keep a component's JavaScript out: Nuxt still `modulepreload`s every
+  module rendered on the server.
+- **The QR code is an `<img>` of `/api/qr`** (SVG made on the server, cached a day), so the QR encoder never ships
+  to browsers.
+- **Price and date formatting** go through the cached formatters in `utils/intl.ts`
+  (`cachedNumberFormat`/`cachedDateTimeFormat`/`cachedRelativeTimeFormat`). Never call `new Intl.*Format` in code
+  that runs per card or per row.
+- **`server/plugins/runtime-config.ts` must stay.** @nuxtjs/i18n calls `useRuntimeConfig(event)` on every request,
+  sub-requests included, and Nitro then rebuilds the whole config from environment variables for that event. That
+  was ~37% of the SSR server's CPU. The plugin hands each request a plain copy of the start-up config first. If a
+  module upgrade changes how runtime config is read, re-profile (`node --cpu-prof .output/server/index.mjs` under
+  load) before removing it.
+- **Finding a slow page:** set `NUXT_SERVER_TIMING=true` (frontend) and `SERVER_TIMING=true` (backend). The page's
+  `Server-Timing` header then lists the render time and every backend call it made, each with Laravel's database time
+  and query count (devtools > Network > Timing). `npm run perf:smoke -- <base-url> [paths]` checks the key pages
+  against the performance budget in PERFORMANCE_PLAN.md and exits non-zero when one misses it.
+- Generated OG images: keep the props to a bounded set (a fixed title per page type, not a filtered count). Every
+  distinct set of props is its own satori render on the server.
 - Images go through `<NuxtImg>`/`<NuxtPicture>` (`@nuxt/image`), never a bare `<img>` for
   content images. Fonts go through `@nuxt/fonts`, never a manual Google Fonts `<link>`.
 - `NuxtLink` prefetches on visibility by default (see `experimental.defaults.nuxtLink`) — no
@@ -388,17 +441,36 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   `useApiFetch` attaches for you (see Calling our API below). A raw `$fetch` mutation fails with 403.
 - **Rate limiting is on**: 600 requests / 5 min / IP globally, and 60 / 5 min on `/api/auth/**`
   (`security.rateLimiter` and `routeRules` in `nuxt.config.ts`), using the `lruCache` in-memory
-  driver. Laravel throttles per account/IP as well. The BFF forwards the visitor's *socket* address to
-  Laravel (`callApi`) and never the browser's own `X-Forwarded-For`, which would let a visitor dodge the
-  per-IP limits. That driver is per-process — fine for a single instance, but it resets on redeploy and
-  doesn't share state across horizontally-scaled instances. If/when this deploys to more than one
-  instance behind a load balancer, switch `security.rateLimiter.driver` to a shared store (e.g.
-  Redis) or rate limiting won't be effective.
+  driver. Laravel throttles per account/IP as well.
+- **Visitor address (`server/utils/clientIp.ts`, tagged by `server/plugins/client-ip.ts`).** Every request from
+  outside is tagged in Nitro's `request` hook, before any middleware runs. The tag is the socket address, or
+  `X-Forwarded-For` read from the right, but only when the socket peer is a trusted proxy (`NUXT_TRUSTED_PROXIES`,
+  loopback by default, which is nginx). Never trust the browser's own `X-Forwarded-For`: a visitor could rotate it
+  to dodge per-IP limits. That is also why nginx must *overwrite* the header with `$remote_addr`.
+  - SSR sub-requests are in-process (node-mock-http, marked `__unenv__`) and have no socket. They inherit the
+    tag, because Nitro copies the page request's headers onto them. `callApi` forwards that tag to Laravel as
+    `X-Forwarded-For`, so use `getVisitorIp(event)`, never `getRequestIP(event)`, which is empty on a sub-request.
+  - The limiter keys on `x-profinder-rate-limit-key` (`security.rateLimiter.ipHeader`). Sub-requests carry the
+    white-listed internal key, so a page view costs one token, not one per API call. External requests always
+    get both tags overwritten, so a browser can't claim to be internal.
+  - Laravel's `api` limiter gives GETs relayed by this server (a trusted proxy) a separate 1200/min bucket.
+    Writes and direct calls keep 240/min.
+- **Timeouts.** `callApi` gives Laravel 5 s for a read and 30 s for a write (`API_TIMEOUT_MS`), never retries,
+  and turns a timeout into a 504. `useApi` allows 8 s and doesn't retry during SSR. A slow API therefore degrades
+  a page to its fallbacks instead of hanging the render. `useApiFetch` (browser-only actions and uploads)
+  deliberately has no timeout.
+- The rate-limit driver is per-process, so production (a PM2 cluster, `deploy/pm2/ecosystem.config.cjs`)
+  sets `NUXT_REDIS_URL`: `server/plugins/redis-storage.ts` then remounts the limiter's storage (and Nitro's
+  `cache` storage) on Redis at runtime, shared by every worker, with an expiry the limiter itself never sets.
+  Without `NUXT_REDIS_URL` (local dev) both stay in memory. Don't configure `security.rateLimiter.driver`
+  in `nuxt.config.ts` instead: that is fixed at build time.
 - **Production host binding**: when self-hosting the Nitro `node-server` output directly (not
   behind Vercel/Netlify/Cloudflare's own edge), bind it to `127.0.0.1` (`NITRO_HOST=127.0.0.1`)
   and put a reverse proxy (Nginx/Caddy) in front — don't bind `0.0.0.0` directly to the public
-  internet. Not configurable from this repo (it's a deployment-environment setting), but note it
-  before choosing a hosting setup.
+  internet. `deploy/pm2/ecosystem.config.cjs` sets this, and `deploy/nginx/profinder.conf` is the proxy.
+  Deploys go through `deploy/deploy.sh`: each build is copied to `.releases/<timestamp>` and `.current` is
+  swapped atomically, and `/_nuxt` chunks accumulate in `.assets` so pages rendered by the previous build
+  still load. Don't point PM2 or nginx at `.output` directly; it is rebuilt in place.
 - **OG image signing secret**: `nuxt-og-image` signs its generated URLs with an auto-generated
   secret by default, which changes on every build/restart. Harmless for local dev and a
   single-instance deploy. For a rolling deploy or more than one instance, set

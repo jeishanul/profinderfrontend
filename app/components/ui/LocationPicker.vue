@@ -73,14 +73,18 @@ const { data: provinces } = useApi<LocationOption[]>('/locations/provinces', {
   key: 'ph-provinces',
   default: () => [],
 })
+// Not requested until there is a province/city to list them for (the answer would be an empty list, on every
+// page and every picker, including during SSR); a later pick changes the query, which fetches them.
 const { data: cities } = useApi<LocationOption[]>('/locations/cities', {
   key: `ph-cities-${uid}`,
   query: computed(() => ({ province: provinceCode.value ?? undefined })),
+  immediate: !!provinceCode.value,
   default: () => [],
 })
 const { data: barangays } = useApi<{ name: string }[]>('/locations/barangays', {
   key: `ph-barangays-${uid}`,
   query: computed(() => ({ city: cityCode.value ?? undefined })),
+  immediate: !!cityCode.value,
   default: () => [],
 })
 

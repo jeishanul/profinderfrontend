@@ -4,5 +4,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Category slug required' })
   }
 
-  return callApi(event, `/seo/category/${encodeURIComponent(slug)}`)
+  return getPublicApi(event, `/seo/category/${encodeURIComponent(slug)}`)
 })

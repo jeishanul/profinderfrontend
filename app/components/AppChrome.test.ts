@@ -30,7 +30,7 @@ function provide(key: string, value: unknown) {
   nuxtApp.payload.data[key] = value
 }
 
-const stubs = { MarketplaceServiceSearchBar: true, UiThemeToggle: true, UiLocaleSwitcher: true, UiQrCode: true, MarketplaceAppStoreBadges: true }
+const stubs = { MarketplaceServiceSearchBar: true, UiThemeToggle: true, UiLocaleSwitcher: true, UiQrCode: true, LazyUiQrCode: true, MarketplaceAppStoreBadges: true }
 
 describe('AppFooter', () => {
   afterEach(() => {

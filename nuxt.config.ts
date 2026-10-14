@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import { INTERNAL_RATE_LIMIT_KEY, RATE_LIMIT_KEY_HEADER } from './server/utils/clientIp'
 
 // Every deployed environment (staging, production) must set this explicitly — see the
 // production guard below. The `http://localhost:3838` fallback only exists so `npm run dev`
@@ -65,6 +66,18 @@ export default defineNuxtConfig({
     socialFacebookClientId: process.env.NUXT_SOCIAL_FACEBOOK_CLIENT_ID || '',
     // Facebook Graph API version used by the login dialog (e.g. v19.0).
     socialFacebookGraphVersion: process.env.NUXT_SOCIAL_FACEBOOK_GRAPH_VERSION || 'v19.0',
+    // Shared store for the rate limiter and Nitro's cache across Node processes (server/plugins/redis-storage.ts).
+    // Empty keeps them in memory (local dev, single instance). Read at runtime, so set NUXT_REDIS_URL in the process env.
+    redisUrl: '',
+    // Socket peers whose X-Forwarded-For is believed (comma-separated). Empty = loopback only, which is nginx on the
+    // same machine (deploy/nginx/profinder.conf). See server/utils/clientIp.ts.
+    trustedProxies: '',
+    // Nitro's cache of public Laravel answers (server/utils/publicApi.ts). NUXT_API_CACHE=false sends every call
+    // straight to Laravel again, the rollback switch if a cached answer ever looks wrong.
+    apiCache: true,
+    // Server-Timing headers (render time, each backend call with Laravel's PHP/MySQL split) for finding what makes a
+    // page slow: server/plugins/server-timing.ts. Off by default; NUXT_SERVER_TIMING=true turns it on.
+    serverTiming: false,
   },
 
   // --- Hybrid rendering defaults; extend per-route as pages are added ---
@@ -107,10 +120,19 @@ export default defineNuxtConfig({
   experimental: {
     defaults: {
       nuxtLink: { prefetch: true, prefetchOn: { visibility: true } },
-      useAsyncData: { deep: true },
+      // Nuxt 4's default: fetched data is a shallowRef. Deep reactivity proxied every nested object of every response
+      // (SSR and hydration cost) for code that never changes fetched data in place. Replace `data.value` as a whole
+      // (or copy it into a local `ref`, as ProviderReviews does) instead of mutating it.
+      useAsyncData: { deep: false },
     },
   },
   compatibilityDate: '2025-07-15',
+
+  // Ship .gz/.br next to every public asset at build time, so nginx (gzip_static/brotli_static, see
+  // deploy/nginx/profinder.conf) and Nitro serve them pre-compressed instead of compressing per request.
+  nitro: {
+    compressPublicAssets: true,
+  },
 
   vite: {
     plugins: [tailwindcss()],
@@ -188,6 +210,11 @@ export default defineNuxtConfig({
     rateLimiter: {
       tokensPerInterval: 600,
       interval: 300000,
+      // Keyed on the address server/plugins/client-ip.ts tagged (the real visitor behind nginx, not 127.0.0.1).
+      // The in-process sub-requests a page render makes carry the white-listed key instead, so a page view costs
+      // one token, not one per API call it makes.
+      ipHeader: RATE_LIMIT_KEY_HEADER,
+      whiteList: [INTERNAL_RATE_LIMIT_KEY],
     },
     corsHandler: {
       origin: siteUrl,

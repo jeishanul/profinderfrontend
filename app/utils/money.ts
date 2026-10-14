@@ -5,7 +5,7 @@
  */
 export function formatMoney(amount: number, currency = 'PHP', locale = 'en-US'): string {
   try {
-    return new Intl.NumberFormat(locale, {
+    return cachedNumberFormat(locale, {
       style: 'currency',
       currency,
       minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
@@ -21,7 +21,7 @@ export function formatMoney(amount: number, currency = 'PHP', locale = 'en-US'):
 /** Just the symbol ("₱", "$") — for inputs that show a prefix next to a bare number. */
 export function currencySymbol(currency = 'PHP', locale = 'en-US'): string {
   try {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency }).formatToParts(0).find(part => part.type === 'currency')?.value ?? currency
+    return cachedNumberFormat(locale, { style: 'currency', currency }).formatToParts(0).find(part => part.type === 'currency')?.value ?? currency
   }
   catch {
     return currency

@@ -4,12 +4,14 @@ import type { PagedResult, ProviderSummary, ServiceCategory } from '#shared/type
 const { t, locale } = useI18n()
 const route = useRoute()
 
+// The page's requests are started without awaiting each one, then awaited together below: none depends on another,
+// and one awaited on its own would add a full round trip to every render.
 // With skills, so the sidebar can offer them once a single category is chosen.
-const { data: categories } = await useCategories({ withSkills: true })
+const categoriesRequest = useCategories({ withSkills: true })
+const { data: categories } = categoriesRequest
 
-// Loaded once here (a page, safe for top-level await) so every
-// <MarketplaceProviderCard/> below can read `isSaved` synchronously.
-await useSavedProviders().ensureLoaded()
+// The hearts on every <MarketplaceProviderCard/> below: personal, so filled in after mount.
+useSavedProviders().loadAfterMount()
 
 const filters = reactive<BrowseFilters>(parseBrowseQuery(route.query))
 
@@ -53,18 +55,20 @@ const activeCategories = computed<ServiceCategory[]>(
 
 const providerQuery = computed(() => toProviderApiQuery(filters, 6))
 
-const { data: providersPage } = await useApi<PagedResult<ProviderSummary>>('/providers', {
+const providersRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
   query: providerQuery,
   key: 'browse-providers',
 })
+const { data: providersPage } = providersRequest
 
 // Resolved just for the page title's "near {location}" text — the filter
 // sidebar's own <UiLocationPicker> resolves names internally for its own
 // display, this is a separate lookup for this page-level string.
-const { data: allProvinces } = await useApi<{ code: string, name: string, slug?: string }[]>('/locations/provinces', {
+const provincesRequest = useApi<{ code: string, name: string, slug?: string }[]>('/locations/provinces', {
   key: 'ph-provinces',
   default: () => [],
 })
+const { data: allProvinces } = provincesRequest
 const { data: citiesInProvince } = useApi<{ code: string, name: string, slug?: string }[]>('/locations/cities', {
   key: 'ph-cities-browse-title',
   query: computed(() => ({ province: filters.province ?? undefined })),
@@ -76,6 +80,8 @@ const locationTitle = computed(() => {
   if (filters.province) return allProvinces.value?.find(p => p.code === filters.province || (p.slug && p.slug === filters.province))?.name ?? t('marketplace.browse.anywhere')
   return t('marketplace.browse.anywhere')
 })
+
+await Promise.all([categoriesRequest, providersRequest, provincesRequest])
 
 // Remembers the province for the homepage's "Featured" section (see `useLastSearch`).
 const lastSearch = useLastSearch()
@@ -127,8 +133,10 @@ useSeoMeta({
   title: pageTitle,
   description: t('marketplace.browse.seoDescription'),
 })
-defineOgImage('MarketplaceSatori', {
-  title: pageTitle,
+// One share image for every filter combination (a fixed title, not the filtered count): each distinct title was a
+// separate satori render on the server, and the combinations are unbounded. The admin's default image wins when set.
+useShareImage(null, 'MarketplaceSatori', {
+  title: t('marketplace.browse.shareTitle'),
   eyebrow: t('marketplace.browse.seoEyebrow'),
 })
 useSchemaOrg([defineWebPage()])

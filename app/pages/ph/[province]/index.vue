@@ -9,9 +9,21 @@ const { t } = useI18n()
 
 const provinceSlug = String(route.params.province || '')
 
-const { data: seoData, error: seoError } = await useApi<LocationSeoResponse>(`/seo/location/${encodeURIComponent(provinceSlug)}`, {
+const { currentPage, currentSort, searchInput, listQuery, goToPage } = useSeoProviderFilters()
+
+// The landing page's metadata and its provider list load together. The list asks by the slug from the URL, which
+// the API resolves to the province itself (province slugs are unique), so it doesn't wait for the metadata.
+const seoRequest = useApi<LocationSeoResponse>(`/seo/location/${encodeURIComponent(provinceSlug)}`, {
   key: `seo-province-${provinceSlug}`,
 })
+const providerQuery = computed(() => ({ ...listQuery.value, province: provinceSlug }))
+const providersRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
+  query: providerQuery,
+  key: `province-${provinceSlug}-providers`,
+})
+await Promise.all([seoRequest, providersRequest])
+const { data: seoData, error: seoError } = seoRequest
+const { data: providersPage, status: providersStatus } = providersRequest
 
 if (seoError.value || !seoData.value) {
   const status = seoError.value?.statusCode ?? 404
@@ -22,18 +34,10 @@ if (seoError.value || !seoData.value) {
   })
 }
 
-await useSavedProviders().ensureLoaded()
+useSavedProviders().loadAfterMount()
 
 const meta = computed(() => seoData.value!.metadata)
 useSeoLanding(meta, seoData.value.entity.name)
-
-const { currentPage, currentSort, searchInput, listQuery, goToPage } = useSeoProviderFilters()
-
-const providerQuery = computed(() => ({ ...listQuery.value, province: seoData.value?.entity.code || undefined }))
-const { data: providersPage, status: providersStatus } = await useApi<PagedResult<ProviderSummary>>('/providers', {
-  query: providerQuery,
-  key: `province-${provinceSlug}-providers`,
-})
 </script>
 
 <template>

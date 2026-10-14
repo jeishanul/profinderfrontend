@@ -8,9 +8,8 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const session = useSession()
 
-  if (session.status.value === 'idle') {
-    await session.fetchUser()
-  }
+  // The global middleware has usually started the check already; this waits for that same request.
+  await session.loadUser()
 
   if (session.isAuthenticated.value) return
 

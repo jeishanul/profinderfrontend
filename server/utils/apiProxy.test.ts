@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createCallApi } from './apiProxy'
+import { API_TIMEOUT_MS, createCallApi } from './apiProxy'
 import type { ApiProxyDeps } from './apiProxy'
 
 function setup(options: { fetch?: ReturnType<typeof vi.fn> } = {}) {
@@ -64,5 +64,41 @@ describe('callApi', () => {
     const { callApi } = setup({ fetch: vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) })
 
     await expect(callApi({} as never, '/x')).rejects.toMatchObject({ statusCode: 500 })
+  })
+
+  it('gives reads a short timeout, writes a longer one, and never retries', async () => {
+    const { fetchMock, callApi } = setup()
+
+    await callApi({} as never, '/home')
+    await callApi({} as never, '/dashboard/job-posts', { method: 'POST' })
+
+    expect(fetchMock.mock.calls[0]![1]).toMatchObject({ timeout: API_TIMEOUT_MS.read, retry: 0 })
+    expect(fetchMock.mock.calls[1]![1]).toMatchObject({ timeout: API_TIMEOUT_MS.write, retry: 0 })
+  })
+
+  it('records how long each call took, with Laravel\'s own timing, failed calls included', async () => {
+    const fetch = vi.fn()
+      .mockImplementationOnce(async (_path: string, options: { onResponse: (ctx: { response: Response }) => void }) => {
+        options.onResponse({ response: new Response(null, { headers: { 'server-timing': 'db;dur=3.1;desc="4 queries"' } }) })
+        return { ok: true }
+      })
+      .mockRejectedValueOnce(new Error('ECONNREFUSED'))
+    const { deps, callApi } = setup({ fetch })
+    const recordTiming = vi.fn()
+    const timedCallApi = createCallApi({ ...deps, recordTiming } as ApiProxyDeps)
+
+    await timedCallApi({} as never, '/home')
+    await expect(timedCallApi({} as never, '/settings')).rejects.toMatchObject({ statusCode: 500 })
+
+    expect(recordTiming).toHaveBeenNthCalledWith(1, {}, expect.objectContaining({ path: '/home', backend: 'db;dur=3.1;desc="4 queries"' }))
+    expect(recordTiming).toHaveBeenNthCalledWith(2, {}, expect.objectContaining({ path: '/settings', backend: null }))
+    expect(callApi).toBeDefined()
+  })
+
+  it('reports a timed-out call as a 504', async () => {
+    const timeout = Object.assign(new Error('[TimeoutError]: The operation was aborted due to timeout'), { name: 'TimeoutError' })
+    const { callApi } = setup({ fetch: vi.fn().mockRejectedValue(Object.assign(new Error('[GET] "/home": <no response>'), { cause: timeout })) })
+
+    await expect(callApi({} as never, '/home')).rejects.toMatchObject({ statusCode: 504 })
   })
 })

@@ -8,9 +8,12 @@
 // currency) — fetched once here so every page and component reads the same
 // payload (see `useSiteSettings`). A failure falls back to the defaults.
 // The header/footer links (see `useNavigation`) load alongside them; a failure falls back to the built-in links.
+// The session check the global middleware started joins them, so it costs no extra round trip of its own and the
+// header is still right on the first paint.
 await Promise.all([
   useApi('/settings', { key: SITE_SETTINGS_KEY }),
   useApi('/navigation', { key: NAVIGATION_KEY }),
+  useSession().loadUser(),
 ])
 const { settings } = useSiteSettings()
 const route = useRoute()
@@ -45,6 +48,10 @@ watchEffect(() => updateSiteConfig({
 const isUnderMaintenance = computed(() => settings.value.maintenanceMode && !route.path.startsWith('/legal/'))
 if (import.meta.server && isUnderMaintenance.value) setResponseStatus(useRequestEvent()!, 503)
 
+// Mounted the first time something asks for confirmation (see `useMountWhenNeeded`), not on every page load.
+const confirmDialog = useConfirm()
+const confirmDialogMounted = useMountWhenNeeded(() => confirmDialog.state.value.open)
+
 const i18nHead = useLocaleHead({ seo: true })
 // A landing page with an admin-set canonical replaces the generated one rather than adding a second tag.
 const canonicalOverride = useCanonicalOverride()
@@ -66,6 +73,6 @@ useHead(() => ({
       <NuxtPage />
     </NuxtLayout>
     <UiToastContainer />
-    <UiConfirmDialog />
+    <LazyUiConfirmDialog v-if="confirmDialogMounted" />
   </div>
 </template>

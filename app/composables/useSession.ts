@@ -81,6 +81,27 @@ export function useSession() {
     return user
   }
 
+  /**
+   * The session, checked at most once per request/app load: resolves at once when it is already known, otherwise
+   * every caller shares one in-flight `/api/auth/me`. The global middleware only *starts* it; `app.vue` awaits it
+   * alongside settings and navigation, and `auth.ts` awaits it before deciding to redirect. The check therefore
+   * runs in parallel with the shell's other fetches instead of before all of them, and is still settled before any
+   * page renders. The promise lives on the (request-scoped) Nuxt app, never in `useState`: it can't be serialized.
+   */
+  function loadUser(): Promise<AuthUser | null> {
+    if (state.value.status === 'ready') return Promise.resolve(state.value.user)
+
+    const nuxtApp = useNuxtApp()
+    const pending = nuxtApp._sessionLoad as Promise<AuthUser | null> | undefined
+    if (pending) return pending
+
+    const load = fetchUser().finally(() => {
+      nuxtApp._sessionLoad = undefined
+    })
+    nuxtApp._sessionLoad = load
+    return load
+  }
+
   /** Returns a `TwoFactorChallenge` instead of the user when 2FA is enabled — the caller must follow up with `completeTwoFactorChallenge`. */
   async function login(identifier: string, password: string, options: { remember?: boolean, reactivate?: boolean } = {}) {
     const result = await useApiFetch<AuthUser | TwoFactorChallenge>('/api/auth/login', {
@@ -155,6 +176,7 @@ export function useSession() {
     status: computed(() => state.value.status),
     activeRole,
     fetchUser,
+    loadUser,
     login,
     completeTwoFactorChallenge,
     completeSocialSignup,

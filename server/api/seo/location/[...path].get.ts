@@ -16,5 +16,5 @@ export default defineEventHandler(async (event) => {
       ? `/seo/location/${encodeURIComponent(province)}/${encodeURIComponent(city)}`
       : `/seo/location/${encodeURIComponent(province)}`
 
-  return callApi(event, endpoint)
+  return getPublicApi(event, endpoint)
 })

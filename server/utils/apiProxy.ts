@@ -37,7 +37,17 @@ interface ApiCallOptions {
   query?: Record<string, unknown>
   /** Set false for routes that must never send the caller's token (there are none today, but keeps intent explicit). */
   auth?: boolean
+  /** Milliseconds before giving up on Laravel; defaults to `API_TIMEOUT_MS` for the method. */
+  timeout?: number
 }
+
+/**
+ * How long a call to Laravel may take. Reads sit on the SSR critical path, so they fail fast and the page falls
+ * back (settings and navigation to their defaults, a page to its error view) instead of hanging the render.
+ * Without a timeout, Node waits up to 300 s for response headers. Writes can include uploads and image
+ * processing, so they get longer.
+ */
+export const API_TIMEOUT_MS = { read: 5000, write: 30000 } as const
 
 /** What `callApi` needs from the server runtime. Injected so the proxy's rules can be tested without a running Nitro. */
 export interface ApiProxyDeps {
@@ -47,19 +57,31 @@ export interface ApiProxyDeps {
   clearAuthToken: (event: H3Event) => void
   getClientIp: (event: H3Event) => string | undefined
   createError: (input: { statusCode: number, statusMessage: string, data?: unknown }) => Error
+  /** Called after every call, with how long it took and Laravel's own Server-Timing header (when Server-Timing is on). */
+  recordTiming?: (event: H3Event, timing: { path: string, ms: number, backend: string | null }) => void
 }
 
 export function createCallApi(deps: ApiProxyDeps) {
   return async function callApi<T>(event: H3Event, path: string, options: ApiCallOptions = {}): Promise<T> {
     const token = options.auth !== false ? deps.getAuthToken(event) : undefined
     const clientIp = deps.getClientIp(event)
+    const method = options.method ?? 'GET'
+    const started = performance.now()
+    let backendTiming: string | null = null
 
     try {
       const response = await deps.fetch(path, {
         baseURL: `${deps.apiBaseUrl()}/api/v1`,
-        method: options.method ?? 'GET',
+        method,
         body: options.body,
         query: options.query,
+        timeout: options.timeout ?? (method === 'GET' ? API_TIMEOUT_MS.read : API_TIMEOUT_MS.write),
+        // No retries here: a page's own useApi call already retries in the browser, and a retried timeout would
+        // double how long the render waits. One visitor request is at most one Laravel request.
+        retry: 0,
+        onResponse: ({ response }: { response: Response }) => {
+          backendTiming = response.headers.get('server-timing')
+        },
         headers: {
           Accept: 'application/json',
           // Laravel only sees this server as the client; hand it the real address so IP-keyed
@@ -71,16 +93,23 @@ export function createCallApi(deps: ApiProxyDeps) {
       return response as T
     }
     catch (error) {
-      const fetchError = error as { response?: { status?: number, _data?: { message?: string } } }
+      const fetchError = error as { response?: { status?: number, _data?: { message?: string } }, cause?: { name?: string } }
 
       // The token we just sent is no good: drop the cookie so the browser stops presenting it.
       if (token && fetchError.response?.status === 401) deps.clearAuthToken(event)
+
+      if (!fetchError.response && fetchError.cause?.name === 'TimeoutError') {
+        throw deps.createError({ statusCode: 504, statusMessage: 'The server took too long to respond.' })
+      }
 
       throw deps.createError({
         statusCode: fetchError.response?.status ?? 500,
         statusMessage: fetchError.response?._data?.message ?? 'Something went wrong.',
         data: fetchError.response?._data,
       })
+    }
+    finally {
+      deps.recordTiming?.(event, { path, ms: performance.now() - started, backend: backendTiming })
     }
   }
 }
@@ -96,11 +125,14 @@ export const callApi = createCallApi({
   fetch: (path, options) => ($fetch as unknown as (path: string, options: unknown) => Promise<unknown>)(path, options),
   getAuthToken,
   clearAuthToken,
-  // The socket address, never the browser-supplied X-Forwarded-For: a visitor could put anything in that header
-  // and rotate it to dodge Laravel's per-IP limits. Behind nginx, have nginx set the real address on the socket
-  // peer (or terminate here) rather than trusting a client-controlled chain.
-  getClientIp: event => getRequestIP(event),
+  // Never the browser's own X-Forwarded-For (a visitor could rotate it to dodge Laravel's per-IP limits): the
+  // address `server/plugins/client-ip.ts` worked out from the connection, trusting only nginx's hop. SSR
+  // sub-requests inherit it from the page request, which `getRequestIP` alone would miss (they have no socket).
+  getClientIp: event => getVisitorIp(event),
   createError: input => createError(input),
+  recordTiming: (event, timing) => {
+    if (useRuntimeConfig().serverTiming) recordApiTiming(event, timing)
+  },
 })
 
 const LIST_QUERY_KEYS = ['page', 'perPage', 'q', 'status', 'archived', 'sort'] as const

@@ -85,6 +85,21 @@ describe('useSession', () => {
     expect(session.name.value).toBe('Amara Chen')
   })
 
+  it('loadUser() shares one /api/auth/me between the middleware and app.vue, then answers from state', async () => {
+    useState('session').value = { user: null, status: 'idle' }
+    meMock.mockClear()
+    meMock.mockReturnValue(FAKE_USER)
+    const session = useSession()
+
+    const [fromMiddleware, fromApp] = await Promise.all([session.loadUser(), session.loadUser()])
+    await session.loadUser()
+
+    expect(meMock).toHaveBeenCalledTimes(1)
+    expect(fromMiddleware).toEqual(FAKE_USER)
+    expect(fromApp).toEqual(FAKE_USER)
+    expect(session.status.value).toBe('ready')
+  })
+
   it('setActiveRole() switches a provider between roles without logging out', async () => {
     loginUser = { ...FAKE_USER, isProvider: true }
     const session = useSession()

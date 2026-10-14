@@ -1,5 +1,3 @@
-import type { PagedResult, ProviderSummary } from '#shared/types/marketplace'
-
 type SitemapPriority = 0 | 0.1 | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 | 1
 
 interface SitemapUrlEntry {
@@ -36,46 +34,33 @@ interface SeoSitemapEntry {
  * every listable provider's profile, published legal/static pages, and
  * SEO category and location hierarchy landing pages (/category/* and /ph/*).
  * Registered via `sitemap.sources` in `nuxt.config.ts`.
+ *
+ * Two backend calls, made together. Provider pages come with the SEO entries from `/seo/sitemap-urls` (one query on
+ * the backend, cached there); they used to be collected by paging through `/providers` 50 at a time, one request
+ * after another.
  */
 export default defineSitemapEventHandler(async (event) => {
+  // Each source is independent: one failing backend call must not take the whole sitemap down with it.
+  const [pages, seo] = await Promise.allSettled([
+    callApi<{ slug: string, title: string }[]>(event, '/pages'),
+    callApi<{ urls?: SeoSitemapEntry[] } | SeoSitemapEntry[]>(event, '/seo/sitemap-urls'),
+  ])
+
   const urls: SitemapUrlEntry[] = []
 
-  // Each source is independent: one failing backend call must not take the whole sitemap down with it.
-  // 1. Providers
-  try {
-    const PER_PAGE = 50
-    let page = 1
-    let hasMore = true
-    while (hasMore) {
-      const result = await callApi<PagedResult<ProviderSummary>>(event, '/providers', {
-        query: { page, perPage: PER_PAGE, sort: 'rating' },
-      })
-      for (const provider of result.items) {
-        urls.push({ loc: `/providers/${provider.id}`, changefreq: 'weekly', priority: 0.7 })
-      }
-      hasMore = page < result.totalPages
-      page += 1
-    }
-  }
-  catch (error) {
-    console.error('[sitemap] providers source failed', error)
-  }
-
-  // 2. Legal / static pages
-  try {
-    const pages = await callApi<{ slug: string, title: string }[]>(event, '/pages')
-    for (const legalPage of pages) {
+  // 1. Legal / static pages
+  if (pages.status === 'fulfilled') {
+    for (const legalPage of pages.value) {
       urls.push({ loc: `/legal/${legalPage.slug}`, changefreq: 'monthly', priority: 0.3 })
     }
   }
-  catch (error) {
-    console.error('[sitemap] pages source failed', error)
+  else {
+    console.error('[sitemap] pages source failed', pages.reason)
   }
 
-  // 3. Dynamic category and location SEO landing pages
-  try {
-    const res = await callApi<{ urls?: SeoSitemapEntry[] } | SeoSitemapEntry[]>(event, '/seo/sitemap-urls')
-    const seoEntries = Array.isArray(res) ? res : (res.urls ?? [])
+  // 2. Provider profiles, and the category and location SEO landing pages
+  if (seo.status === 'fulfilled') {
+    const seoEntries = Array.isArray(seo.value) ? seo.value : (seo.value.urls ?? [])
     for (const entry of seoEntries) {
       let loc = entry.loc
       try {
@@ -94,9 +79,9 @@ export default defineSitemapEventHandler(async (event) => {
       })
     }
   }
-  catch (error) {
-    // If the SEO endpoint is temporarily unavailable, carry on with the providers and legal pages.
-    console.error('[sitemap] seo source failed', error)
+  else {
+    // If the SEO endpoint is temporarily unavailable, carry on with the legal pages.
+    console.error('[sitemap] seo source failed', seo.reason)
   }
 
   return urls

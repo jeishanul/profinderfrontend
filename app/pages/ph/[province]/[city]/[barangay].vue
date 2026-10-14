@@ -26,7 +26,7 @@ if (seoError.value || !seoData.value) {
   })
 }
 
-await useSavedProviders().ensureLoaded()
+useSavedProviders().loadAfterMount()
 
 const meta = computed(() => seoData.value!.metadata)
 const cityName = computed(() => seoData.value?.hierarchy.city?.name ?? '')
@@ -39,18 +39,23 @@ const cityCode = computed(() => seoData.value?.hierarchy.city?.code || undefined
 
 // First choice: providers in this exact barangay (looked up inside its city).
 const barangayQuery = computed(() => ({ ...listQuery.value, city: cityCode.value, barangay: seoData.value?.entity.slug }))
-const { data: barangayProviders, status: barangayStatus } = await useApi<PagedResult<ProviderSummary>>('/providers', {
+const barangayRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
   query: barangayQuery,
   key: `barangay-${provinceSlug}-${citySlug}-${barangaySlug}-providers`,
 })
 
-// Fallback: with nobody listed in the barangay, show providers serving the whole city.
-const isFallback = computed(() => (barangayProviders.value?.total ?? 0) === 0)
+// Fallback: with nobody listed in the barangay, show providers serving the whole city. Fetched alongside the
+// barangay's own list rather than after it: most barangays have nobody listed yet, so waiting to find that out first
+// would add a round trip to the common case.
 const cityFallbackQuery = computed(() => ({ ...listQuery.value, city: cityCode.value }))
-const { data: cityFallbackProviders } = await useApi<PagedResult<ProviderSummary>>('/providers', {
+const cityFallbackRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
   query: cityFallbackQuery,
   key: `barangay-${provinceSlug}-${citySlug}-${barangaySlug}-city-fallback`,
 })
+await Promise.all([barangayRequest, cityFallbackRequest])
+const { data: barangayProviders, status: barangayStatus } = barangayRequest
+const { data: cityFallbackProviders } = cityFallbackRequest
+const isFallback = computed(() => (barangayProviders.value?.total ?? 0) === 0)
 
 const activeProvidersPage = computed(() => isFallback.value ? cityFallbackProviders.value : barangayProviders.value)
 </script>

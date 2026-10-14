@@ -25,7 +25,9 @@ if (seoError.value || !seoData.value) {
   })
 }
 
-await useSavedProviders().ensureLoaded()
+// Hearts: personal, so filled in after mount. (The provider list below still waits for the metadata: it needs the
+// city's code, since city slugs repeat across provinces.)
+useSavedProviders().loadAfterMount()
 
 const meta = computed(() => seoData.value!.metadata)
 const provinceName = computed(() => seoData.value?.hierarchy.province?.name ?? '')

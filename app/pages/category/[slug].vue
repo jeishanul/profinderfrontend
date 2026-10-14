@@ -11,9 +11,20 @@ const { settings } = useSiteSettings()
 
 const slug = String(route.params.slug || '')
 
-const { data: seoData, error: seoError } = await useApi<CategorySeoResponse>(`/seo/category/${encodeURIComponent(slug)}`, {
+const { currentPage, currentSort, searchInput, listQuery, goToPage } = useSeoProviderFilters()
+
+// The landing page's metadata and its provider list load together: the list only needs the slug.
+const seoRequest = useApi<CategorySeoResponse>(`/seo/category/${encodeURIComponent(slug)}`, {
   key: `seo-category-${slug}`,
 })
+const providerQuery = computed(() => ({ ...listQuery.value, categories: slug }))
+const providersRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
+  query: providerQuery,
+  key: `category-${slug}-providers`,
+})
+await Promise.all([seoRequest, providersRequest])
+const { data: seoData, error: seoError } = seoRequest
+const { data: providersPage, status: providersStatus } = providersRequest
 
 if (seoError.value || !seoData.value) {
   const status = seoError.value?.statusCode ?? 404
@@ -24,19 +35,11 @@ if (seoError.value || !seoData.value) {
   })
 }
 
-// Provider cards show a save heart, so the saved ids must be known before they render.
-await useSavedProviders().ensureLoaded()
+// Provider cards show a save heart: personal, so filled in after mount.
+useSavedProviders().loadAfterMount()
 
 const meta = computed(() => seoData.value!.metadata)
 useSeoLanding(meta, seoData.value.entity.name)
-
-const { currentPage, currentSort, searchInput, listQuery, goToPage } = useSeoProviderFilters()
-
-const providerQuery = computed(() => ({ ...listQuery.value, categories: slug }))
-const { data: providersPage, status: providersStatus } = await useApi<PagedResult<ProviderSummary>>('/providers', {
-  query: providerQuery,
-  key: `category-${slug}-providers`,
-})
 </script>
 
 <template>
