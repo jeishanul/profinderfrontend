@@ -132,6 +132,12 @@ export default defineNuxtConfig({
   // deploy/nginx/profinder.conf) and Nitro serve them pre-compressed instead of compressing per request.
   nitro: {
     compressPublicAssets: true,
+    // satori (OG images) shapes text with harfbuzzjs, which loads hb.wasm from its own folder at runtime. The file
+    // tracer can't see that read, so without this the server build lacks it and every share image that loads a
+    // custom font fails with ENOENT.
+    externals: {
+      traceInclude: ['node_modules/harfbuzzjs/hb.wasm'],
+    },
   },
 
   vite: {

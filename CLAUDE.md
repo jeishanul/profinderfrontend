@@ -362,6 +362,12 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   `Server-Timing` header then lists the render time and every backend call it made, each with Laravel's database time
   and query count (devtools > Network > Timing). `npm run perf:smoke -- <base-url> [paths]` checks the key pages
   against the performance budget in PERFORMANCE_PLAN.md and exits non-zero when one misses it.
+- **OG image fonts are committed** in `public/_og-static-fonts/` (Plus Jakarta Sans 400/600/700, ttf + woff). nuxt-og-image
+  downloads them during the build, but only *after* Nitro has copied the public files, so a clean build (every
+  deploy: `npm ci` clears `.nuxt`) shipped without them and share images fell back to another font with a
+  "Failed to load font … 404" warning. If the OG font or weights change, replace these files (a second local build
+  leaves the new ones in `.nuxt/cache/og-image/static-fonts/`). `nitro.externals.traceInclude` ships harfbuzzjs's
+  `hb.wasm`, which satori needs as soon as a custom font loads; keep it.
 - Generated OG images: keep the props to a bounded set (a fixed title per page type, not a filtered count). Every
   distinct set of props is its own satori render on the server.
 - Images go through `<NuxtImg>`/`<NuxtPicture>` (`@nuxt/image`), never a bare `<img>` for
