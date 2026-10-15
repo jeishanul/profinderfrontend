@@ -25,11 +25,16 @@ const previews = computed(() => files.value.map(file => ({ file, url: import.met
 watch(previews, (_next, previous) => previous?.forEach(entry => entry.url && URL.revokeObjectURL(entry.url)))
 onBeforeUnmount(() => previews.value.forEach(entry => entry.url && URL.revokeObjectURL(entry.url)))
 
-function pick(event: Event) {
+async function pick(event: Event) {
   const input = event.target as HTMLInputElement
+  const picked = Array.from(input.files ?? [])
+  // Picking the same file again later must still fire `change`.
+  input.value = ''
   const accepted: File[] = []
 
-  for (const file of Array.from(input.files ?? [])) {
+  for (const original of picked) {
+    // Not an image: report it as picked. Otherwise shrink a big phone photo first, so it is checked at upload size.
+    const file = original.type.startsWith('image/') ? await downscaleImage(original) : original
     const problem = photoProblem(file, total.value + accepted.length)
     if (problem) {
       toast.error(t(`seekJob.photoErrors.${problem}`, { max: JOB_PHOTOS_MAX }))
@@ -39,8 +44,6 @@ function pick(event: Event) {
   }
 
   files.value = [...files.value, ...accepted]
-  // Picking the same file again later must still fire `change`.
-  input.value = ''
 }
 
 function removeNew(index: number) {
@@ -109,7 +112,7 @@ function removeNew(index: number) {
     <input
       ref="inputRef"
       type="file"
-      accept="image/jpeg,image/png,image/webp"
+      accept="image/*"
       :aria-label="t('seekJob.form.fields.photos.add')"
       multiple
       class="sr-only"

@@ -803,7 +803,7 @@
       },
       "errors": {
         "notAnImage": "Please choose an image file.",
-        "imageTooLarge": "That image is larger than 5 MB. Please choose a smaller one.",
+        "imageTooLarge": "That image is larger than 15 MB. Please choose a smaller one.",
         "upload": "Couldn't upload that file. Please try again.",
         "save": "Couldn't save your profile. Please try again."
       },
@@ -847,9 +847,9 @@
         "rejectedNoReason": "This step was rejected. Please send a clearer document.",
         "submitted": "Submitted — we'll review it shortly.",
         "errors": {
-          "type": "Please choose a JPG, PNG or WebP image.",
-          "typeWithPdf": "Please choose a JPG, PNG, WebP image or a PDF.",
-          "tooLarge": "That file is larger than 8 MB. Please choose a smaller one.",
+          "type": "Please choose an image (JPG, PNG, WebP or HEIC).",
+          "typeWithPdf": "Please choose an image (JPG, PNG, WebP or HEIC) or a PDF.",
+          "tooLarge": "That file is larger than 15 MB. Please choose a smaller one.",
           "submit": "Couldn't submit that step. Please try again."
         },
         "steps": {
@@ -1635,7 +1635,7 @@
     },
     "photoErrors": {
       "notAnImage": "That file isn't an image.",
-      "tooLarge": "Photos can be up to 5 MB each.",
+      "tooLarge": "Photos can be up to 15 MB each.",
       "tooMany": "A post can have up to {max} photos."
     },
     "detail": {

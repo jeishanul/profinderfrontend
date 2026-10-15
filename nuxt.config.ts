@@ -225,6 +225,11 @@ export default defineNuxtConfig({
     corsHandler: {
       origin: siteUrl,
     },
+    // nuxt-security caps uploads at 8 MB by default. Images may be up to 15 MB (Laravel's `media.upload_rules`, and most
+    // are shrunk in the browser first, see `utils/downscaleImage.ts`); this leaves room for the multipart overhead.
+    requestSizeLimiter: {
+      maxUploadFileRequestInBytes: 16 * 1024 * 1024,
+    },
     headers: {
       strictTransportSecurity: false,
       crossOriginOpenerPolicy: false,

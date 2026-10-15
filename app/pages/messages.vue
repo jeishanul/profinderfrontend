@@ -211,15 +211,18 @@ async function handleSend({ text, file, attachmentType }: { text: string, file: 
   const conversationId = activeId.value
   if (!conversationId || isSending.value) return
 
+  // Set before the photo is shrunk (it takes a moment), so a second tap can't send it twice.
+  isSending.value = true
+  sendError.value = ''
+
   const body = new FormData()
   if (text) body.append('text', text)
   if (file) {
-    body.append('attachment', file)
+    // Photos are shrunk before upload; the server makes the final copy. Videos and documents are sent as picked.
+    body.append('attachment', attachmentType === 'image' ? await downscaleImage(file) : file)
     body.append('attachmentType', attachmentType ?? 'document')
   }
 
-  isSending.value = true
-  sendError.value = ''
   try {
     await useApiFetch(`/api/dashboard/conversations/${conversationId}/messages`, { method: 'POST', body })
     // Only now is the draft cleared — a failed send keeps what was typed.

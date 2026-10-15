@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildJobPostFormData, buildJobPostPayload, groupFieldErrors, JOB_PHOTOS_MAX, JOB_TASKS_MAX, moveTask, normalizeTasks, photoProblem } from './jobPost'
+import { buildJobPostFormData, buildJobPostPayload, groupFieldErrors, JOB_PHOTO_MAX_BYTES, JOB_PHOTOS_MAX, JOB_TASKS_MAX, moveTask, normalizeTasks, photoProblem } from './jobPost'
 import type { JobPostFormValues } from '#shared/types/jobPosts'
 
 const values = (overrides: Partial<JobPostFormValues> = {}): JobPostFormValues => ({
@@ -53,7 +53,7 @@ describe('photoProblem', () => {
 
   it('refuses non-images, big files and too many photos', () => {
     expect(photoProblem(new File(['x'], 'a.pdf', { type: 'application/pdf' }), 0)).toBe('notAnImage')
-    expect(photoProblem(image(6 * 1024 * 1024), 0)).toBe('tooLarge')
+    expect(photoProblem(image(JOB_PHOTO_MAX_BYTES + 1), 0)).toBe('tooLarge')
     expect(photoProblem(image(), JOB_PHOTOS_MAX)).toBe('tooMany')
   })
 })

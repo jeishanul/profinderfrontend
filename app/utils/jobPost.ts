@@ -1,10 +1,11 @@
 import type { JobPostFormValues } from '#shared/types/jobPosts'
+import { MAX_UPLOAD_IMAGE_BYTES } from './downscaleImage'
 
 /** Mirrors the server's limits, so a mistake is caught before the request. */
 export const JOB_TASKS_MAX = 15
 export const JOB_TASK_LENGTH = 120
 export const JOB_PHOTOS_MAX = 5
-export const JOB_PHOTO_MAX_BYTES = 5 * 1024 * 1024
+export const JOB_PHOTO_MAX_BYTES = MAX_UPLOAD_IMAGE_BYTES
 
 /** The checklist as it will be sent: trimmed, blank rows dropped, repeats dropped, capped. */
 export function normalizeTasks(tasks: string[]): string[] {

@@ -104,19 +104,20 @@ function pick(file: File): PickedFile {
 }
 
 // Same limits the server enforces, checked before a slow upload that would be refused.
-const MAX_BYTES = 8 * 1024 * 1024
-const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/bmp', 'image/avif', 'image/heic', 'image/heif']
 
-function fileFrom(event: Event, allowPdf = false): File | null {
+async function fileFrom(event: Event, allowPdf = false): Promise<File | null> {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0] ?? null
+  const picked = input.files?.[0] ?? null
   input.value = ''
-  if (!file) return null
-  if (!IMAGE_TYPES.includes(file.type) && !(allowPdf && file.type === 'application/pdf')) {
+  if (!picked) return null
+  if (!IMAGE_TYPES.includes(picked.type) && !(allowPdf && picked.type === 'application/pdf')) {
     toast.error(t(allowPdf ? 'dashboard.profile.kyc.errors.typeWithPdf' : 'dashboard.profile.kyc.errors.type'))
     return null
   }
-  if (file.size > MAX_BYTES) {
+  // A photo of a document is shrunk before upload (HEIC becomes JPEG where the browser can read it). A PDF is sent as is.
+  const file = picked.type === 'application/pdf' ? picked : await downscaleImage(picked)
+  if (file.size > MAX_UPLOAD_IMAGE_BYTES) {
     toast.error(t('dashboard.profile.kyc.errors.tooLarge'))
     return null
   }
@@ -127,20 +128,20 @@ function fileFrom(event: Event, allowPdf = false): File | null {
 // template refs inside `v-for` — even a guarded one that only ever renders
 // once — type as arrays, and a template expression can't pass an unwrapped
 // `ref.value` back out as a writable ref anyway.
-function onNidFrontChange(event: Event) {
-  const file = fileFrom(event)
+async function onNidFrontChange(event: Event) {
+  const file = await fileFrom(event)
   if (file) nidFront.value = pick(file)
 }
-function onNidBackChange(event: Event) {
-  const file = fileFrom(event)
+async function onNidBackChange(event: Event) {
+  const file = await fileFrom(event)
   if (file) nidBack.value = pick(file)
 }
-function onSelfieChange(event: Event) {
-  const file = fileFrom(event)
+async function onSelfieChange(event: Event) {
+  const file = await fileFrom(event)
   if (file) selfiePhoto.value = pick(file)
 }
-function onAddressChange(event: Event) {
-  const file = fileFrom(event, true)
+async function onAddressChange(event: Event) {
+  const file = await fileFrom(event, true)
   if (file) addressDocument.value = pick(file)
 }
 
@@ -401,7 +402,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="nidFrontInput"
       type="file"
-      accept="image/jpeg,image/png,image/webp"
+      accept="image/*"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.nidFront')"
       @change="onNidFrontChange"
@@ -409,7 +410,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="nidBackInput"
       type="file"
-      accept="image/jpeg,image/png,image/webp"
+      accept="image/*"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.nidBack')"
       @change="onNidBackChange"
@@ -417,7 +418,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="selfieInput"
       type="file"
-      accept="image/jpeg,image/png,image/webp"
+      accept="image/*"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.selfieUpload')"
       @change="onSelfieChange"
@@ -425,7 +426,7 @@ async function submitStep(stepId: KycStepId) {
     <input
       ref="addressInput"
       type="file"
-      accept="image/jpeg,image/png,image/webp,application/pdf"
+      accept="image/*,application/pdf"
       class="hidden"
       :aria-label="t('dashboard.profile.kyc.addressUpload')"
       @change="onAddressChange"
