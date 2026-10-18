@@ -165,6 +165,6 @@ describe('AppHeader', () => {
     provide('site-navigation', undefined)
     const wrapper = await mountSuspended(AppHeader, { global: { stubs } })
 
-    expect(wrapper.findAll('nav > ul a').map(a => a.attributes('href'))).toEqual(['/#how-it-works', '/browse', '/become-a-provider'])
+    expect(wrapper.findAll('nav > ul a').map(a => a.attributes('href'))).toEqual(['/#how-it-works', '/browse', '/jobs', '/become-a-provider'])
   })
 })

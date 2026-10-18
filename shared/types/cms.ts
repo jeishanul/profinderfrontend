@@ -56,6 +56,7 @@ export type BuiltInSectionKey
     | 'how_it_works'
     | 'categories'
     | 'featured_providers'
+    | 'latest_jobs'
     | 'why_choose_us'
     | 'jobs_gallery'
     | 'testimonials'

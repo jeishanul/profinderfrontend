@@ -92,7 +92,12 @@ describe('defaultNavigation (used when the navigation request fails)', () => {
   it('has the links the site had before the CMS', () => {
     const nav = defaultNavigation(t)
 
-    expect(nav.header.map(l => [l.url, l.visibility])).toEqual([['/#how-it-works', 'all'], ['/browse', 'all'], ['/become-a-provider', 'non_provider']])
+    expect(nav.header.map(l => [l.url, l.visibility])).toEqual([
+      ['/#how-it-works', 'all'],
+      ['/browse', 'all'],
+      ['/jobs', 'all'],
+      ['/become-a-provider', 'non_provider'],
+    ])
     expect(nav.header[0]!.label).toBe('[nav.howItWorks]')
     expect(nav.footerColumns).toHaveLength(1)
     expect(nav.footerColumns[0]!.map(m => m.title)).toEqual(['[footer.customers.heading]', '[footer.providers.heading]'])

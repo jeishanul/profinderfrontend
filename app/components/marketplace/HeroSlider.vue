@@ -173,14 +173,7 @@ observe(searchAnchor)
                 name="shield-check"
                 :size="14"
               />
-              {{ trustBadgeText }}
-            </p>
-            <p
-              v-if="activeSlide.eyebrow"
-              class="mb-1.5 text-xs font-semibold tracking-wide uppercase"
-              :class="isDark ? 'text-white/80' : 'text-brand-700 dark:text-brand-100'"
-            >
-              {{ activeSlide.eyebrow }}
+              {{ activeSlide.eyebrow || trustBadgeText }}
             </p>
             <h1
               class="text-3xl font-bold leading-tight sm:text-4xl md:text-[44px]"
