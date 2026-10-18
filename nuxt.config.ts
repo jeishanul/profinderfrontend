@@ -116,6 +116,7 @@ export default defineNuxtConfig({
     '/privacy': { redirect: '/legal/privacy-policy' },
     '/about': { redirect: '/legal/about' },
     '/contact': { redirect: '/legal/contact' },
+    '/sitemap': { redirect: '/sitemap.xml' },
   },
 
   devServer: {
