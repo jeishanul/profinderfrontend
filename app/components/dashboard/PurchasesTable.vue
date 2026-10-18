@@ -65,7 +65,7 @@ async function messageProvider(purchase: PurchaseRecord) {
   try {
     const conversationId = purchase.conversationId ?? (await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
       method: 'POST',
-      body: { providerId: Number(purchase.providerId) },
+      body: { providerId: purchase.providerId },
     })).id
     await navigateTo(localePath({ path: '/messages', query: { conversation: conversationId } }))
   }
