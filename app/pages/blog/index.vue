@@ -80,7 +80,7 @@ useSchemaOrg([defineWebPage()])
               class="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-500/10 to-brand-700/10 text-brand-600 dark:text-brand-400"
             >
               <UiIcon
-                name="document-text"
+                name="file"
                 :size="36"
               />
             </div>
@@ -142,7 +142,7 @@ useSchemaOrg([defineWebPage()])
     >
       <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-300">
         <UiIcon
-          name="document-text"
+          name="file"
           :size="26"
         />
       </div>

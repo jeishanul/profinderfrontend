@@ -28,7 +28,7 @@ const list = await usePagedList<JobPostBase>('/jobs', {
   })),
 })
 
-const categoryOptions = computed(() => (categories.value ?? []).map(c => ({ value: c.slug || c.id, label: c.name })))
+const categoryOptions = computed(() => (categories.value ?? []).map(c => ({ value: c.id, label: c.name })))
 
 const hasFilters = computed(() => !!(category.value || province.value || city.value || budgetMin.value || search.value.trim()))
 function clearFilters() {

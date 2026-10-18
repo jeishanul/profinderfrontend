@@ -51,7 +51,7 @@ useSchemaOrg([
         class="inline-flex items-center gap-2 text-sm font-semibold text-black/60 transition hover:text-black dark:text-white/60 dark:hover:text-white"
       >
         <UiIcon
-          name="arrow-left"
+          name="chevron-left"
           :size="15"
         />
         <span>{{ t('blog.backToBlog') }}</span>

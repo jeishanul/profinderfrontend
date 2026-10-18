@@ -30,7 +30,7 @@ function handleApplyClick() {
     return
   }
 
-  if (session.user.value?.role === 'provider') {
+  if (session.isProvider.value) {
     navigateTo(localePath(`/find-jobs/${id}`))
   }
   else {
@@ -53,7 +53,7 @@ useSchemaOrg([defineWebPage()])
         class="inline-flex items-center gap-2 text-sm font-semibold text-black/60 transition hover:text-black dark:text-white/60 dark:hover:text-white"
       >
         <UiIcon
-          name="arrow-left"
+          name="chevron-left"
           :size="15"
         />
         <span>{{ t('publicJobs.backToJobs') }}</span>
@@ -124,7 +124,7 @@ useSchemaOrg([defineWebPage()])
 
           <UiButton
             variant="primary"
-            size="lg"
+            size="md"
             class="w-full sm:w-auto"
             @click="handleApplyClick"
           >

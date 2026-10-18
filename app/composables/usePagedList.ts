@@ -18,7 +18,7 @@ interface PagedListOptions {
  * (SSR-friendly, refetches when `query` changes), later pages are appended
  * client-side. Works both as `await usePagedList(...)` and without the await.
  */
-export function usePagedList<T extends { id: string }, M extends ListPageMeta = ListPageMeta>(url: string, options: PagedListOptions) {
+export function usePagedList<T extends { id: string | number }, M extends ListPageMeta = ListPageMeta>(url: string, options: PagedListOptions) {
   const perPage = options.perPage ?? 20
   const firstPageQuery = computed(() => ({ ...toValue(options.query), perPage, page: 1 }))
 
