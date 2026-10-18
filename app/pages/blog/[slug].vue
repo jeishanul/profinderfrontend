@@ -81,7 +81,7 @@ useSchemaOrg([
 
     <!-- Author byline -->
     <div class="mt-4 flex items-center gap-2 text-sm text-black/60 dark:text-white/60">
-      <span>{{ t('blog.byAuthor', { author: post.author_name || 'ProFinder Editorial' }) }}</span>
+      <span>{{ t('blog.byAuthor', { author: post.author_name || (settings.siteName ? `${settings.siteName} Editorial` : t('brand.name')) }) }}</span>
     </div>
 
     <!-- Featured Image -->

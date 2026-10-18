@@ -118,7 +118,7 @@ useSchemaOrg([defineWebPage()])
 
         <div class="flex items-center justify-between border-t border-black/5 p-6 pt-4 dark:border-white/5">
           <span class="text-xs text-black/50 dark:text-white/50">
-            {{ t('blog.byAuthor', { author: post.author_name || 'ProFinder' }) }}
+            {{ t('blog.byAuthor', { author: post.author_name || settings.siteName || t('brand.name') }) }}
           </span>
 
           <NuxtLinkLocale

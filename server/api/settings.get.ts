@@ -1,5 +1,6 @@
 import type { SiteSettings } from '#shared/types/marketplace'
 
 export default defineEventHandler((event): Promise<SiteSettings> => {
-  return getPublicApi<SiteSettings>(event, '/settings')
+  setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate')
+  return callApi<SiteSettings>(event, '/settings', { auth: false })
 })
