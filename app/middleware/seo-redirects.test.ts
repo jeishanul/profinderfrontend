@@ -56,4 +56,14 @@ describe('seo-redirects.global middleware', () => {
     const result = middleware(to, dummyFrom)
     expect(result).toBeUndefined()
   })
+
+  it('does not redirect known multi-segment routes like /providers/123', () => {
+    const to = {
+      path: '/providers/123',
+      query: {},
+    } as unknown as RouteLocationNormalized
+
+    const result = middleware(to, dummyFrom)
+    expect(result).toBeUndefined()
+  })
 })
