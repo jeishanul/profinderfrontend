@@ -25,6 +25,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   defaultCurrency: 'PHP',
   seoDefaultTitle: null,
   seoDefaultDescription: null,
+  googleSiteVerification: 'xuFUaAXacWGSPyCCczJuFOUmW2qxBiLHcUrrua-NM4s',
   appStoreUrl: null,
   playStoreUrl: null,
   maintenanceMode: false,

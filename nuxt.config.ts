@@ -33,6 +33,9 @@ export default defineNuxtConfig({
       link: [
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
       ],
+      meta: [
+        { name: 'google-site-verification', content: 'xuFUaAXacWGSPyCCczJuFOUmW2qxBiLHcUrrua-NM4s' },
+      ],
     },
   },
 

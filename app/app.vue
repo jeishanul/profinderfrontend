@@ -21,6 +21,7 @@ const route = useRoute()
 useSeoMeta({
   titleTemplate: title => (title ? `${title} · ${settings.value.siteName ?? 'ProFinder'}` : (settings.value.siteName ?? 'ProFinder')),
   ogSiteName: () => settings.value.siteName ?? 'ProFinder',
+  googleSiteVerification: () => settings.value.googleSiteVerification || undefined,
 })
 
 // The brand mark (green rounded square + white leaf, see public/favicon.svg): SVG first (crisp at any size), PNG
@@ -38,6 +39,11 @@ useHead(() => ({
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png', key: 'icon-16' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', key: 'apple-touch-icon' },
       ],
+  meta: [
+    ...(settings.value.googleSiteVerification
+      ? [{ name: 'google-site-verification', content: settings.value.googleSiteVerification, key: 'google-site-verification' }]
+      : []),
+  ],
 }))
 
 // Re-verify settings on window focus so admin changes in another tab reflect instantly
