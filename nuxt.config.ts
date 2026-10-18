@@ -85,7 +85,13 @@ export default defineNuxtConfig({
 
   // --- Hybrid rendering defaults; extend per-route as pages are added ---
   routeRules: {
+    '/': { sitemap: { changefreq: 'daily', priority: 1.0 } },
+    '/browse': { sitemap: { changefreq: 'daily', priority: 0.9 } },
+    '/jobs': { sitemap: { changefreq: 'daily', priority: 0.9 } },
+    '/blog': { sitemap: { changefreq: 'weekly', priority: 0.7 } },
+    '/dashboard/**': { ssr: false, robots: false },
     '/dashboard': { ssr: false, robots: false },
+    '/profile/**': { ssr: false, robots: false },
     '/profile': { ssr: false, robots: false },
     '/clients': { ssr: false, robots: false },
     '/purchases': { ssr: false, robots: false },
@@ -93,6 +99,7 @@ export default defineNuxtConfig({
     '/notifications': { ssr: false, robots: false },
     '/services': { ssr: false, robots: false },
     '/saved-providers': { ssr: false, robots: false },
+    '/settings/**': { ssr: false, robots: false },
     '/settings': { ssr: false, robots: false },
     '/become-a-provider': { ssr: false, robots: false },
     '/seek-job/**': { ssr: false, robots: false },
