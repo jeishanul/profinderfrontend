@@ -256,9 +256,11 @@ export default defineNuxtConfig({
     automaticTwitterTags: false,
   },
 
-  // Provider profiles and legal pages are dynamic (not file-based routes),
+  // Provider profiles, jobs, blog, and legal pages are dynamic (not file-based routes),
   // so the sitemap can't discover them on its own — see `server/api/__sitemap__/urls.ts`.
+  // `sitemaps: false` forces a single flat /sitemap.xml directly without redirecting to /sitemap_index.xml.
   sitemap: {
+    sitemaps: false,
     sources: ['/api/__sitemap__/urls'],
   },
 })
