@@ -20,6 +20,8 @@ const route = useRoute()
 
 useSeoMeta({
   titleTemplate: title => (title ? `${title} · ${settings.value.siteName ?? 'ProFinder'}` : (settings.value.siteName ?? 'ProFinder')),
+  ogSiteName: () => settings.value.siteName ?? 'ProFinder',
+  googleSiteVerification: () => settings.value.googleSiteVerification || undefined,
 })
 
 // The brand mark (green rounded square + white leaf, see public/favicon.svg): SVG first (crisp at any size), PNG
@@ -27,13 +29,29 @@ useSeoMeta({
 // built-in links in place would let the browser pick the old icon.
 useHead(() => ({
   link: settings.value.faviconUrl
-    ? [{ rel: 'icon', href: settings.value.faviconUrl, key: 'icon' }]
+    ? [
+        { rel: 'icon', href: settings.value.faviconUrl, key: 'icon' },
+        { rel: 'apple-touch-icon', href: settings.value.faviconUrl, key: 'apple-touch-icon' },
+      ]
     : [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg', key: 'icon-svg' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png', key: 'icon-32' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png', key: 'icon-16' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', key: 'apple-touch-icon' },
       ],
+  meta: [
+    ...(settings.value.googleSiteVerification
+      ? [{ name: 'google-site-verification', content: settings.value.googleSiteVerification, key: 'google-site-verification' }]
+      : []),
+  ],
 }))
+
+// Re-verify settings on window focus so admin changes in another tab reflect instantly
+if (import.meta.client) {
+  useEventListener(window, 'focus', () => {
+    refreshNuxtData(SITE_SETTINGS_KEY)
+  })
+}
 
 // The structured data, OG tags and sitemap read the site's name and description from here; without this they would
 // stay on the build-time placeholder no matter what the admin set. (Runs in `app.vue` rather than a plugin because

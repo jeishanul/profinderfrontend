@@ -92,8 +92,8 @@ const mobileNavItems = computed(() => [
   ...(isConsumer.value
     ? [
         { to: '/purchases', label: t('dashboard.sidebar.myPurchases') },
-        { to: '/seek-job', label: t('dashboard.sidebar.seekJob') },
         { to: '/saved-providers', label: t('dashboard.sidebar.savedProviders') },
+        { to: '/seek-job', label: t('dashboard.sidebar.seekJob') },
       ]
     : []),
   { to: '/messages', label: t('dashboard.sidebar.messages') },
@@ -274,6 +274,15 @@ async function handleLogout() {
           />{{ t('dashboard.sidebar.myPurchases') }}
         </NuxtLinkLocale>
         <NuxtLinkLocale
+          to="/saved-providers"
+          :class="linkClass('/saved-providers')"
+        >
+          <UiIcon
+            name="heart"
+            :size="18"
+          />{{ t('dashboard.sidebar.savedProviders') }}
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
           to="/seek-job"
           class="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
           :class="isOnSeekJob
@@ -292,15 +301,6 @@ async function handleLogout() {
             class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent-600 px-1 text-[11px] font-bold text-white"
             :title="t('seekJob.nav.newApplicants')"
           >{{ formatBadgeCount(newApplicants) }}</span>
-        </NuxtLinkLocale>
-        <NuxtLinkLocale
-          to="/saved-providers"
-          :class="linkClass('/saved-providers')"
-        >
-          <UiIcon
-            name="heart"
-            :size="18"
-          />{{ t('dashboard.sidebar.savedProviders') }}
         </NuxtLinkLocale>
       </template>
 

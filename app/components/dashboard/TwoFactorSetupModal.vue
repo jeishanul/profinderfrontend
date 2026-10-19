@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TwoFactorConfirmResult, TwoFactorSetup } from '#shared/types/auth'
+import { slugify } from '#shared/utils/slugify'
 
 // Auto-imported as <DashboardTwoFactorSetupModal/>. The "turn 2FA on" flow:
 // confirm the account password (starting setup replaces any existing secret),
@@ -31,6 +32,7 @@ const error = ref('')
 const submitting = ref(false)
 const recoveryCodes = ref<string[]>([])
 const toast = useToast()
+const { settings } = useSiteSettings()
 
 async function startSetup() {
   if (!password.value) return
@@ -75,7 +77,7 @@ function downloadCodes() {
   const url = URL.createObjectURL(new Blob([recoveryCodes.value.join('\n')], { type: 'text/plain' }))
   const link = document.createElement('a')
   link.href = url
-  link.download = 'profinder-recovery-codes.txt'
+  link.download = `${slugify(settings.value.siteName || 'profinder')}-recovery-codes.txt`
   link.click()
   URL.revokeObjectURL(url)
 }

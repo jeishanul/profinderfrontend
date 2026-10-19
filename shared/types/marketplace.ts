@@ -44,6 +44,7 @@ export interface SiteSettings {
   defaultCurrency: string
   seoDefaultTitle: string | null
   seoDefaultDescription: string | null
+  googleSiteVerification: string | null
   appStoreUrl: string | null
   playStoreUrl: string | null
   maintenanceMode: boolean

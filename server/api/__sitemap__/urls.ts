@@ -29,15 +29,37 @@ interface SeoSitemapEntry {
   priority?: number
 }
 
+export function cleanPath(loc: string): string {
+  try {
+    if (loc.startsWith('http://') || loc.startsWith('https://')) {
+      loc = new URL(loc).pathname
+    }
+  }
+  catch {
+    // Keep loc as is if URL parsing fails
+  }
+
+  if (!loc.startsWith('/')) {
+    loc = `/${loc}`
+  }
+
+  if (loc.length > 1 && loc.endsWith('/')) {
+    loc = loc.slice(0, -1)
+  }
+
+  return loc
+}
+
 /**
- * Dynamic sitemap entries the file-based routes can't produce on their own:
- * every listable provider's profile, published legal/static pages, and
- * SEO category and location hierarchy landing pages (/category/* and /ph/*).
- * Registered via `sitemap.sources` in `nuxt.config.ts`.
- *
- * Two backend calls, made together. Provider pages come with the SEO entries from `/seo/sitemap-urls` (one query on
- * the backend, cached there); they used to be collected by paging through `/providers` 50 at a time, one request
- * after another.
+ * Dynamic sitemap entries:
+ * 1. Core public landing pages (/, /browse, /jobs, /blog).
+ * 2. Published legal/static pages (/legal/*).
+ * 3. Dynamic entities from backend /seo/sitemap-urls:
+ *    - Service categories (/category/{slug})
+ *    - Location hierarchy (/ph/{province}, /ph/{province}/{city}, etc.)
+ *    - Provider profiles using public slugs (/providers/{slug})
+ *    - Open job posts using public slugs (/jobs/{slug})
+ *    - Published blog posts using public slugs (/blog/{slug})
  */
 export default defineSitemapEventHandler(async (event) => {
   // Each source is independent: one failing backend call must not take the whole sitemap down with it.
@@ -46,33 +68,49 @@ export default defineSitemapEventHandler(async (event) => {
     callApi<{ urls?: SeoSitemapEntry[] } | SeoSitemapEntry[]>(event, '/seo/sitemap-urls'),
   ])
 
-  const urls: SitemapUrlEntry[] = []
+  const urlsMap = new Map<string, SitemapUrlEntry>()
 
-  // 1. Legal / static pages
+  const addUrl = (entry: SitemapUrlEntry) => {
+    const loc = cleanPath(entry.loc)
+    const existing = urlsMap.get(loc)
+    if (!existing) {
+      urlsMap.set(loc, { ...entry, loc })
+    }
+    else {
+      // If duplicate, preserve the higher priority and latest modification
+      const priority = Math.max(existing.priority ?? 0.5, entry.priority ?? 0.5) as SitemapPriority
+      urlsMap.set(loc, {
+        ...existing,
+        ...entry,
+        loc,
+        priority: normalizePriority(priority),
+        lastmod: entry.lastmod ?? existing.lastmod,
+      })
+    }
+  }
+
+  // 1. Core indexable landing pages
+  addUrl({ loc: '/', changefreq: 'daily', priority: 1 })
+  addUrl({ loc: '/browse', changefreq: 'daily', priority: 0.9 })
+  addUrl({ loc: '/jobs', changefreq: 'daily', priority: 0.9 })
+  addUrl({ loc: '/blog', changefreq: 'weekly', priority: 0.7 })
+
+  // 2. Legal / static pages from /pages
   if (pages.status === 'fulfilled') {
     for (const legalPage of pages.value) {
-      urls.push({ loc: `/legal/${legalPage.slug}`, changefreq: 'monthly', priority: 0.3 })
+      addUrl({ loc: `/legal/${legalPage.slug}`, changefreq: 'monthly', priority: 0.3 })
     }
   }
   else {
     console.error('[sitemap] pages source failed', pages.reason)
   }
 
-  // 2. Provider profiles, and the category and location SEO landing pages
+  // 3. Dynamic entities from backend /seo/sitemap-urls
   if (seo.status === 'fulfilled') {
     const seoEntries = Array.isArray(seo.value) ? seo.value : (seo.value.urls ?? [])
     for (const entry of seoEntries) {
-      let loc = entry.loc
-      try {
-        if (loc.startsWith('http://') || loc.startsWith('https://')) {
-          loc = new URL(loc).pathname
-        }
-      }
-      catch {
-        // Keep loc as is if URL parsing fails
-      }
-      urls.push({
-        loc,
+      addUrl({
+        loc: entry.loc,
         changefreq: entry.changefreq ?? 'weekly',
         priority: normalizePriority(entry.priority),
         ...(entry.lastmod ? { lastmod: entry.lastmod } : {}),
@@ -80,9 +118,9 @@ export default defineSitemapEventHandler(async (event) => {
     }
   }
   else {
-    // If the SEO endpoint is temporarily unavailable, carry on with the legal pages.
+    // If the SEO endpoint is temporarily unavailable, carry on with what we have.
     console.error('[sitemap] seo source failed', seo.reason)
   }
 
-  return urls
+  return Array.from(urlsMap.values())
 })

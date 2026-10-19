@@ -23,7 +23,7 @@ export function pageNumbers(current: number, total: number, around = 1): (number
 }
 
 /** Appends a freshly loaded page to what is already shown, skipping rows that shifted across the page boundary. */
-export function appendUnique<T extends { id: string }>(current: T[], next: T[]): T[] {
+export function appendUnique<T extends { id: string | number }>(current: T[], next: T[]): T[] {
   const seen = new Set(current.map(item => item.id))
   return [...current, ...next.filter(item => !seen.has(item.id))]
 }

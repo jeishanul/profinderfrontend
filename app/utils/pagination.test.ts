@@ -29,4 +29,8 @@ describe('appendUnique', () => {
   it('skips rows already shown (a new row shifted the page boundary)', () => {
     expect(appendUnique([{ id: 'a' }, { id: 'b' }], [{ id: 'b' }, { id: 'c' }])).toEqual([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
   })
+
+  it('handles numeric IDs correctly', () => {
+    expect(appendUnique([{ id: 1 }, { id: 2 }], [{ id: 2 }, { id: 3 }])).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }])
+  })
 })

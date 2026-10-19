@@ -50,6 +50,12 @@ describe('HeroSlider', () => {
     expect((await mountHero([], {}, '  ')).text()).toContain('Trusted by verified pros')
   })
 
+  it('prefers the slide eyebrow for the badge text when provided', async () => {
+    const wrapper = await mountHero([slide({ subtitle: 'Special Offer' })], {}, 'Default Badge')
+    expect(wrapper.text()).toContain('Special Offer')
+    expect(wrapper.text()).not.toContain('Default Badge')
+  })
+
   it('moves between slides with the arrows and the dots', async () => {
     const wrapper = await mountHero([slide({ title: 'First' }), slide({ title: 'Second' }), slide({ title: 'Third' })])
 

@@ -194,4 +194,10 @@ describe('FeaturedProviders modes', () => {
     expect(wrapper.find('h2').text()).toBe('Our picks')
     expect(wrapper.text()).toContain('Jane Pro')
   })
+
+  it('manual: defaults heading to Featured Providers when no custom heading is set', async () => {
+    const wrapper = await mountSuspended(FeaturedProviders, { props: { section: section('featured_providers', { settings: { mode: 'manual' } }), providers: [provider], categories: [] } })
+
+    expect(wrapper.find('h2').text()).toBe('Featured Providers')
+  })
 })

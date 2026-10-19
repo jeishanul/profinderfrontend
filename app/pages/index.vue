@@ -138,6 +138,11 @@ useSchemaOrg([defineWebPage()])
         :local="featuredIsLocal"
         :categories="categories ?? []"
       />
+      <LazyMarketplaceLatestJobs
+        v-else-if="section.key === 'latest_jobs'"
+        hydrate-on-visible
+        :section="section"
+      />
       <LazyMarketplaceWhyChooseUs
         v-else-if="section.key === 'why_choose_us'"
         hydrate-on-visible

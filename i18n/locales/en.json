@@ -149,7 +149,8 @@
   },
   "nav": {
     "howItWorks": "How it works",
-    "browseServices": "Browse services",
+    "browseServices": "Peek Pros",
+    "seekJobs": "Seek Jobs",
     "becomeProvider": "Become a provider",
     "login": "Log in",
     "signup": "Sign up",
@@ -181,7 +182,8 @@
     "getTheApp": "Get the app",
     "customers": {
       "heading": "For customers",
-      "browseServices": "Browse services",
+      "browseServices": "Peek Pros",
+      "seekJobs": "Seek Jobs",
       "howItWorks": "How it works"
     },
     "providers": {
@@ -323,11 +325,32 @@
     "featuredProviders": {
       "browseAll": "Browse all providers",
       "heading": "Top-rated pros",
+      "headingFeatured": "Featured Providers",
       "headingWithLocation": "Top-rated pros near {province}",
       "subheading": "A sample of our top-rated, verified professionals.",
+      "subheadingFeatured": "Handpicked verified professionals featured by our team.",
+      "tabPros": "Top-rated pros",
+      "tabJobs": "Latest job postings",
       "viewMore": "View more pros",
       "showFewer": "Show fewer pros",
       "subheadingLocal": "Top-rated, verified professionals working in this province."
+    },
+    "latestJobs": {
+      "heading": "Latest Job Postings",
+      "subheading": "Explore the newest job opportunities posted by local customers.",
+      "viewAll": "View all jobs",
+      "empty": "No open job postings at the moment.",
+      "viewDetails": "View details",
+      "postAJob": "Post a job"
+    },
+    "job": {
+      "budget": "Budget",
+      "tasks": "Tasks",
+      "applicants": "No offers yet | {count} offer | {count} offers",
+      "apply": "Apply now",
+      "details": "View details",
+      "posted": "Posted {when}",
+      "anyDate": "Any date"
     },
     "provider": {
       "yearsExperience": "{years} yrs experience",
@@ -495,7 +518,7 @@
       "savedProviders": "Saved providers",
       "settings": "Settings",
       "logOut": "Log out",
-      "seekJob": "Seek Job",
+      "seekJob": "Jobs Posting",
       "findJobs": "Find jobs",
       "myApplications": "My applications"
     },
@@ -1916,5 +1939,49 @@
       "view": "Find jobs",
       "applications": "My applications"
     }
+  },
+  "publicJobs": {
+    "title": "Seek Jobs",
+    "subtitle": "Discover open work requests from local customers across the Philippines.",
+    "seoTitle": "Open Job Requests & Gigs | Seek Jobs",
+    "seoDescription": "Browse active customer job postings, find local work, and send competitive offers directly.",
+    "filterCategory": "All Categories",
+    "filterProvince": "All Provinces",
+    "filterCity": "All Cities",
+    "searchPlaceholder": "Search jobs by title or keywords...",
+    "sortBy": "Sort by",
+    "sortNewest": "Newest first",
+    "sortSoonest": "Date: Soonest",
+    "sortBudget": "Budget: Highest",
+    "postJob": "Post a Job",
+    "noJobsFound": "No matching job posts found",
+    "noJobsFoundSub": "Try adjusting your search filters or check back soon for new postings.",
+    "tasksHeading": "Required tasks",
+    "detailsHeading": "Job Details",
+    "preferredSchedule": "Preferred Schedule",
+    "budgetEstimate": "Budget Estimate",
+    "location": "Location",
+    "postedOn": "Posted on",
+    "backToJobs": "Back to all jobs",
+    "applyNotice": "To apply for this job and submit an offer, log in as a registered service provider.",
+    "loginToApply": "Log in to apply",
+    "registerProvider": "Become a provider"
+  },
+  "blog": {
+    "title": "Blog & Guides",
+    "subtitle": "Helpful tips, maintenance guides, and local service insights.",
+    "seoTitle": "Tips, Guides & Home Services Insights",
+    "seoDescription": "Discover practical tips, maintenance guides, and local service recommendations across the Philippines.",
+    "allCategories": "All Categories",
+    "searchPlaceholder": "Search articles...",
+    "noPosts": "No blog posts found",
+    "noPostsSub": "Try adjusting your search terms or check back soon for fresh articles.",
+    "backToBlog": "Back to all articles",
+    "readMore": "Read article",
+    "publishedOn": "Published {date}",
+    "byAuthor": "By {author}",
+    "previousPost": "Previous article",
+    "nextPost": "Next article",
+    "tags": "Tags"
   }
 }

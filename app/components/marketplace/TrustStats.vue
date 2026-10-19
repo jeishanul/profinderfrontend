@@ -13,6 +13,8 @@ const DEFAULT_ICONS: IconName[] = ['users', 'briefcase', 'star']
 // numbers that would show on a brand-new install with zero real providers.
 const stats = computed(() => props.section.items.map((item, index) => ({
   id: `cms-${index}`,
+  imageUrl: item.imageUrl,
+  imageAlt: item.imageAlt ?? item.title ?? '',
   icon: knownIcon(item.icon, DEFAULT_ICONS[index % DEFAULT_ICONS.length]!),
   value: item.value ?? '',
   label: item.title ?? '',
@@ -38,10 +40,19 @@ const stats = computed(() => props.section.items.map((item, index) => ({
         :class="index > 0 ? 'sm:border-l sm:border-black/10 sm:pl-6 sm:dark:border-white/10' : ''"
       >
         <div
-          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+          class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl"
           :class="index % 2 === 0 ? 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100' : 'bg-accent-50 text-accent-700 dark:bg-accent-700/20 dark:text-accent-100'"
         >
+          <NuxtImg
+            v-if="stat.imageUrl"
+            :src="stat.imageUrl"
+            :alt="stat.imageAlt"
+            width="48"
+            height="48"
+            class="h-7 w-7 object-contain"
+          />
           <UiIcon
+            v-else
             :name="stat.icon"
             :filled="stat.icon === 'star'"
             :size="22"
