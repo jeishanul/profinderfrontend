@@ -40,7 +40,7 @@ async function submit() {
   try {
     await useApiFetch('/api/reports', {
       method: 'POST',
-      body: { type: props.type, id: Number(props.targetId), reason: reason.value, details: details.value.trim() || null },
+      body: { type: props.type, id: props.targetId, reason: reason.value, details: details.value.trim() || null },
     })
     toast.success(t('marketplace.report.sent'))
     emit('close')

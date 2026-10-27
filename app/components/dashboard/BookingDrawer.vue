@@ -82,8 +82,8 @@ async function message() {
     const conversationId = booking.value.conversationId ?? (await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
       method: 'POST',
       body: booking.value.viewerRole === 'provider'
-        ? { consumerUserId: Number(booking.value.consumer.id) }
-        : { providerId: Number(booking.value.provider.id) },
+        ? { consumerUserId: booking.value.consumer.id }
+        : { providerId: booking.value.provider.id },
     })).id
     emit('close')
     await navigateTo(localePath({ path: '/messages', query: { conversation: conversationId } }))

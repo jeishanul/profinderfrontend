@@ -40,7 +40,7 @@ async function messageClient(client: ClientServed) {
   try {
     const conversationId = client.conversationId ?? (await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
       method: 'POST',
-      body: { consumerUserId: Number(client.clientUserId) },
+      body: { consumerUserId: client.clientUserId },
     })).id
     await navigateTo(localePath({ path: '/messages', query: { conversation: conversationId } }))
   }

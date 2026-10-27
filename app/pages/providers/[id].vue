@@ -72,7 +72,7 @@ async function handleMessage() {
   try {
     const conversation = await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
       method: 'POST',
-      body: { providerId: Number(provider.value.id) },
+      body: { providerId: provider.value.id },
     })
     await navigateTo(localePath({ path: '/messages', query: { conversation: conversation.id } }))
   }
@@ -243,7 +243,7 @@ useSchemaOrg([
 
     <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
       <div class="-mt-16 flex flex-col items-start gap-5 pb-6 sm:flex-row sm:items-end">
-        <div class="h-[148px] w-[148px] shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg dark:border-black">
+        <div class="relative z-10 h-[148px] w-[148px] shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg dark:border-black">
           <UiAvatar
             :name="provider.name"
             :src="provider.avatarUrl"

@@ -151,6 +151,7 @@
     "howItWorks": "How it works",
     "browseServices": "Peek Pros",
     "seekJobs": "Seek Jobs",
+    "blog": "Blog",
     "becomeProvider": "Become a provider",
     "login": "Log in",
     "signup": "Sign up",
@@ -184,6 +185,7 @@
       "heading": "For customers",
       "browseServices": "Peek Pros",
       "seekJobs": "Seek Jobs",
+      "blog": "Blog",
       "howItWorks": "How it works"
     },
     "providers": {

@@ -31,7 +31,7 @@ async function messageProvider() {
   try {
     const conversation = await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
       method: 'POST',
-      body: { providerId: Number(props.provider.id) },
+      body: { providerId: props.provider.id },
     })
     await navigateTo(localePath({ path: '/messages', query: { conversation: conversation.id } }))
   }
