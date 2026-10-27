@@ -9,6 +9,11 @@ if (!process.env.NUXT_PUBLIC_SITE_URL && process.env.NODE_ENV === 'production') 
 }
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3838'
 
+// Each production build puts its chunks in a folder of its own. Vite writes a chunk's list of lazy dependencies
+// (`__vite__mapDeps`) after it has named the file, so a chunk can keep its name while its content changes. Browsers
+// and Cloudflare cache /_nuxt for a year as immutable, and the stale copy then fails its SRI check and breaks the page.
+const buildAssetsDir = process.env.NODE_ENV === 'production' ? `/_nuxt/${Date.now().toString(36)}/` : '/_nuxt/'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 
@@ -29,6 +34,7 @@ export default defineNuxtConfig({
   // The favicon links live in `app.vue`: an admin-uploaded favicon replaces the built-in brand mark there instead of
   // being added next to it. The apple-touch-icon stays static.
   app: {
+    buildAssetsDir,
     head: {
       link: [
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
