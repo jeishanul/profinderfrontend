@@ -22,12 +22,14 @@ export function defaultNavigation(t: Translate, settings?: Pick<SiteSettings, 's
       link(t('nav.howItWorks'), '/#how-it-works'),
       link(t('nav.browseServices'), '/browse'),
       link(t('nav.seekJobs'), '/jobs'),
+      link(t('nav.blog'), '/blog'),
       link(t('nav.becomeProvider'), '/become-a-provider', 'non_provider'),
     ],
     footerColumns: [[
       menu('footer_customers', t('footer.customers.heading'), [
         link(t('footer.customers.browseServices'), '/browse'),
         link(t('footer.customers.seekJobs'), '/jobs'),
+        link(t('footer.customers.blog'), '/blog'),
         link(t('footer.customers.howItWorks'), '/#how-it-works'),
       ]),
       menu('footer_providers', t('footer.providers.heading'), [link(t('footer.providers.becomeProvider'), '/become-a-provider')]),

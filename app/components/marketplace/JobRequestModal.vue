@@ -70,10 +70,10 @@ async function submit() {
     const conversation = await useApiFetch<{ id: string }>('/api/dashboard/conversations', {
       method: 'POST',
       body: {
-        providerId: Number(props.providerId),
+        providerId: props.providerId,
         request: {
           description: description.value.trim(),
-          serviceListingId: serviceListingId.value ? Number(serviceListingId.value) : null,
+          serviceListingId: serviceListingId.value || null,
           preferredDate: preferredDate.value || null,
           preferredTime: preferredTime.value || null,
           address: address.value.trim() || null,

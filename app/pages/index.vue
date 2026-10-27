@@ -7,6 +7,7 @@ import type {
   ProviderSummary,
   Testimonial,
 } from '#shared/types/marketplace'
+import type { JobPostBase } from '#shared/types/jobPosts'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
@@ -48,6 +49,14 @@ const provinceRequest = providersRequest && mode === 'auto' && lastSearch.value?
       key: 'home-featured-province',
     })
   : null
+// "Latest job postings": the newest open posts, as many as the admin set (10 by default).
+const latestJobsSection = sectionFor('latest_jobs')
+const latestJobsRequest = latestJobsSection
+  ? useApi<{ items: JobPostBase[], total: number }>('/jobs/latest', {
+      query: { limit: sectionNumber(latestJobsSection.settings, 'maxItems', 10) },
+      key: 'home-latest-jobs',
+    })
+  : null
 const testimonialsRequest = sectionFor('testimonials') ? useApi<Testimonial[]>('/testimonials') : null
 const faqRequest = sectionFor('faq') ? useApi<FaqItem[]>('/faq') : null
 const GALLERY_TABS: GalleryTab[] = ['home', 'recommended', 'trending']
@@ -55,12 +64,13 @@ const galleryResponses = sectionFor('jobs_gallery')
   ? GALLERY_TABS.map(tab => useApi<GalleryItem[]>('/gallery', { query: { tab }, key: `home-gallery-${tab}` }))
   : []
 
-await Promise.all([providersRequest, provinceRequest, testimonialsRequest, faqRequest, ...galleryResponses])
+await Promise.all([providersRequest, provinceRequest, latestJobsRequest, testimonialsRequest, faqRequest, ...galleryResponses])
 
 const providersPage = providersRequest?.data ?? null
 const provincePage = provinceRequest?.data ?? null
 const featuredIsLocal = computed(() => (provincePage?.value?.items.length ?? 0) >= FEATURED_MIN)
 const featuredProviders = computed(() => (featuredIsLocal.value ? provincePage!.value!.items : providersPage?.value?.items ?? []))
+const latestJobs = computed(() => latestJobsRequest?.data.value?.items ?? [])
 const testimonials = testimonialsRequest?.data ?? null
 const faqItems = faqRequest?.data ?? null
 const galleryItemsByTab = computed(() => Object.fromEntries(
@@ -142,6 +152,7 @@ useSchemaOrg([defineWebPage()])
         v-else-if="section.key === 'latest_jobs'"
         hydrate-on-visible
         :section="section"
+        :jobs="latestJobs"
       />
       <LazyMarketplaceWhyChooseUs
         v-else-if="section.key === 'why_choose_us'"

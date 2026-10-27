@@ -96,6 +96,7 @@ describe('defaultNavigation (used when the navigation request fails)', () => {
       ['/#how-it-works', 'all'],
       ['/browse', 'all'],
       ['/jobs', 'all'],
+      ['/blog', 'all'],
       ['/become-a-provider', 'non_provider'],
     ])
     expect(nav.header[0]!.label).toBe('[nav.howItWorks]')

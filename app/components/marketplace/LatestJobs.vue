@@ -9,11 +9,12 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-// If jobs are provided via prop (e.g. server-rendered from index.vue), use them;
+// If jobs are provided via prop (the home page loads them with its other lists), use them;
 // otherwise fetch dynamically from /jobs/latest.
 const { data: response, status } = props.jobs
   ? { data: ref({ items: props.jobs, total: props.jobs.length }), status: ref('success') }
   : useApi<{ items: JobPostBase[], total: number }>('/jobs/latest', {
+      query: { limit: sectionNumber(props.section?.settings, 'maxItems', 10) },
       key: 'home-latest-jobs',
       default: () => ({ items: [], total: 0 }),
     })
@@ -30,6 +31,7 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
 <template>
   <section
     v-if="hasJobs || status === 'pending'"
+    :id="section ? sectionAnchor(section) : undefined"
     class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:px-10"
   >
     <div class="mb-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
