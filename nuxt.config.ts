@@ -254,6 +254,9 @@ export default defineNuxtConfig({
         'upgrade-insecure-requests': false,
         'img-src': ['\'self\'', 'data:', 'blob:', 'http:', 'https:'],
         'media-src': ['\'self\'', 'blob:', 'http:', 'https:'],
+        // The one inline handler allowed: @nuxt/image's server-rendered `onerror`, which marks an image that failed
+        // before hydration so NuxtImg can still report the error. Its hash only matches that exact code.
+        'script-src-attr': ['\'unsafe-hashes\'', '\'sha256-bwK6T5wZVTANitXbrTsel7kl/PyCjCd/Dq5Qoz3imjM=\''],
       },
     },
   },
