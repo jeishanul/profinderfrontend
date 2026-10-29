@@ -66,4 +66,11 @@ describe('seo-redirects.global middleware', () => {
     const result = middleware(to, dummyFrom)
     expect(result).toBeUndefined()
   })
+
+  it('does not treat shop pages like /shop/logo-tee or /shop/orders/SO-1 as locations', () => {
+    for (const path of ['/shop/logo-tee', '/shop/category/apparel', '/shop/orders/SO-1']) {
+      const to = { path, query: {} } as unknown as RouteLocationNormalized
+      expect(middleware(to, dummyFrom)).toBeUndefined()
+    }
+  })
 })
