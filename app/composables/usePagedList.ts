@@ -13,12 +13,18 @@ interface PagedListOptions {
   immediate?: boolean
 }
 
+/** Rows are told apart by `id`; rows without one (shop products, orders) pass `itemKey`. */
+interface KeyedPagedListOptions<T> extends PagedListOptions {
+  itemKey?: (item: T) => string | number
+}
+
 /**
  * A server-paged list with "Load more": the first page goes through `useApi`
  * (SSR-friendly, refetches when `query` changes), later pages are appended
  * client-side. Works both as `await usePagedList(...)` and without the await.
  */
-export function usePagedList<T extends { id: string | number }, M extends ListPageMeta = ListPageMeta>(url: string, options: PagedListOptions) {
+export function usePagedList<T, M extends ListPageMeta = ListPageMeta>(url: string, options: KeyedPagedListOptions<T>) {
+  const keyOf = options.itemKey ?? ((item: T) => (item as { id: string | number }).id)
   const perPage = options.perPage ?? 20
   const firstPageQuery = computed(() => ({ ...toValue(options.query), perPage, page: 1 }))
 
@@ -48,7 +54,7 @@ export function usePagedList<T extends { id: string | number }, M extends ListPa
     nextPage.value = 2
   }, { flush: 'sync' })
 
-  const items = computed<T[]>(() => appendUnique(request.data.value?.data ?? [], later.value))
+  const items = computed<T[]>(() => appendUnique(request.data.value?.data ?? [], later.value, keyOf))
   const meta = computed<M | null>(() => laterMeta.value ?? request.data.value?.meta ?? null)
   const hasMore = computed(() => meta.value?.hasMore ?? false)
 
@@ -56,7 +62,7 @@ export function usePagedList<T extends { id: string | number }, M extends ListPa
     const token = guard.token()
     const result = await $fetch<Paged<T, M>>(`/api${url}`, { query: { ...toValue(options.query), perPage, page } })
     if (guard.isStale(token)) return
-    later.value = appendUnique(later.value, result.data)
+    later.value = appendUnique(later.value, result.data, keyOf)
     laterMeta.value = result.meta
     nextPage.value = page + 1
   }

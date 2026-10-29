@@ -356,7 +356,7 @@ export interface Conversation {
   providerId?: string
 }
 
-export type NotificationTopic = 'bookings' | 'payments' | 'messages' | 'jobs' | 'account' | 'system'
+export type NotificationTopic = 'bookings' | 'payments' | 'messages' | 'jobs' | 'account' | 'system' | 'shop'
 
 export type NotificationKind
   = | 'new_booking'
@@ -402,6 +402,8 @@ export type NotificationKind
     | 'job_post_removed'
     | 'job_post_match'
     | 'report_dismissed'
+    | 'shop_order_placed'
+    | 'shop_order_status'
 
 export interface NotificationItem {
   id: string
@@ -415,6 +417,9 @@ export interface NotificationItem {
   categoryName?: string | null
   amountUsd?: number
   ratingGiven?: number
+  /** Shop order notifications: the order's number and (for `shop_order_status`) its new status. */
+  orderNumber?: string | null
+  status?: string | null
   /** Free text — only set for kinds that carry their own copy (admin announcements). */
   title?: string | null
   body?: string | null

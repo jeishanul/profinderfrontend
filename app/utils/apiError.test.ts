@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apiErrorCode, apiErrorMessage, apiErrorStatus, apiFieldErrors } from './apiError'
+import { apiErrorCode, apiErrorField, apiErrorMessage, apiErrorStatus, apiFieldErrors } from './apiError'
 
 /** What the browser really receives: the Nitro BFF wraps Laravel's body in `data`. */
 function bffError(laravel: Record<string, unknown>, statusCode = 422) {
@@ -35,5 +35,13 @@ describe('apiError helpers', () => {
   it('reads the status from either shape', () => {
     expect(apiErrorStatus({ statusCode: 422 })).toBe(422)
     expect(apiErrorStatus({ status: 401 })).toBe(401)
+  })
+})
+
+describe('apiErrorField', () => {
+  it('reads an extra field from the wrapped or flat Laravel body', () => {
+    expect(apiErrorField({ data: { data: { code: 'price_changed', preview: { total: 5 } } } }, 'preview')).toEqual({ total: 5 })
+    expect(apiErrorField({ data: { preview: 1 } }, 'preview')).toBe(1)
+    expect(apiErrorField(null, 'preview')).toBeUndefined()
   })
 })

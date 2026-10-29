@@ -26,6 +26,8 @@ const { data: categories } = useNuxtData<ServiceCategory[]>('categories')
 const authModal = useAuthModal()
 const { unreadMessages, unreadNotifications } = useUnreadCounts()
 const firstName = computed(() => session.name.value.split(' ')[0] ?? '')
+// Filled in after mount (`plugins/shop-cart.client.ts`), so the server and the first client render both show none.
+const shopCart = useShopCart()
 
 const localePath = useLocalePath()
 function handleDockedSearch({ category, province, city, barangay }: { category: string, province: string, city: string, barangay: string }) {
@@ -94,6 +96,20 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
            header. -->
       <div class="flex shrink-0 items-center gap-3.5">
         <UiThemeToggle />
+        <NuxtLinkLocale
+          to="/shop/cart"
+          class="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+          :aria-label="shopCart.count.value > 0 ? t('nav.cartWithCount', { count: shopCart.count.value }) : t('nav.cart')"
+        >
+          <UiIcon
+            name="bag"
+            :size="18"
+          />
+          <span
+            v-if="shopCart.count.value > 0"
+            class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white"
+          >{{ formatBadgeCount(shopCart.count.value) }}</span>
+        </NuxtLinkLocale>
         <div
           v-if="session.isAuthenticated.value"
           class="hidden items-center gap-1.5 md:flex"

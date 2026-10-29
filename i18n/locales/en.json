@@ -160,7 +160,9 @@
     "home": "Home",
     "browse": "Browse",
     "saved": "Saved",
-    "more": "More"
+    "more": "More",
+    "cart": "Cart",
+    "cartWithCount": "Cart, {count} items"
   },
   "more": {
     "viewProfile": "View and edit your profile",
@@ -186,7 +188,9 @@
       "browseServices": "Peek Pros",
       "seekJobs": "Seek Jobs",
       "blog": "Blog",
-      "howItWorks": "How it works"
+      "howItWorks": "How it works",
+      "shop": "Shop",
+      "myOrders": "My orders"
     },
     "providers": {
       "heading": "For providers",
@@ -522,7 +526,8 @@
       "logOut": "Log out",
       "seekJob": "Jobs Posting",
       "findJobs": "Find jobs",
-      "myApplications": "My applications"
+      "myApplications": "My applications",
+      "myOrders": "My orders"
     },
     "roleSwitch": {
       "provider": "Provider",
@@ -1112,7 +1117,8 @@
         "messages": "Messages",
         "account": "Account",
         "system": "System",
-        "jobs": "Jobs"
+        "jobs": "Jobs",
+        "shop": "Orders"
       },
       "today": "Today",
       "earlier": "Earlier",
@@ -1286,6 +1292,14 @@
       "job_post_match": {
         "title": "New job in your area",
         "body": "{category}: \"{subject}\". Apply with your offer."
+      },
+      "shop_order_placed": {
+        "title": "Order {order} placed",
+        "body": "Thanks for your order. We will let you know when it ships."
+      },
+      "shop_order_status": {
+        "title": "Order {order}: {status}",
+        "body": "Your order is now {status}. Tap to see the details."
       }
     },
     "services": {
@@ -1985,5 +1999,240 @@
     "previousPost": "Previous article",
     "nextPost": "Next article",
     "tags": "Tags"
+  },
+  "shop": {
+    "title": "Shop",
+    "seoTitle": "Shop",
+    "seoDescription": "Official merchandise: browse the catalog, pick your size and colour, and order with cash on delivery or PayPal.",
+    "categorySeoDescription": "Shop {category}: browse products, compare prices and order online.",
+    "subtitle": "Official merchandise, delivered to your door.",
+    "home": "Home",
+    "categories": "Categories",
+    "allProducts": "All products",
+    "showCategories": "Show categories",
+    "hideCategories": "Hide categories",
+    "searchPlaceholder": "Search products",
+    "searchLabel": "Search products",
+    "sortLabel": "Sort by",
+    "sort": {
+      "newest": "Newest",
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low"
+    },
+    "from": "From {price}",
+    "priceRange": "{min} – {max}",
+    "outOfStock": "Out of stock",
+    "inStock": "In stock",
+    "stockLeft": "Only {count} left | Only {count} left",
+    "compareAt": "Was {price}",
+    "noProducts": "No products found",
+    "noProductsSub": "Try another search or category.",
+    "productsCount": "{count} product | {count} products",
+    "product": {
+      "sku": "SKU: {sku}",
+      "quantity": "Quantity",
+      "addToCart": "Add to cart",
+      "buyNow": "Buy now",
+      "added": "Added to your cart.",
+      "addFailed": "Couldn't add this to your cart.",
+      "chooseOptions": "Choose your options",
+      "unavailableCombination": "This combination isn't available.",
+      "minQty": "Minimum order: {count}",
+      "maxQty": "Maximum per order: {count}",
+      "description": "Description",
+      "viewCart": "View cart",
+      "image": "Photo {index} of {total}",
+      "showImage": "Show photo {index}",
+      "optionUnavailable": "{value} (unavailable)"
+    },
+    "quantity": {
+      "decrease": "Decrease quantity",
+      "increase": "Increase quantity",
+      "label": "Quantity"
+    },
+    "cart": {
+      "title": "Your cart",
+      "seoTitle": "Cart",
+      "empty": "Your cart is empty",
+      "emptySub": "Find something you like in the shop.",
+      "continueShopping": "Continue shopping",
+      "subtotal": "Subtotal",
+      "itemCount": "{count} item | {count} items",
+      "checkout": "Checkout",
+      "remove": "Remove",
+      "removeItem": "Remove {name}",
+      "clear": "Empty cart",
+      "clearConfirm": {
+        "title": "Empty your cart?",
+        "message": "Every item will be removed.",
+        "confirm": "Empty cart"
+      },
+      "fixIssues": "Fix the items marked below to check out.",
+      "shippingNote": "Shipping is calculated at checkout.",
+      "updateFailed": "Couldn't update your cart.",
+      "loadFailed": "Couldn't load your cart.",
+      "issues": {
+        "unavailable": "This item is no longer available. Remove it to continue.",
+        "out_of_stock": "Out of stock. Remove it to continue.",
+        "below_min": "The minimum for this item is {min}.",
+        "above_max": "The maximum for this item is {max}.",
+        "insufficient_stock": "Only {available} left in stock."
+      }
+    },
+    "checkout": {
+      "title": "Checkout",
+      "seoTitle": "Checkout",
+      "address": "Delivery address",
+      "addAddress": "Add a new address",
+      "noAddresses": "Add a delivery address to continue.",
+      "default": "Default",
+      "makeDefault": "Set as default",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": {
+        "title": "Delete this address?",
+        "message": "It will be removed from your saved addresses.",
+        "confirm": "Delete"
+      },
+      "addressSaved": "Address saved.",
+      "addressDeleted": "Address deleted.",
+      "addressFailed": "Couldn't save the address.",
+      "payment": "Payment method",
+      "methods": {
+        "cod": "Cash on delivery",
+        "paypal": "PayPal"
+      },
+      "methodHints": {
+        "cod": "Pay in cash when your order arrives.",
+        "paypal": "You'll be sent to PayPal to pay."
+      },
+      "unavailableReasons": {
+        "cod_limit": "Not available for orders this large.",
+        "cod_area": "Not available for this delivery address.",
+        "default": "Not available right now."
+      },
+      "note": "Note for the seller (optional)",
+      "notePlaceholder": "Delivery instructions, landmarks…",
+      "summary": "Order summary",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "free": "Free",
+      "shippingPending": "Choose an address",
+      "total": "Total",
+      "placeOrder": "Place order",
+      "placing": "Placing order…",
+      "notDeliverable": "Sorry, we don't deliver to this address yet. Choose another address.",
+      "hasIssues": "Some items need attention before you can order.",
+      "backToCart": "Back to cart",
+      "empty": "There is nothing to check out.",
+      "previewFailed": "Couldn't load your order summary.",
+      "placeFailed": "Couldn't place your order.",
+      "priceChanged": "Prices or shipping changed. Check the new total and place your order again.",
+      "errors": {
+        "cart_issues": "Some items in your order need attention.",
+        "not_deliverable": "We don't deliver to this address yet.",
+        "payment_unavailable": "That payment method isn't available for this order.",
+        "empty": "There is nothing to order."
+      },
+      "chooseMethod": "Choose a payment method.",
+      "chooseAddress": "Choose a delivery address."
+    },
+    "address": {
+      "label": "Label (optional)",
+      "labelPlaceholder": "Home, Office…",
+      "recipientName": "Recipient name",
+      "phone": "Phone number",
+      "street": "House no., street, building",
+      "postalCode": "Postal code (optional)",
+      "isDefault": "Use as my default address",
+      "save": "Save address",
+      "cancel": "Cancel",
+      "newTitle": "New address",
+      "editTitle": "Edit address",
+      "required": "Fill in the required fields."
+    },
+    "orders": {
+      "title": "My orders",
+      "seoTitle": "My orders",
+      "subtitle": "Track your shop orders.",
+      "filters": {
+        "all": "All",
+        "active": "Active",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled"
+      },
+      "empty": "No orders yet",
+      "emptySub": "Orders you place in the shop show up here.",
+      "number": "Order {number}",
+      "placedOn": "Placed {date}",
+      "items": "{count} item | {count} items",
+      "backToOrders": "Back to my orders",
+      "loadFailed": "Couldn't load this order."
+    },
+    "order": {
+      "seoTitle": "Order {number}",
+      "placedBanner": "Thank you! Your order has been placed.",
+      "paypalCancelled": "PayPal payment was cancelled. You can try again below.",
+      "paid": "Payment received. Thank you!",
+      "payFailed": "The PayPal payment didn't go through.",
+      "timeline": "Status",
+      "items": "Items",
+      "deliverTo": "Delivery address",
+      "payment": "Payment",
+      "paymentStatus": "Payment status",
+      "shipment": "Shipment",
+      "courier": "Courier: {courier}",
+      "tracking": "Tracking number: {number}",
+      "note": "Your note",
+      "cancel": "Cancel order",
+      "cancelConfirm": {
+        "title": "Cancel this order?",
+        "message": "This can't be undone.",
+        "confirm": "Cancel order",
+        "reason": "Reason (optional)"
+      },
+      "cancelled": "Your order was cancelled.",
+      "cancelFailed": "Couldn't cancel the order.",
+      "payWithPaypal": "Pay with PayPal",
+      "payStartFailed": "Couldn't start the PayPal payment.",
+      "payBy": "Pay by {date} or the order is cancelled.",
+      "processingPayment": "Confirming your payment…",
+      "buyAgain": "View product"
+    },
+    "status": {
+      "pending_payment": "Awaiting payment",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
+    "paymentStatus": {
+      "unpaid": "Unpaid",
+      "paid": "Paid",
+      "refunded": "Refunded",
+      "failed": "Failed"
+    },
+    "receipt": {
+      "open": "Receipt",
+      "seoTitle": "Receipt for order {number}",
+      "title": "Receipt",
+      "print": "Print or save as PDF",
+      "back": "Back to order",
+      "orderNumber": "Order {number}",
+      "placedOn": "Placed {date}",
+      "billedTo": "Deliver to",
+      "item": "Item",
+      "qty": "Qty",
+      "unitPrice": "Price",
+      "amount": "Amount",
+      "subtotal": "Subtotal",
+      "shipping": "Delivery",
+      "total": "Total",
+      "payment": "Payment",
+      "thanks": "Thank you for your order!"
+    }
   }
 }

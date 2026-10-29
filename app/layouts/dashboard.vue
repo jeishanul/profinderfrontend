@@ -96,6 +96,7 @@ const mobileNavItems = computed(() => [
         { to: '/seek-job', label: t('dashboard.sidebar.seekJob') },
       ]
     : []),
+  { to: '/shop/orders', label: t('dashboard.sidebar.myOrders') },
   { to: '/messages', label: t('dashboard.sidebar.messages') },
   { to: '/notifications', label: t('dashboard.sidebar.notifications') },
   { to: '/settings', label: t('dashboard.sidebar.settings') },
@@ -303,6 +304,15 @@ async function handleLogout() {
           >{{ formatBadgeCount(newApplicants) }}</span>
         </NuxtLinkLocale>
       </template>
+      <NuxtLinkLocale
+        to="/shop/orders"
+        :class="linkClassActive(route.path.startsWith(localePath('/shop/orders')))"
+      >
+        <UiIcon
+          name="bag"
+          :size="18"
+        />{{ t('dashboard.sidebar.myOrders') }}
+      </NuxtLinkLocale>
 
       <div class="flex-1" />
       <NuxtLinkLocale
