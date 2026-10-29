@@ -120,7 +120,15 @@ useSeoMeta({
             {{ t('shop.orders.placedOn', { date: formatDateTime(order.placedAt, locale) }) }}
           </p>
         </div>
-        <ShopOrderStatusBadge :status="order.status" />
+        <div class="flex items-center gap-3">
+          <NuxtLinkLocale
+            :to="`/shop/orders/${encodeURIComponent(order.number)}/receipt`"
+            class="text-sm font-semibold text-brand-700 hover:underline dark:text-brand-400"
+          >
+            {{ t('shop.receipt.open') }}
+          </NuxtLinkLocale>
+          <ShopOrderStatusBadge :status="order.status" />
+        </div>
       </div>
 
       <div

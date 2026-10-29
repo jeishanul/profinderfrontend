@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The cart. Browser-only (personal; a guest's cart is in localStorage), see `routeRules`.
 const { t } = useI18n()
-const { money } = useSiteSettings()
+const { money, settings } = useSiteSettings()
 const toast = useToast()
 const { confirm } = useConfirm()
 const session = useSession()
@@ -150,6 +150,9 @@ useSchemaOrg([defineWebPage()])
         </div>
         <p class="mt-1 text-xs text-black/50 dark:text-white/50">
           {{ t('shop.cart.shippingNote') }}
+          <template v-if="settings.shopPriceNote">
+            {{ settings.shopPriceNote }}
+          </template>
         </p>
         <UiButton
           class="mt-5 w-full py-3"

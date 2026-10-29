@@ -2108,6 +2108,7 @@
       },
       "unavailableReasons": {
         "cod_limit": "Not available for orders this large.",
+        "cod_area": "Not available for this delivery address.",
         "default": "Not available right now."
       },
       "note": "Note for the seller (optional)",
@@ -2213,6 +2214,25 @@
       "paid": "Paid",
       "refunded": "Refunded",
       "failed": "Failed"
+    },
+    "receipt": {
+      "open": "Receipt",
+      "seoTitle": "Receipt for order {number}",
+      "title": "Receipt",
+      "print": "Print or save as PDF",
+      "back": "Back to order",
+      "orderNumber": "Order {number}",
+      "placedOn": "Placed {date}",
+      "billedTo": "Deliver to",
+      "item": "Item",
+      "qty": "Qty",
+      "unitPrice": "Price",
+      "amount": "Amount",
+      "subtotal": "Subtotal",
+      "shipping": "Delivery",
+      "total": "Total",
+      "payment": "Payment",
+      "thanks": "Thank you for your order!"
     }
   }
 }

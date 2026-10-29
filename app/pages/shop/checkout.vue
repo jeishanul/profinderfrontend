@@ -14,7 +14,7 @@ import type {
 definePageMeta({ middleware: 'auth' })
 
 const { t } = useI18n()
-const { money } = useSiteSettings()
+const { money, settings } = useSiteSettings()
 const toast = useToast()
 const { confirm } = useConfirm()
 const route = useRoute()
@@ -182,7 +182,9 @@ async function placeOrder() {
 }
 
 function paymentReason(reason: string | null): string {
-  return reason === 'cod_limit' ? t('shop.checkout.unavailableReasons.cod_limit') : t('shop.checkout.unavailableReasons.default')
+  return reason === 'cod_limit' || reason === 'cod_area'
+    ? t(`shop.checkout.unavailableReasons.${reason}`)
+    : t('shop.checkout.unavailableReasons.default')
 }
 
 function addressLine(address: ShopAddress): string {
@@ -419,6 +421,12 @@ useSchemaOrg([defineWebPage()])
               <dd>{{ preview.total === null ? '—' : money(preview.total) }}</dd>
             </div>
           </dl>
+          <p
+            v-if="settings.shopPriceNote"
+            class="mt-2 text-xs text-black/50 dark:text-white/50"
+          >
+            {{ settings.shopPriceNote }}
+          </p>
           <p
             v-if="blocker"
             role="alert"

@@ -148,7 +148,7 @@ export type ShopCheckoutSource = 'cart' | 'buy_now'
 export interface ShopPaymentOption {
   key: ShopPaymentMethod
   available: boolean
-  reason: null | 'cod_limit'
+  reason: null | 'cod_limit' | 'cod_area'
 }
 
 export interface ShopCheckoutPreview {
