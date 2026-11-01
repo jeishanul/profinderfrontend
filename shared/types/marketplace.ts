@@ -48,6 +48,8 @@ export interface SiteSettings {
   appStoreUrl: string | null
   playStoreUrl: string | null
   maintenanceMode: boolean
+  /** Shown under shop totals and on receipts (e.g. that prices include tax). */
+  shopPriceNote: string | null
 }
 
 export interface StaticPageContent {

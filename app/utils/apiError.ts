@@ -47,3 +47,8 @@ export function apiErrorStatus(error: unknown): number | undefined {
   const e = error as ApiErrorShape | null
   return e?.statusCode ?? e?.status
 }
+
+/** An extra field Laravel sent with a refusal (e.g. the fresh checkout `preview` with a `price_changed` 422). */
+export function apiErrorField<T>(error: unknown, field: string): T | undefined {
+  return (laravelBody(error) as Record<string, unknown>)[field] as T | undefined
+}

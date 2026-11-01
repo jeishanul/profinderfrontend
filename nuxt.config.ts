@@ -112,6 +112,13 @@ export default defineNuxtConfig({
     '/seek-job': { ssr: false, robots: false },
     '/find-jobs/**': { ssr: false, robots: false },
     '/find-jobs': { ssr: false, robots: false },
+    // Shop: the catalog and product pages are plain SSR (no `isr`, see CLAUDE.md); the cart, checkout and orders are
+    // personal (a guest's cart lives in localStorage), so browser-only and never indexed.
+    '/shop': { sitemap: { changefreq: 'daily', priority: 0.8 } },
+    '/shop/cart': { ssr: false, robots: false },
+    '/shop/checkout': { ssr: false, robots: false },
+    '/shop/orders': { ssr: false, robots: false },
+    '/shop/orders/**': { ssr: false, robots: false },
     // Credential endpoints: Laravel also throttles per account/IP, this just caps a single address hammering them.
     '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
     // The backend's public files (admin-uploaded pictures). Images on the pages come straight from the backend's own

@@ -29,6 +29,8 @@ export function defaultNavigation(t: Translate, settings?: Pick<SiteSettings, 's
       menu('footer_customers', t('footer.customers.heading'), [
         link(t('footer.customers.browseServices'), '/browse'),
         link(t('footer.customers.seekJobs'), '/jobs'),
+        link(t('footer.customers.shop'), '/shop'),
+        link(t('footer.customers.myOrders'), '/shop/orders', 'auth'),
         link(t('footer.customers.blog'), '/blog'),
         link(t('footer.customers.howItWorks'), '/#how-it-works'),
       ]),

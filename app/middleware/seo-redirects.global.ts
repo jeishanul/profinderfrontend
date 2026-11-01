@@ -45,6 +45,7 @@ export default defineNuxtRouteMiddleware((to) => {
     'legal',
     'blog',
     'providers',
+    'shop',
     '_nuxt',
     '_loading',
   ])

@@ -64,6 +64,8 @@ const ICON_BY_KIND: Record<NotificationItem['kind'], IconName> = {
   job_post_booking_cancelled: 'x',
   job_post_removed: 'lock',
   job_post_match: 'search',
+  shop_order_placed: 'bag',
+  shop_order_status: 'bag',
 }
 
 // Good news is brand green, money is amber, problems are red, everything else neutral.
@@ -118,6 +120,8 @@ const TINT_BY_KIND: Record<NotificationItem['kind'], string> = {
   job_post_booking_cancelled: TINT.danger,
   job_post_removed: TINT.danger,
   job_post_match: TINT.brand,
+  shop_order_placed: TINT.brand,
+  shop_order_status: TINT.neutral,
 }
 
 // Copy the server wrote itself (announcements, account notices, a cancellation
@@ -129,6 +133,8 @@ const params = computed(() => ({
   category: props.item.categoryName ?? categoryLabel(props.item.categoryId),
   amount: money(props.item.amountUsd ?? 0),
   site: settings.value.siteName ?? t('brand.name'),
+  order: props.item.orderNumber ?? props.item.subjectName ?? '',
+  status: props.item.status ? t(`shop.status.${props.item.status}`) : '',
 }))
 
 const title = computed(() => props.item.title || t(`dashboard.notificationsPage.${props.item.kind}.title`, params.value))

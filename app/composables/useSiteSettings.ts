@@ -29,6 +29,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   appStoreUrl: null,
   playStoreUrl: null,
   maintenanceMode: false,
+  shopPriceNote: null,
 }
 
 /**

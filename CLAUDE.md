@@ -601,6 +601,19 @@ absolute`, use `@nuxt/fonts` for custom fonts.
 - "New applicants" count rides on the `/dashboard/conversations/unread-count` poll (`UNREAD_APPLICANTS_KEY`), no extra request.
 - Job photos and the exact address are private: photos stream through the BFF with the session; never put the post title in a notification `title/body`, only as the `subjectName` param.
 
+### Shop (merchandise storefront)
+
+- Pages: `/shop`, `/shop/category/[slug]` (both render `<ShopProductListing>`, which also owns their SEO; search/sort in
+  the URL), `/shop/[slug]` (product; SSR, `defineProduct`), and the personal `/shop/cart`, `/shop/checkout`,
+  `/shop/orders/**` (`ssr: false` + `robots: false`). Product slugs `cart`, `checkout`, `orders`, `category` are shadowed.
+- BFF under `server/api/shop/**`: catalog reads use `getPublicApi` (a `q` search uses `callApi`), the guest quote and
+  everything signed-in (`/v1/dashboard/shop/**`) use `callApi`. Responses keep Laravel's `{ data }` wrapper.
+- Cart: `useShopCart()`. A guest's cart is `{ sku, quantity }` lines in localStorage (`SHOP_CART_STORAGE_KEY`), priced
+  by `POST /api/shop/cart/quote`; signed in, the cart is on the server. `plugins/shop-cart.client.ts` starts it after
+  mount (personal data stays out of SSR) and merges the guest cart into the account on login. Checkout waits on
+  `whenSynced()`. Pure helpers (merge, clamp, URL query) in `utils/shop.ts`, variant picking in `utils/shopVariants.ts`.
+- Rows without an `id` (products, orders) page with `usePagedList(url, { itemKey })`.
+
 ### Testing the BFF
 
 `callApi` is built by `createCallApi(deps)` (`server/utils/apiProxy.ts`) so its rules (token, client address,

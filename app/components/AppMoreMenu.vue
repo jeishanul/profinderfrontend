@@ -123,6 +123,19 @@ const iconWrapClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded
           {{ t('dashboard.sidebar.myPurchases') }}
         </NuxtLinkLocale>
         <NuxtLinkLocale
+          to="/shop/orders"
+          :class="itemClass"
+          @click="go"
+        >
+          <span :class="iconWrapClass">
+            <UiIcon
+              name="bag"
+              :size="17"
+            />
+          </span>
+          {{ t('dashboard.sidebar.myOrders') }}
+        </NuxtLinkLocale>
+        <NuxtLinkLocale
           v-if="!isProvider"
           to="/seek-job"
           :class="itemClass"
