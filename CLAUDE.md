@@ -372,6 +372,11 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   distinct set of props is its own satori render on the server.
 - Images go through `<NuxtImg>`/`<NuxtPicture>` (`@nuxt/image`), never a bare `<img>` for
   content images. Fonts go through `@nuxt/fonts`, never a manual Google Fonts `<link>`.
+- **`<NuxtImg sizes>` uses @nuxt/image's own syntax, not HTML's**: `sizes="sm:100vw md:50vw lg:384px"`
+  (Tailwind-style min-width breakpoints, the first one also covers smaller screens). A native value like
+  `"(min-width: 1024px) 384px, 100vw"` or a bare `"100vw"` is mis-parsed onto a 1px "screen" and renders a
+  1–2 px wide image (`/_ipx/w_1…`, `w_2…`) — every product, blog and hero image showed as a blur because of it.
+  A bare fixed width (`sizes="160px"`) is fine.
 - `NuxtLink` prefetches on visibility by default (see `experimental.defaults.nuxtLink`) — no
   need to configure this per-link.
 

@@ -19,7 +19,7 @@ const { t } = useI18n()
         v-if="product.imageUrl"
         :src="product.imageUrl"
         :alt="product.imageAlt || product.name"
-        sizes="(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw"
+        sizes="sm:50vw md:33vw lg:280px"
         loading="lazy"
         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       />

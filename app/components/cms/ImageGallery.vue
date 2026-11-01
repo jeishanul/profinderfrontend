@@ -30,7 +30,7 @@ const CmsLink = resolveComponent('CmsLink')
         <NuxtImg
           :src="item.imageUrl!"
           :alt="item.imageAlt ?? item.title ?? ''"
-          sizes="(min-width: 1024px) 280px, 50vw"
+          sizes="sm:50vw lg:280px"
           width="800"
           height="600"
           loading="lazy"

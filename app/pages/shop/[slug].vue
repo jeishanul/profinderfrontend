@@ -131,14 +131,14 @@ useSchemaOrg([
             v-if="currentImage"
             :src="currentImage.url"
             :alt="currentImage.alt || product.name"
-            sizes="(min-width: 1024px) 560px, 100vw"
+            sizes="sm:100vw md:100vw lg:560px"
             class="h-full w-full object-cover"
           />
           <NuxtImg
             v-else-if="product.imageUrl"
             :src="product.imageUrl"
             :alt="product.imageAlt || product.name"
-            sizes="(min-width: 1024px) 560px, 100vw"
+            sizes="sm:100vw md:100vw lg:560px"
             class="h-full w-full object-cover"
           />
           <UiPlaceholderMedia

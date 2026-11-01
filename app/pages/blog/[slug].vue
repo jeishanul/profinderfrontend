@@ -92,7 +92,7 @@ useSchemaOrg([
       <NuxtImg
         :src="post.featured_image_url"
         :alt="post.featured_image_alt || post.title"
-        sizes="(min-width: 768px) 768px, 100vw"
+        sizes="sm:100vw md:768px"
         width="1200"
         height="630"
         class="aspect-[16/9] w-full object-cover"

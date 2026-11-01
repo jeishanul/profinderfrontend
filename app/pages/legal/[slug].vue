@@ -43,7 +43,7 @@ const updatedLabel = computed(() => (page.value?.updatedAt ? formatDate(page.val
       v-if="page.heroImageUrl"
       :src="page.heroImageUrl"
       :alt="page.heroImageAlt ?? ''"
-      sizes="(min-width: 768px) 768px, 100vw"
+      sizes="sm:100vw md:768px"
       width="1152"
       height="384"
       class="mb-8 aspect-[3/1] w-full rounded-3xl object-cover"

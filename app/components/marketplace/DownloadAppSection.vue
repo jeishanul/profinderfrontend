@@ -40,7 +40,7 @@ const helplineHeading = computed(() => (settings.value.supportHours
         <NuxtImg
           :src="section.backgroundImageUrl"
           alt=""
-          sizes="100vw"
+          sizes="sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw"
           width="1200"
           height="600"
           loading="lazy"
