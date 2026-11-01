@@ -28,7 +28,7 @@ const hasCta = computed(() => Boolean(props.section.ctaUrl && cmsOptionalText(pr
         <NuxtImg
           :src="section.backgroundImageUrl"
           :alt="section.imageAlt ?? ''"
-          sizes="100vw"
+          sizes="sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw"
           width="1920"
           height="600"
           loading="lazy"

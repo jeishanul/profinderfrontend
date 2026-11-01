@@ -72,7 +72,7 @@ useSchemaOrg([defineWebPage()])
               v-if="post.featured_image_url"
               :src="post.featured_image_url"
               :alt="post.featured_image_alt || post.title"
-              sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
+              sizes="sm:100vw md:50vw lg:384px"
               class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div

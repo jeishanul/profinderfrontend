@@ -43,7 +43,7 @@ const columnClass = computed(() => COLUMN_CLASSES[String(props.section.settings.
           v-if="item.imageUrl"
           :src="item.imageUrl"
           :alt="item.imageAlt ?? ''"
-          sizes="(min-width: 1024px) 380px, 100vw"
+          sizes="sm:100vw md:100vw lg:380px"
           width="800"
           height="600"
           loading="lazy"

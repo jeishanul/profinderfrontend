@@ -130,7 +130,7 @@ observe(searchAnchor)
             v-if="slide.mobileImageUrl"
             :src="slide.mobileImageUrl"
             :alt="slide.imageAlt"
-            sizes="100vw"
+            sizes="sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw"
             width="900"
             height="1200"
             loading="eager"
@@ -140,7 +140,7 @@ observe(searchAnchor)
           <NuxtImg
             :src="slide.imageUrl!"
             :alt="slide.imageAlt"
-            sizes="100vw"
+            sizes="sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw"
             width="1920"
             height="800"
             :loading="index === 0 ? 'eager' : 'lazy'"
