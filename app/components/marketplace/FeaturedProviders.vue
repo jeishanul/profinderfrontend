@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { HomeSection } from '#shared/types/cms'
-import type { JobPostBase } from '#shared/types/jobPosts'
 import type { ProviderSummary, ServiceCategory } from '#shared/types/marketplace'
 
 // Auto-imported as <MarketplaceFeaturedProviders />.
@@ -19,14 +18,6 @@ const { t } = useI18n()
 const hasContent = computed(() => featuredMode(props.section.settings) === 'auto' || props.providers.length > 0)
 
 const isManual = computed(() => featuredMode(props.section.settings) === 'manual')
-const activeTab = ref<'providers' | 'jobs'>('providers')
-
-// Fetch latest jobs for the tab toggle
-const { data: latestJobsData } = useApi<{ items: JobPostBase[], total: number }>('/jobs/latest', {
-  key: 'home-featured-latest-jobs',
-  default: () => ({ items: [], total: 0 }),
-})
-const latestJobs = computed(() => latestJobsData.value?.items ?? [])
 
 const showAll = ref(false)
 const visibleProviders = computed(() => (showAll.value ? props.providers : props.providers.slice(0, 4)))
@@ -47,7 +38,6 @@ const lastSearchProvinceName = computed(() => {
 // The admin's heading wins; otherwise the built-in one:
 // When manual mode is active, the heading says "Featured Providers"; when local, names the province.
 const defaultHeading = computed(() => {
-  if (activeTab.value === 'jobs') return t('marketplace.latestJobs.heading')
   if (isManual.value) return t('marketplace.featuredProviders.headingFeatured')
   return props.local && lastSearchProvinceName.value
     ? t('marketplace.featuredProviders.headingWithLocation', { province: lastSearchProvinceName.value })
@@ -55,7 +45,6 @@ const defaultHeading = computed(() => {
 })
 
 const defaultSubheading = computed(() => {
-  if (activeTab.value === 'jobs') return t('marketplace.latestJobs.subheading')
   if (isManual.value) return t('marketplace.featuredProviders.subheadingFeatured')
   return props.local
     ? t('marketplace.featuredProviders.subheadingLocal')
@@ -81,89 +70,39 @@ const subheading = computed(() => cmsText(props.section.subheading, defaultSubhe
           {{ subheading }}
         </p>
       </div>
-
-      <div class="flex items-center gap-1 self-start rounded-full border border-black/10 bg-white/70 p-1 backdrop-blur-xl dark:border-white/10 dark:bg-black/30 md:self-auto">
-        <button
-          type="button"
-          class="rounded-full px-4 py-1.5 text-xs font-semibold transition"
-          :class="activeTab === 'providers' ? 'bg-brand-600 text-white shadow-sm' : 'text-black/60 hover:text-black dark:text-white/60 dark:hover:text-white'"
-          @click="activeTab = 'providers'"
-        >
-          {{ isManual ? t('marketplace.featuredProviders.headingFeatured') : t('marketplace.featuredProviders.tabPros') }}
-        </button>
-        <button
-          type="button"
-          class="rounded-full px-4 py-1.5 text-xs font-semibold transition"
-          :class="activeTab === 'jobs' ? 'bg-brand-600 text-white shadow-sm' : 'text-black/60 hover:text-black dark:text-white/60 dark:hover:text-white'"
-          @click="activeTab = 'jobs'"
-        >
-          {{ t('marketplace.featuredProviders.tabJobs') }}
-        </button>
-      </div>
     </div>
 
-    <!-- Providers view -->
-    <template v-if="activeTab === 'providers'">
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <MarketplaceProviderCard
-          v-for="provider in visibleProviders"
-          :key="provider.id"
-          :provider="provider"
-        />
-      </div>
+    <!-- Latest job postings are their own home-page section (MarketplaceLatestJobs), not a tab here. -->
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <MarketplaceProviderCard
+        v-for="provider in visibleProviders"
+        :key="provider.id"
+        :provider="provider"
+      />
+    </div>
 
-      <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
-        <UiButton
-          v-if="providers.length > 4"
-          variant="ghost"
-          @click="showAll = !showAll"
-        >
-          {{ showAll ? t('marketplace.featuredProviders.showFewer') : t('marketplace.featuredProviders.viewMore') }}
-        </UiButton>
-        <CmsLink
-          v-if="section.ctaUrl"
-          :to="section.ctaUrl"
-          :class="linkButtonClass('ghost')"
-        >
-          {{ cmsText(section.ctaLabel, t('marketplace.featuredProviders.browseAll')) }}
-        </CmsLink>
-        <NuxtLinkLocale
-          v-else
-          :to="{ path: '/browse', query: { sort: 'rating' } }"
-          :class="linkButtonClass('ghost')"
-        >
-          {{ cmsText(section.ctaLabel, t('marketplace.featuredProviders.browseAll')) }}
-        </NuxtLinkLocale>
-      </div>
-    </template>
-
-    <!-- Latest Jobs view -->
-    <template v-else>
-      <div
-        v-if="latestJobs.length > 0"
-        class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+      <UiButton
+        v-if="providers.length > 4"
+        variant="ghost"
+        @click="showAll = !showAll"
       >
-        <MarketplaceJobCard
-          v-for="job in latestJobs"
-          :key="job.id"
-          :post="job"
-        />
-      </div>
-      <div
+        {{ showAll ? t('marketplace.featuredProviders.showFewer') : t('marketplace.featuredProviders.viewMore') }}
+      </UiButton>
+      <CmsLink
+        v-if="section.ctaUrl"
+        :to="section.ctaUrl"
+        :class="linkButtonClass('ghost')"
+      >
+        {{ cmsText(section.ctaLabel, t('marketplace.featuredProviders.browseAll')) }}
+      </CmsLink>
+      <NuxtLinkLocale
         v-else
-        class="rounded-2xl border border-black/10 bg-white/50 p-8 text-center text-sm text-black/60 dark:border-white/10 dark:bg-black/20 dark:text-white/60"
+        :to="{ path: '/browse', query: { sort: 'rating' } }"
+        :class="linkButtonClass('ghost')"
       >
-        {{ t('marketplace.latestJobs.empty') }}
-      </div>
-
-      <div class="mt-9 flex items-center justify-center">
-        <NuxtLinkLocale
-          to="/jobs"
-          :class="linkButtonClass('ghost')"
-        >
-          {{ t('marketplace.latestJobs.viewAll') }}
-        </NuxtLinkLocale>
-      </div>
-    </template>
+        {{ cmsText(section.ctaLabel, t('marketplace.featuredProviders.browseAll')) }}
+      </NuxtLinkLocale>
+    </div>
   </section>
 </template>

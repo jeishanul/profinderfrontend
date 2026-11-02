@@ -253,6 +253,20 @@ useSeoMeta({
         </div>
 
         <aside class="h-fit space-y-4 rounded-2xl border border-black/10 p-5 text-sm dark:border-white/10">
+          <div
+            v-if="order.paymentInstructions"
+            class="rounded-xl border border-brand-600/30 bg-brand-50/60 p-4 dark:bg-brand-700/10"
+          >
+            <h2 class="mb-1 font-bold">
+              {{ t('shop.order.paymentInstructions', { method: order.paymentMethodName }) }}
+            </h2>
+            <p class="whitespace-pre-line text-black/70 dark:text-white/70">
+              {{ order.paymentInstructions }}
+            </p>
+            <p class="mt-2 text-xs text-black/60 dark:text-white/60">
+              {{ t('shop.order.paymentInstructionsHint', { number: order.number }) }}
+            </p>
+          </div>
           <div>
             <h2 class="mb-1 text-xs font-bold tracking-wide text-black/50 uppercase dark:text-white/50">
               {{ t('shop.order.deliverTo') }}
@@ -271,7 +285,7 @@ useSeoMeta({
             <h2 class="mb-1 text-xs font-bold tracking-wide text-black/50 uppercase dark:text-white/50">
               {{ t('shop.order.payment') }}
             </h2>
-            <p>{{ t(`shop.checkout.methods.${order.paymentMethod}`) }}</p>
+            <p>{{ order.paymentMethodName }}</p>
             <p class="text-black/60 dark:text-white/60">
               {{ t('shop.order.paymentStatus') }}: {{ t(`shop.paymentStatus.${order.paymentStatus}`) }}
             </p>

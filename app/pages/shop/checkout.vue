@@ -182,7 +182,7 @@ async function placeOrder() {
 }
 
 function paymentReason(reason: string | null): string {
-  return reason === 'cod_limit' || reason === 'cod_area'
+  return reason === 'amount_limit' || reason === 'cod_area'
     ? t(`shop.checkout.unavailableReasons.${reason}`)
     : t('shop.checkout.unavailableReasons.default')
 }
@@ -348,9 +348,9 @@ useSchemaOrg([defineWebPage()])
                 class="mt-0.5 h-4 w-4 accent-brand-600"
               >
               <span>
-                <span class="block font-bold">{{ t(`shop.checkout.methods.${method.key}`) }}</span>
+                <span class="block font-bold">{{ cmsText(method.name, t(`shop.checkout.methods.${method.driver}`)) }}</span>
                 <span class="block text-xs text-black/60 dark:text-white/60">
-                  {{ method.available ? t(`shop.checkout.methodHints.${method.key}`) : paymentReason(method.reason) }}
+                  {{ method.available ? cmsText(method.description, t(`shop.checkout.methodHints.${method.driver}`)) : paymentReason(method.reason) }}
                 </span>
               </span>
             </label>

@@ -242,8 +242,9 @@ useSchemaOrg([
     </div>
 
     <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
-      <div class="-mt-16 flex flex-col items-start gap-5 pb-6 sm:flex-row sm:items-end">
-        <div class="relative z-10 h-[148px] w-[148px] shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg dark:border-black">
+      <!-- Only the photo overlaps the cover; the name and details start below it, so the cover never hides them. -->
+      <div class="flex flex-col items-start gap-x-5 gap-y-3 pb-6 sm:flex-row">
+        <div class="relative z-10 -mt-[74px] h-[148px] w-[148px] shrink-0 overflow-hidden rounded-full border-4 border-white bg-white shadow-lg dark:border-black dark:bg-black">
           <UiAvatar
             :name="provider.name"
             :src="provider.avatarUrl"
@@ -251,7 +252,7 @@ useSchemaOrg([
             text-class="text-4xl"
           />
         </div>
-        <div class="flex-1 pb-2">
+        <div class="min-w-0 flex-1 sm:pt-4">
           <div class="flex flex-wrap items-center gap-2.5">
             <h1 class="font-display text-2xl font-bold sm:text-3xl">
               {{ provider.name }}
@@ -293,7 +294,7 @@ useSchemaOrg([
             </span>
           </div>
         </div>
-        <div class="hidden gap-2.5 pb-2 md:flex">
+        <div class="hidden gap-2.5 md:flex md:pt-4">
           <UiButton
             v-if="!isOwnProfile"
             variant="ghost"
