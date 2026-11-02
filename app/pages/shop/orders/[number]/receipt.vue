@@ -104,7 +104,7 @@ useSeoMeta({
             {{ t('shop.receipt.payment') }}
           </h2>
           <p class="mt-1">
-            {{ t(`shop.checkout.methods.${order.paymentMethod}`) }}
+            {{ order.paymentMethodName }}
           </p>
           <p>{{ t(`shop.paymentStatus.${order.paymentStatus}`) }}</p>
           <p>{{ t(`shop.status.${order.status}`) }}</p>

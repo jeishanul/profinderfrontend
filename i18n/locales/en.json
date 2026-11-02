@@ -335,8 +335,6 @@
       "headingWithLocation": "Top-rated pros near {province}",
       "subheading": "A sample of our top-rated, verified professionals.",
       "subheadingFeatured": "Handpicked verified professionals featured by our team.",
-      "tabPros": "Top-rated pros",
-      "tabJobs": "Latest job postings",
       "viewMore": "View more pros",
       "showFewer": "Show fewer pros",
       "subheadingLocal": "Top-rated, verified professionals working in this province."
@@ -2100,14 +2098,16 @@
       "payment": "Payment method",
       "methods": {
         "cod": "Cash on delivery",
-        "paypal": "PayPal"
+        "paypal": "PayPal",
+        "manual": "Bank transfer"
       },
       "methodHints": {
         "cod": "Pay in cash when your order arrives.",
-        "paypal": "You'll be sent to PayPal to pay."
+        "paypal": "You'll be sent to PayPal to pay.",
+        "manual": "You'll see how to pay after you place the order."
       },
       "unavailableReasons": {
-        "cod_limit": "Not available for orders this large.",
+        "amount_limit": "Not available for orders this large.",
         "cod_area": "Not available for this delivery address.",
         "default": "Not available right now."
       },
@@ -2180,6 +2180,8 @@
       "deliverTo": "Delivery address",
       "payment": "Payment",
       "paymentStatus": "Payment status",
+      "paymentInstructions": "How to pay ({method})",
+      "paymentInstructionsHint": "Use {number} as your payment reference. We will start on your order once the payment arrives.",
       "shipment": "Shipment",
       "courier": "Courier: {courier}",
       "tracking": "Tracking number: {number}",

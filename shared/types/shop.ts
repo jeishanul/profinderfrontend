@@ -141,14 +141,22 @@ export interface ShopAddressInput {
   isDefault?: boolean
 }
 
-export type ShopPaymentMethod = 'cod' | 'paypal'
+/** A payment gateway's key: `cod`, `paypal`, or a manual gateway the admin added (`bank_transfer`, `gcash`…). */
+export type ShopPaymentMethod = string
+
+/** How a gateway takes the money: on delivery, through PayPal, or by hand (the customer follows instructions). */
+export type ShopPaymentDriver = 'cod' | 'paypal' | 'manual'
 
 export type ShopCheckoutSource = 'cart' | 'buy_now'
 
 export interface ShopPaymentOption {
   key: ShopPaymentMethod
+  driver: ShopPaymentDriver
+  /** The admin's name for it (Administration → Payment gateways). */
+  name: string
+  description: string | null
   available: boolean
-  reason: null | 'cod_limit' | 'cod_area'
+  reason: null | 'amount_limit' | 'cod_area'
 }
 
 export interface ShopCheckoutPreview {
@@ -180,6 +188,8 @@ export interface ShopOrderRow {
   status: ShopOrderStatus
   paymentStatus: ShopPaymentStatus
   paymentMethod: ShopPaymentMethod
+  /** The gateway's name when the order was placed. */
+  paymentMethodName: string
   total: number
   itemCount: number
   firstItem: { name: string, imageUrl: string | null } | null
@@ -202,6 +212,8 @@ export interface ShopOrderItem {
 }
 
 export interface ShopOrder extends ShopOrderRow {
+  /** A manual gateway's instructions (bank details…), until the shop marks the order paid. */
+  paymentInstructions: string | null
   subtotal: number
   shippingFee: number
   currency: string

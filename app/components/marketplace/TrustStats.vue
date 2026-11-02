@@ -17,6 +17,9 @@ const stats = computed(() => props.section.items.map((item, index) => ({
   imageAlt: item.imageAlt ?? item.title ?? '',
   icon: knownIcon(item.icon, DEFAULT_ICONS[index % DEFAULT_ICONS.length]!),
   value: item.value ?? '',
+  // The trust stats' short description is admin rich text (sanitised by the backend); the custom `stats` block and
+  // older rows still use the plain title.
+  descriptionHtml: item.description?.trim() ? item.description : null,
   label: item.title ?? '',
 })))
 </script>
@@ -62,7 +65,15 @@ const stats = computed(() => props.section.items.map((item, index) => ({
           <p class="font-display text-2xl font-bold">
             {{ stat.value }}
           </p>
-          <p class="text-sm text-black/60 dark:text-white/60">
+          <UiRichText
+            v-if="stat.descriptionHtml"
+            :html="stat.descriptionHtml"
+            class="text-sm text-black/60! dark:text-white/60! [&_p]:mb-0! [&_p]:leading-snug!"
+          />
+          <p
+            v-else
+            class="text-sm text-black/60 dark:text-white/60"
+          >
             {{ stat.label }}
           </p>
         </div>
