@@ -155,6 +155,8 @@ export interface ShopPaymentOption {
   /** The admin's name for it (Administration → Payment gateways). */
   name: string
   description: string | null
+  /** A manual gateway's instructions (bank, account name and number…); null for COD and PayPal. Plain text. */
+  instructions: string | null
   available: boolean
   reason: null | 'amount_limit' | 'cod_area'
 }

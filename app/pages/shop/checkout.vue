@@ -181,6 +181,14 @@ async function placeOrder() {
   }
 }
 
+// A manual gateway's account details, shown under the methods while it is the one picked.
+const selectedInstructions = computed(() => {
+  const method = preview.value?.paymentMethods.find(option => option.key === paymentMethod.value)
+  return method?.available && method.instructions
+    ? { name: cmsText(method.name, t(`shop.checkout.methods.${method.driver}`)), text: method.instructions }
+    : null
+})
+
 function paymentReason(reason: string | null): string {
   return reason === 'amount_limit' || reason === 'cod_area'
     ? t(`shop.checkout.unavailableReasons.${reason}`)
@@ -355,6 +363,20 @@ useSchemaOrg([defineWebPage()])
               </span>
             </label>
           </fieldset>
+          <div
+            v-if="selectedInstructions"
+            class="mt-3 rounded-2xl border border-brand-600/30 bg-brand-50/60 p-4 text-sm dark:bg-brand-700/10"
+          >
+            <h3 class="mb-1 font-bold">
+              {{ t('shop.order.paymentInstructions', { method: selectedInstructions.name }) }}
+            </h3>
+            <p class="whitespace-pre-line text-black/70 dark:text-white/70">
+              {{ selectedInstructions.text }}
+            </p>
+            <p class="mt-2 text-xs text-black/60 dark:text-white/60">
+              {{ t('shop.checkout.instructionsHint') }}
+            </p>
+          </div>
         </section>
 
         <section>

@@ -2142,7 +2142,8 @@
         "empty": "There is nothing to order."
       },
       "chooseMethod": "Choose a payment method.",
-      "chooseAddress": "Choose a delivery address."
+      "chooseAddress": "Choose a delivery address.",
+      "instructionsHint": "Pay after placing your order, using your order number as the reference. These details are also on your order page and in your confirmation email."
     },
     "address": {
       "label": "Label (optional)",
