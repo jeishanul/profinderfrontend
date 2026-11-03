@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import SeoRichContent from './SeoRichContent.vue'
 import SeoBreadcrumbs from './SeoBreadcrumbs.vue'
+import SeoFaq from './SeoFaq.vue'
+import SeoReviews from './SeoReviews.vue'
 
 describe('SEO Components and Utilities', () => {
   it('renders SeoBreadcrumbs with correct links and active leaf item', async () => {
@@ -54,6 +56,47 @@ describe('SEO Components and Utilities', () => {
 
     expect(wrapper.text()).toBe('')
     expect(wrapper.html()).toBe('<!--v-if-->')
+  })
+
+  it('renders admin reviews as escaped text with their star rating', async () => {
+    const wrapper = await mountSuspended(SeoReviews, {
+      props: {
+        reviews: [
+          { reviewer_name: 'Maria S.', reviewer_role: 'Homeowner, Cebu City', rating: 4, quote_text: 'Fast <b>and</b> tidy.' },
+        ],
+      },
+    })
+
+    expect(wrapper.text()).toContain('Maria S.')
+    expect(wrapper.text()).toContain('Homeowner, Cebu City')
+    expect(wrapper.text()).toContain('Fast <b>and</b> tidy.')
+    expect(wrapper.find('b').exists()).toBe(false)
+    expect(wrapper.find('[role="img"]').attributes('aria-label')).toContain('4')
+  })
+
+  it('renders nothing for an empty review or FAQ list', async () => {
+    expect((await mountSuspended(SeoReviews, { props: { reviews: [] } })).html()).toBe('<!--v-if-->')
+    expect((await mountSuspended(SeoFaq, { props: { items: [] } })).html()).toBe('<!--v-if-->')
+  })
+
+  it('opens the first FAQ answer and toggles the others', async () => {
+    const wrapper = await mountSuspended(SeoFaq, {
+      props: {
+        items: [
+          { question: 'How fast?', answer: 'Same day.' },
+          { question: 'Is it insured?', answer: 'Yes.' },
+        ],
+      },
+    })
+
+    const buttons = wrapper.findAll('button')
+    expect(buttons[0]!.attributes('aria-expanded')).toBe('true')
+    expect(buttons[1]!.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.text()).toContain('Same day.')
+
+    await buttons[1]!.trigger('click')
+    expect(buttons[0]!.attributes('aria-expanded')).toBe('false')
+    expect(buttons[1]!.attributes('aria-expanded')).toBe('true')
   })
 
   describe('Browse Page Filter Query Management', () => {

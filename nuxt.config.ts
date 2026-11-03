@@ -272,11 +272,24 @@ export default defineNuxtConfig({
     automaticTwitterTags: false,
   },
 
-  // Provider profiles, jobs, blog, and legal pages are dynamic (not file-based routes),
-  // so the sitemap can't discover them on its own — see `server/api/__sitemap__/urls.ts`.
-  // `sitemaps: false` forces a single flat /sitemap.xml directly without redirecting to /sitemap_index.xml.
+  // `/sitemap.xml` is a sitemap index (served there by `modules/sitemap-at-root.ts`; no other sitemap address exists)
+  // listing one sub-sitemap per content type at `/__sitemap__/<section>.xml`. Every URL comes from Laravel through
+  // `server/api/__sitemap__/[section].ts`: the pages are dynamic, so the sitemap can't discover them from the routes.
+  // No sitemap includes app sources: that also keeps @nuxtjs/i18n from renaming the files per locale.
   sitemap: {
-    sitemaps: false,
-    sources: ['/api/__sitemap__/urls'],
+    sitemaps: {
+      pages: { sources: ['/api/__sitemap__/pages'] },
+      categories: { sources: ['/api/__sitemap__/categories'] },
+      provinces: { sources: ['/api/__sitemap__/provinces'] },
+      cities: { sources: ['/api/__sitemap__/cities'] },
+      barangays: { sources: ['/api/__sitemap__/barangays'] },
+      providers: { sources: ['/api/__sitemap__/providers'] },
+      jobs: { sources: ['/api/__sitemap__/jobs'] },
+      blog: { sources: ['/api/__sitemap__/blog'] },
+      shop: { sources: ['/api/__sitemap__/shop'] },
+    },
+    // No XSL stylesheet: browsers are removing XSLT (Chrome warns on any page using it), and search engines never
+    // read it anyway. The sitemap then shows as plain XML in a browser.
+    xsl: false,
   },
 })

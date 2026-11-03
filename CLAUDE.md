@@ -47,6 +47,7 @@ app/                  # srcDir — all Vue app code
   plugins/
   utils/                # top-level files only — reused pure functions, auto-imported
   assets/css/main.css    # Tailwind entry + @theme tokens — the ONLY global CSS file
+modules/                # local Nuxt modules (build-time tweaks to other modules, e.g. sitemap-at-root.ts)
 server/
   api/                  # /api/* routes
   utils/                # auto-imported server-only helpers
@@ -252,11 +253,17 @@ instead of a rework.
   (+ `x-default`), and `og:locale` for every route automatically. **Do not duplicate this
   per-page** — a page only needs its own `useSeoMeta`/`defineOgImage`/`useSchemaOrg` calls (see
   SEO checklist below), never its own canonical/hreflang/lang logic.
-- **Sitemap is already locale-aware with zero extra config**: `@nuxtjs/sitemap` detects
-  `@nuxtjs/i18n` and emits a `sitemap_index.xml` with one per-locale sitemap
-  (`__sitemap__/en-US.xml` today), each `<url>` carrying its own hreflang `<xhtml:link>`
-  alternates. Verified by building and curling `/sitemap_index.xml` — don't hand-roll a sitemap
-  or add a second one; this is automatic per locale added.
+- **Sitemap: always and only `/sitemap.xml`.** It is a sitemap index listing one sub-sitemap per content type at
+  `/__sitemap__/<section>.xml`: pages (the fixed pages + legal), categories, provinces, cities, barangays, providers,
+  jobs, blog, shop (`sitemap.sitemaps` in `nuxt.config.ts`). @nuxtjs/sitemap would serve the index at
+  `/sitemap_index.xml` and redirect `/sitemap.xml` there; `modules/sitemap-at-root.ts` moves the index to
+  `/sitemap.xml`, 301s `/sitemap_index.xml` to it and fixes robots.txt. It fails the build if a module upgrade changes
+  those routes; don't remove it. Every sub-sitemap's source is `server/api/__sitemap__/[section].ts`
+  (`collectSitemapUrls`, `server/utils/sitemapUrls.ts`), reading Laravel's `/seo/sitemap-urls?type=<section>`.
+  To add a section: add it to Laravel's `SITEMAP_SECTIONS`, to `SITEMAP_SECTIONS` in `sitemapUrls.ts` and to
+  `sitemap.sitemaps`. Keep `includeAppSources` off (it makes @nuxtjs/i18n rename the files per locale) and each file
+  under 50k URLs (barangays, the largest, is ~42k). Only an admin's "Landing disabled"/"Noindex" leaves a place out.
+  `xsl: false`: browsers are removing XSLT, so the sitemap is plain XML in a browser; don't turn the stylesheet back on.
 - **Adding a new locale** (e.g. `fr`): add one entry to `i18n.locales` in `nuxt.config.ts`
   (`code`, `language` as a BCP 47 tag, `name`, `file`, `dir` if RTL), add
   `i18n/locales/fr.json` with the same key structure as `en.json`, and set
