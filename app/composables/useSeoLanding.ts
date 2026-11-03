@@ -22,6 +22,9 @@ export function useSeoLanding(meta: Ref<SeoMetadataPayload>, eyebrow: string) {
   })
 
   useHead({
+    // The title is already complete ("… | ProFinder", or the admin's own SEO title, which the SEO drawer previews as
+    // the whole title), so the site-wide " · ProFinder" suffix from app.vue is skipped here.
+    titleTemplate: null,
     meta: meta.value.keywords ? [{ name: 'keywords', content: meta.value.keywords }] : [],
   })
 

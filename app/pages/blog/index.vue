@@ -22,7 +22,7 @@ function formatDateLabel(dateStr: string | null): string {
 }
 
 useSeoMeta({
-  title: () => `${t('blog.seoTitle')} | ${settings.value.siteName ?? t('brand.name')}`,
+  title: () => t('blog.seoTitle'),
   description: () => t('blog.seoDescription'),
 })
 useSchemaOrg([defineWebPage()])

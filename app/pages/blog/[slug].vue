@@ -22,7 +22,7 @@ if (error.value || !post.value) {
 const publishedLabel = computed(() => (post.value?.published_at ? formatDate(post.value.published_at, locale.value) : null))
 
 useSeoMeta({
-  title: () => `${post.value?.meta_title || post.value?.title} | ${settings.value.siteName ?? t('brand.name')}`,
+  title: () => post.value?.meta_title || post.value?.title,
   description: () => post.value?.meta_description || post.value?.excerpt || undefined,
 })
 useShareImage(post.value?.featured_image_url ?? null, 'MarketplaceSatori', {
