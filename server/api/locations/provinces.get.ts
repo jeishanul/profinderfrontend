@@ -1,5 +1,4 @@
-import type { Province } from '#server/utils/phLocations'
+import type { Province } from '#shared/types/location'
 
-export default defineEventHandler((): Province[] => {
-  return getProvinces()
-})
+// The same for every visitor: served from Nitro's shared cache (see server/utils/publicApi.ts).
+export default defineEventHandler(event => getPublicApi<Province[]>(event, '/locations/provinces'))

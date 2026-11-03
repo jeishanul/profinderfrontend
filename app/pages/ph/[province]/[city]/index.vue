@@ -16,7 +16,8 @@ const { data: seoData, error: seoError } = await useApi<LocationSeoResponse>(
   { key: `seo-city-${provinceSlug}-${citySlug}` },
 )
 
-if (seoError.value || !seoData.value) {
+// A moved address is redirected before the page loads; if that lookup failed, it is shown as not found.
+if (seoError.value || !seoData.value || seoData.value.redirect) {
   const status = seoError.value?.statusCode ?? 404
   throw createError({
     statusCode: status,

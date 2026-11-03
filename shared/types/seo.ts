@@ -93,6 +93,11 @@ export interface LocationSubItem {
 }
 
 export interface LocationSeoResponse {
+  /**
+   * Set (and nothing else) when the address moved with a PSA update; `server/middleware/location-redirects.ts`
+   * normally answers such an address with a 301 before the page loads.
+   */
+  redirect?: string
   type: 'province' | 'city' | 'barangay'
   entity: {
     code?: string

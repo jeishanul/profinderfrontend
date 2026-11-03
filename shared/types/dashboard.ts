@@ -188,7 +188,7 @@ export interface ProviderProfileDetail {
   photoUrl: string | null
   coverPhotoUrl: string | null
   recentWorkPhotos: RecentWorkPhoto[]
-  /** Province/city are PH location codes (see `server/utils/phLocations.ts`);
+  /** Province/city are PH location codes (see `shared/types/location.ts`);
    * barangay is stored by name, matching `UiLocationPicker`'s own model. */
   provinceCode: string | null
   cityCode: string | null

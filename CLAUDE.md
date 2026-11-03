@@ -575,6 +575,16 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   which forwards only `page`, `perPage`, `q`, `status`, `archived`.
 - Public Browse keeps its filters in the URL (the URL is the source of truth) — see `pages/browse.vue`.
 
+### Locations (provinces, cities, barangays)
+
+- One source: Laravel's location tables, kept in line with PSA's PSGC list by `php artisan locations:sync` (backend).
+  The picker reads them through `server/api/locations/*` (`getPublicApi`, types in `shared/types/location.ts`); there
+  is no location data in this app. Codes are PSA codes (old 4/6-digit, or 10-digit PSGC for places created since);
+  a barangay is saved by its name.
+- When PSA renames, moves or merges a place, Laravel records old -> new landing-page paths, and
+  `server/middleware/location-redirects.ts` answers an old `/ph/...` address with a 301 before Nuxt renders. A page
+  that still gets `{ redirect }` from the SEO endpoint (lookup failed) renders as not found; never render it as a page.
+
 ### Head tags on SEO landing pages
 
 - `app.vue` emits the canonical, hreflang and og:locale tags for every route. A landing page

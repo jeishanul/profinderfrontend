@@ -97,7 +97,7 @@ export interface ProviderSummary {
   yearsExperience: number
   verified: boolean
   /** Philippines Province -> City/Municipality -> Barangay — see
-   * `server/utils/phLocations.ts`. `provinceCode`/`cityCode` are the real
+   * `shared/types/location.ts`. `provinceCode`/`cityCode` are the real
    * PSGC-derived codes (used for filtering); the `*Name` fields and
    * `barangay` are display-ready strings. */
   provinceCode: string
