@@ -19,6 +19,20 @@ export interface SeoOpenGraph {
   image?: string | null
 }
 
+/** An admin-curated review shown on a landing page. Plain text — render escaped. */
+export interface SeoReview {
+  reviewer_name: string
+  reviewer_role: string | null
+  rating: number
+  quote_text: string
+}
+
+/** An admin-curated question/answer shown below a landing page's footer content. Plain text — render escaped. */
+export interface SeoFaq {
+  question: string
+  answer: string
+}
+
 export interface SeoMetadataPayload {
   title: string
   description: string
@@ -31,6 +45,8 @@ export interface SeoMetadataPayload {
   seo_enabled: boolean
   seo_header_content: string | null
   seo_footer_content: string | null
+  seo_reviews: SeoReview[]
+  seo_faqs: SeoFaq[]
   breadcrumbs: BreadcrumbItem[]
   og: SeoOpenGraph
 }

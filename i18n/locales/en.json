@@ -1535,6 +1535,13 @@
       "emptyHint": "Browse nearby areas or explore all services.",
       "others": "Other barangays in {city}",
       "about": "About local services in {name}"
+    },
+    "reviews": {
+      "heading": "What customers say",
+      "stars": "{count} out of 5 stars"
+    },
+    "faq": {
+      "heading": "Frequently asked questions"
     }
   },
   "seekJob": {

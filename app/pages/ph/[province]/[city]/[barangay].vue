@@ -149,11 +149,14 @@ const activeProvidersPage = computed(() => isFallback.value ? cityFallbackProvid
       </div>
     </div>
 
+    <MarketplaceSeoReviews :reviews="meta.seo_reviews ?? []" />
     <MarketplaceSeoRichContent
       v-if="meta.seo_footer_content"
       :content="meta.seo_footer_content"
       :heading="t('seo.barangay.about', { name: seoData.entity.name })"
       class="mt-8"
     />
+
+    <MarketplaceSeoFaq :items="meta.seo_faqs ?? []" />
   </div>
 </template>

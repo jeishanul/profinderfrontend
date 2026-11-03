@@ -130,11 +130,14 @@ const { data: providersPage, status: providersStatus } = await useApi<PagedResul
       </div>
     </div>
 
+    <MarketplaceSeoReviews :reviews="meta.seo_reviews ?? []" />
     <MarketplaceSeoRichContent
       v-if="meta.seo_footer_content"
       :content="meta.seo_footer_content"
       :heading="t('seo.city.about', { name: seoData.entity.name })"
       class="mt-8"
     />
+
+    <MarketplaceSeoFaq :items="meta.seo_faqs ?? []" />
   </div>
 </template>
