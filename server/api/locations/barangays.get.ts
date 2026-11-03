@@ -1,8 +1,8 @@
-import type { Barangay } from '#server/utils/phLocations'
+import type { Barangay } from '#shared/types/location'
 
-export default defineEventHandler((event): Barangay[] => {
-  const query = getQuery(event)
-  const cityCode = typeof query.city === 'string' ? query.city : ''
-  if (!cityCode) return []
-  return getBarangaysByCity(cityCode)
+/** `?city=` takes a city code or slug. */
+export default defineEventHandler(async (event): Promise<Barangay[]> => {
+  const city = getQuery(event).city
+  if (typeof city !== 'string' || !city) return []
+  return getPublicApi<Barangay[]>(event, '/locations/barangays', { city })
 })

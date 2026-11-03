@@ -1,8 +1,8 @@
-import type { CityMunicipality } from '#server/utils/phLocations'
+import type { CityMunicipality } from '#shared/types/location'
 
-export default defineEventHandler((event): CityMunicipality[] => {
-  const query = getQuery(event)
-  const provinceCode = typeof query.province === 'string' ? query.province : ''
-  if (!provinceCode) return []
-  return getCitiesByProvince(provinceCode)
+/** `?province=` takes a province code or slug (Browse fills the picker from the URL's slugs). */
+export default defineEventHandler(async (event): Promise<CityMunicipality[]> => {
+  const province = getQuery(event).province
+  if (typeof province !== 'string' || !province) return []
+  return getPublicApi<CityMunicipality[]>(event, '/locations/cities', { province })
 })

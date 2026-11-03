@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // Auto-imported as <UiLocationPicker />. Replaces the free-text "your
 // location" field with the Philippines Province -> City/Municipality ->
-// Barangay cascade the client's spec doc calls for, backed by the real
-// vendored dataset served through `/api/locations/*` (see
-// `server/utils/phLocations.ts`).
+// Barangay cascade the client's spec doc calls for, backed by Laravel's
+// location lists (kept in line with PSA's PSGC list) served through
+// `/api/locations/*` (see `shared/types/location.ts`).
 //
 // Two presentations, two ways of cascading:
 //
