@@ -18,8 +18,17 @@ const props = withDefaults(
     bare?: boolean
     /** Desktop filters apply as you change them, so only the mobile sheet needs the button. */
     showApply?: boolean
+    /**
+     * Link mode: each category is a link to its landing page (`/category/{category}`), and the chosen category's
+     * sub-categories are nested under it, each linking to `/category/{category}/{skill}`. Unticking goes one level
+     * up. The other filters travel along in `carriedQuery`.
+     */
+    linkMode?: boolean
+    activeCategory?: string | null
+    activeSkill?: string | null
+    carriedQuery?: Record<string, string>
   }>(),
-  { idPrefix: 'filter-sidebar', bare: false, showApply: true },
+  { idPrefix: 'filter-sidebar', bare: false, showApply: true, linkMode: false, activeCategory: null, activeSkill: null, carriedQuery: () => ({}) },
 )
 
 const emit = defineEmits<{
@@ -51,9 +60,24 @@ function toggleCategory(id: string) {
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 
+/** Where a category row links to in link mode: its page, or back to Browse when it is the one already chosen. */
+function categoryLink(id: string) {
+  return { path: props.activeCategory === id ? '/browse' : `/category/${id}`, query: props.carriedQuery }
+}
+
+/** Where a sub-category row links to in link mode: its page, or back to its category when already chosen. */
+function skillLink(id: string) {
+  const base = `/category/${props.activeCategory}`
+  return { path: props.activeSkill === id ? base : `${base}/${id}`, query: props.carriedQuery }
+}
+
+const activeCategorySkills = computed(() =>
+  props.categories.find(category => category.id === props.activeCategory)?.skills ?? [],
+)
+
 // Skills only make sense inside one category, so they're offered once exactly one is chosen.
 const offeredSkills = computed(() =>
-  categoryIds.value.length === 1
+  !props.linkMode && categoryIds.value.length === 1
     ? (props.categories.find(category => category.id === categoryIds.value[0])?.skills ?? [])
     : [],
 )
@@ -123,7 +147,59 @@ function resetAll() {
       <p class="mb-2.5 text-xs font-bold uppercase tracking-wide text-black/50 dark:text-white/50">
         {{ t('marketplace.filters.service') }}
       </p>
-      <div class="flex flex-col gap-1">
+      <div
+        v-if="linkMode"
+        class="flex flex-col gap-1"
+      >
+        <template
+          v-for="cat in categories"
+          :key="cat.id"
+        >
+          <NuxtLinkLocale
+            :to="categoryLink(cat.id)"
+            class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors"
+            :class="activeCategory === cat.id && !activeSkill
+              ? 'bg-brand-50 dark:bg-brand-700/20'
+              : 'hover:bg-black/5 dark:hover:bg-white/10'"
+            :aria-current="activeCategory === cat.id && !activeSkill ? 'page' : undefined"
+          >
+            <UiCheckMark :checked="activeCategory === cat.id" />
+            <span
+              class="text-sm font-semibold"
+              :class="activeCategory === cat.id ? 'text-brand-700 dark:text-brand-100' : 'text-black/70 dark:text-white/70'"
+            >
+              {{ cat.name }}
+            </span>
+          </NuxtLinkLocale>
+          <div
+            v-if="activeCategory === cat.id && activeCategorySkills.length > 0"
+            class="ml-5 flex flex-col gap-0.5 border-l border-black/10 pl-2 dark:border-white/10"
+          >
+            <NuxtLinkLocale
+              v-for="skill in activeCategorySkills"
+              :key="skill.id"
+              :to="skillLink(skill.id)"
+              class="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-colors"
+              :class="activeSkill === skill.id
+                ? 'bg-brand-50 dark:bg-brand-700/20'
+                : 'hover:bg-black/5 dark:hover:bg-white/10'"
+              :aria-current="activeSkill === skill.id ? 'page' : undefined"
+            >
+              <UiCheckMark :checked="activeSkill === skill.id" />
+              <span
+                class="text-sm"
+                :class="activeSkill === skill.id ? 'font-semibold text-brand-700 dark:text-brand-100' : 'text-black/70 dark:text-white/70'"
+              >
+                {{ skill.name }}
+              </span>
+            </NuxtLinkLocale>
+          </div>
+        </template>
+      </div>
+      <div
+        v-else
+        class="flex flex-col gap-1"
+      >
         <button
           v-for="cat in categories"
           :key="cat.id"
@@ -135,19 +211,7 @@ function resetAll() {
           :aria-pressed="categoryIds.includes(cat.id)"
           @click="toggleCategory(cat.id)"
         >
-          <span
-            class="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-colors"
-            :class="categoryIds.includes(cat.id)
-              ? 'border-brand-600 bg-brand-600'
-              : 'border-black/20 dark:border-white/25'"
-          >
-            <UiIcon
-              v-if="categoryIds.includes(cat.id)"
-              name="check"
-              :size="11"
-              class="text-white"
-            />
-          </span>
+          <UiCheckMark :checked="categoryIds.includes(cat.id)" />
           <span
             class="text-sm font-semibold"
             :class="categoryIds.includes(cat.id) ? 'text-brand-700 dark:text-brand-100' : 'text-black/70 dark:text-white/70'"

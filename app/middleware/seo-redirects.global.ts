@@ -1,6 +1,6 @@
 /**
  * SEO 301 redirects and URL canonicalization:
- * 1. Category search query: /browse?category=:slug -> 301 to /category/:slug
+ * 1. Category search query: /browse?category=:slug -> 301 to /category/:slug (and ?skills=:skill -> /category/:slug/:skill)
  * 2. Location URLs without /ph/ prefix: /:province/:city/:barangay -> 301 to /ph/:province/:city/:barangay
  */
 export default defineNuxtRouteMiddleware((to) => {
@@ -12,10 +12,14 @@ export default defineNuxtRouteMiddleware((to) => {
     if (rawCategory && typeof rawCategory === 'string') {
       const slug = rawCategory.split(',')[0]?.trim()
       if (slug) {
-        const { category: _c, categories: _cs, ...remainingQuery } = to.query
+        // A single sub-category goes to its own page (/category/:slug/:skill); several stay a filter on the category page.
+        const skills = typeof to.query.skills === 'string' ? to.query.skills.split(',').map(s => s.trim()).filter(Boolean) : []
+        const skill = skills.length === 1 ? skills[0]! : null
+        const { category: _c, categories: _cs, ...rest } = to.query
+        const { skills: _s, ...withoutSkills } = rest
         return navigateTo({
-          path: `/category/${encodeURIComponent(slug)}`,
-          query: remainingQuery,
+          path: `/category/${encodeURIComponent(slug)}${skill ? `/${encodeURIComponent(skill)}` : ''}`,
+          query: skill ? withoutSkills : rest,
         }, { redirectCode: 301, external: false })
       }
     }
