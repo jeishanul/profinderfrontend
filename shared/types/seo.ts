@@ -69,10 +69,28 @@ export interface RelatedCategoryItem {
   url: string
 }
 
+/** A sub-category (a skill inside a category), with its landing-page address. */
+export interface SubCategoryItem {
+  id: string
+  slug: string
+  name: string
+  url: string
+}
+
 export interface CategorySeoResponse {
   type: 'category'
   entity: CategorySeoEntity
+  skills?: SubCategoryItem[]
   related_categories?: RelatedCategoryItem[]
+  metadata: SeoMetadataPayload
+}
+
+/** `/category/{category}/{skill}`: the sub-category is the entity; its category comes along for the heading and links. */
+export interface SkillSeoResponse {
+  type: 'skill'
+  entity: CategorySeoEntity
+  category: { id: number, slug: string, name: string, icon: string | null, url: string }
+  skills?: SubCategoryItem[]
   metadata: SeoMetadataPayload
 }
 

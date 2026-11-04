@@ -84,9 +84,9 @@ function handleHeroSearch({ category, province, city, barangay }: { category: st
   lastSearch.value = province ? { provinceCode: province } : null
 
   navigateTo(localePath({
-    path: '/browse',
+    // A chosen category has its own page; straight there, not via the /browse?categories= redirect.
+    path: category ? `/category/${encodeURIComponent(category)}` : '/browse',
     query: {
-      ...(category ? { categories: category } : {}),
       ...(province ? { province } : {}),
       ...(city ? { city } : {}),
       ...(barangay ? { barangay } : {}),

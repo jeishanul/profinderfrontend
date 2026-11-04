@@ -32,9 +32,9 @@ const shopCart = useShopCart()
 const localePath = useLocalePath()
 function handleDockedSearch({ category, province, city, barangay }: { category: string, province: string, city: string, barangay: string }) {
   navigateTo(localePath({
-    path: '/browse',
+    // A chosen category has its own page; straight there, not via the /browse?categories= redirect.
+    path: category ? `/category/${encodeURIComponent(category)}` : '/browse',
     query: {
-      ...(category ? { categories: category } : {}),
       ...(province ? { province } : {}),
       ...(city ? { city } : {}),
       ...(barangay ? { barangay } : {}),

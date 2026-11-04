@@ -1,59 +1,21 @@
 <script setup lang="ts">
-import type { PagedResult, ProviderSummary, ServiceCategory } from '#shared/types/marketplace'
+import type { PagedResult, ProviderSummary } from '#shared/types/marketplace'
 
-const { t, locale } = useI18n()
-const route = useRoute()
+const { t } = useI18n()
 
 // The page's requests are started without awaiting each one, then awaited together below: none depends on another,
 // and one awaited on its own would add a full round trip to every render.
-// With skills, so the sidebar can offer them once a single category is chosen.
+// With skills, so the sidebar can nest them under a category.
 const categoriesRequest = useCategories({ withSkills: true })
 const { data: categories } = categoriesRequest
 
 // The hearts on every <MarketplaceProviderCard/> below: personal, so filled in after mount.
 useSavedProviders().loadAfterMount()
 
-const filters = reactive<BrowseFilters>(parseBrowseQuery(route.query))
+const { filters, searchInput, providerQuery, carriedQuery, filterSheetOpen, draft, applyDraft, resetDraft, goToPage } = useBrowseFilters({ perPage: 6 })
 
-// Set while `fromQuery` is applying an external route change (a link that
-// sets a filter AND a page at once, back/forward, a footer category link) so
-// the page-reset watcher below doesn't stomp on an explicit page from that
-// same link — it previously always won, landing every such link on page 1.
-let applyingRouteChange = false
-
-// A link followed while already on /browse (footer category, back/forward)
-// changes the URL but not this component — pull the change in.
-watch(() => route.query, (query) => {
-  applyingRouteChange = true
-  Object.assign(filters, parseBrowseQuery(query))
-  searchInput.value = filters.q
-  nextTick(() => {
-    applyingRouteChange = false
-  })
-})
-
-// Any filter change other than the page itself starts again from page 1.
-watch(() => JSON.stringify({ ...filters, page: 0 }), () => {
-  if (applyingRouteChange) return
-  filters.page = 1
-})
-// ...and every change is reflected in the URL.
-watch(() => JSON.stringify(filters), () => {
-  navigateTo({ path: route.path, query: toBrowseRouteQuery(filters) }, { replace: true })
-})
-
-// Search is debounced so typing doesn't refetch on every keystroke.
-const searchInput = ref(filters.q)
-const commitSearch = useDebounceFn((value: string) => {
-  filters.q = value.trim()
-}, 300)
-watch(searchInput, value => commitSearch(value))
-
-const activeCategories = computed<ServiceCategory[]>(
-  () => (categories.value ?? []).filter(category => filters.categories.includes(category.id)),
-)
-
-const providerQuery = computed(() => toProviderApiQuery(filters, 6))
+// Every provider, any category: picking a category in the sidebar opens its own page (/category/{slug}), and an older
+// `/browse?categories=` link is sent there by the `seo-redirects` middleware before this page renders.
 
 const providersRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
   query: providerQuery,
@@ -89,45 +51,10 @@ watch(() => filters.province, (province) => {
   lastSearch.value = province ? { provinceCode: province } : null
 }, { immediate: true })
 
-// Below `md`, filters live in a bottom sheet instead of a sidebar. The sheet
-// edits a *draft* copy and only commits on "Apply" — changing a checkbox
-// behind a half-open sheet shouldn't reshuffle the results under it. (The
-// desktop sidebar edits `filters` directly and applies live.)
-const filterSheetOpen = ref(false)
-const draft = reactive<BrowseFilters>(parseBrowseQuery({}))
-
-watch(filterSheetOpen, (open) => {
-  if (open) Object.assign(draft, { ...filters, categories: [...filters.categories], skills: [...filters.skills] })
-})
-
-function applyDraft() {
-  Object.assign(filters, { ...draft, q: filters.q, sort: filters.sort, page: 1 })
-  filterSheetOpen.value = false
-}
-
-function resetDraft() {
-  Object.assign(draft, parseBrowseQuery({}), { q: filters.q, sort: filters.sort })
-}
-
-const pages = computed(() => pageNumbers(providersPage.value?.page ?? 1, providersPage.value?.totalPages ?? 1))
-
-function goToPage(page: number) {
-  filters.page = page
-  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-const categoryLabelList = computed(() => activeCategories.value.map(category => category.name))
-
-const pageTitle = computed(() => categoryLabelList.value.length > 0
-  ? t('marketplace.browse.titleWithCategory', {
-      count: providersPage.value?.total ?? 0,
-      category: new Intl.ListFormat(locale.value, { type: 'conjunction' }).format(categoryLabelList.value),
-      location: locationTitle.value,
-    })
-  : t('marketplace.browse.titleAll', {
-      count: providersPage.value?.total ?? 0,
-      location: locationTitle.value,
-    }))
+const pageTitle = computed(() => t('marketplace.browse.titleAll', {
+  count: providersPage.value?.total ?? 0,
+  location: locationTitle.value,
+}))
 
 useSeoMeta({
   title: pageTitle,
@@ -144,173 +71,23 @@ useSchemaOrg([defineWebPage()])
 
 <template>
   <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-10">
-    <div class="flex items-center justify-between gap-3">
-      <h1 class="font-display text-2xl font-bold sm:text-3xl">
-        {{ pageTitle }}
-      </h1>
-      <button
-        type="button"
-        class="flex shrink-0 items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-sm font-bold md:hidden dark:border-white/10"
-        @click="filterSheetOpen = true"
-      >
-        <UiIcon
-          name="sliders"
-          :size="15"
-        />
-        {{ t('marketplace.filters.heading') }}
-      </button>
-    </div>
-
-    <div class="mt-8 grid gap-7 md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]">
-      <!-- This wrapper is the grid cell and stretches to the row's full
-           height (matching the results column); the sidebar itself is the
-           `sticky` element inside it, so it has room to travel and pin all
-           the way down a tall results list instead of stopping early.
-           Hidden below `md` (phones only) — tablet has the width for the
-           real sidebar (narrower than desktop's, widening again at `lg`),
-           so only phones fall back to the bottom sheet (`UiBottomSheet`
-           below); tablet never sees a full-width inline sidebar-less list. -->
-      <div class="hidden md:block">
-        <MarketplaceProviderFilterSidebar
-          v-model:category-ids="filters.categories"
-          v-model:province="filters.province"
-          v-model:city="filters.city"
-          v-model:barangay="filters.barangay"
-          v-model:min-rating="filters.minRating"
-          v-model:verified-only="filters.verifiedOnly"
-          v-model:min-price="filters.minPrice"
-          v-model:max-price="filters.maxPrice"
-          v-model:skill-ids="filters.skills"
-          v-model:available-day="filters.availableDay"
-          :categories="categories ?? []"
-          :show-apply="false"
-          class="sticky top-28"
-        />
-      </div>
-
-      <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-3 sm:flex-row">
-          <UiInput
-            v-model="searchInput"
-            icon="search"
-            class="flex-1"
-            :placeholder="t('marketplace.browse.searchPlaceholder')"
-            :aria-label="t('marketplace.browse.searchPlaceholder')"
-          />
-          <select
-            v-model="filters.sort"
-            :aria-label="t('marketplace.browse.sortLabel')"
-            class="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
-          >
-            <option
-              v-for="option in BROWSE_SORTS"
-              :key="option"
-              :value="option"
-            >
-              {{ t(`marketplace.browse.sort.${option}`) }}
-            </option>
-          </select>
-        </div>
-
-        <template v-if="providersPage && providersPage.items.length">
-          <MarketplaceProviderCard
-            v-for="provider in providersPage.items"
-            :key="provider.id"
-            :provider="provider"
-            variant="row"
-          />
-        </template>
-        <p
-          v-else
-          class="rounded-2xl border border-black/10 bg-white/70 p-8 text-center text-black/60 dark:border-white/10 dark:bg-black/30 dark:text-white/60"
-        >
-          {{ t('marketplace.browse.noResults') }}
-        </p>
-
-        <nav
-          v-if="providersPage && providersPage.totalPages > 1"
-          class="mt-2 flex items-center justify-center gap-1.5"
-          :aria-label="t('marketplace.browse.pagination')"
-        >
-          <button
-            type="button"
-            class="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 disabled:opacity-40 dark:border-white/10"
-            :disabled="filters.page <= 1"
-            :aria-label="t('marketplace.browse.previousPage')"
-            @click="goToPage(filters.page - 1)"
-          >
-            <UiIcon
-              name="arrow-right"
-              class="rotate-180"
-              :size="15"
-            />
-          </button>
-          <template
-            v-for="(entry, index) in pages"
-            :key="entry ?? `gap-${index}`"
-          >
-            <span
-              v-if="entry === null"
-              class="px-1 text-black/40 dark:text-white/40"
-              aria-hidden="true"
-            >…</span>
-            <button
-              v-else
-              type="button"
-              class="h-10 min-w-10 rounded-full px-3 text-sm font-bold transition-colors"
-              :class="entry === providersPage.page ? 'bg-brand-600 text-white' : 'border border-black/10 hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10'"
-              :aria-current="entry === providersPage.page ? 'page' : undefined"
-              @click="goToPage(entry)"
-            >
-              {{ entry }}
-            </button>
-          </template>
-          <button
-            type="button"
-            class="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 disabled:opacity-40 dark:border-white/10"
-            :disabled="filters.page >= providersPage.totalPages"
-            :aria-label="t('marketplace.browse.nextPage')"
-            @click="goToPage(filters.page + 1)"
-          >
-            <UiIcon
-              name="arrow-right"
-              :size="15"
-            />
-          </button>
-        </nav>
-      </div>
-    </div>
-
-    <UiBottomSheet
-      :open="filterSheetOpen"
-      labelledby="browse-filter-sheet-heading"
-      @close="filterSheetOpen = false"
+    <MarketplaceProviderBrowser
+      v-model:filters="filters"
+      v-model:draft="draft"
+      v-model:search="searchInput"
+      v-model:sheet-open="filterSheetOpen"
+      :categories="categories ?? []"
+      :result="providersPage"
+      :carried-query="carriedQuery"
+      @apply="applyDraft"
+      @reset="resetDraft"
+      @page="goToPage"
     >
-      <div class="px-5 pb-6">
-        <h2
-          id="browse-filter-sheet-heading"
-          class="sr-only"
-        >
-          {{ t('marketplace.filters.heading') }}
-        </h2>
-        <MarketplaceProviderFilterSidebar
-          v-model:category-ids="draft.categories"
-          v-model:province="draft.province"
-          v-model:city="draft.city"
-          v-model:barangay="draft.barangay"
-          v-model:min-rating="draft.minRating"
-          v-model:verified-only="draft.verifiedOnly"
-          v-model:min-price="draft.minPrice"
-          v-model:max-price="draft.maxPrice"
-          v-model:skill-ids="draft.skills"
-          v-model:available-day="draft.availableDay"
-          :categories="categories ?? []"
-          id-prefix="browse-filter-sheet"
-          bare
-          @apply="applyDraft"
-          @reset="resetDraft"
-        />
-      </div>
-    </UiBottomSheet>
+      <template #heading>
+        <h1 class="font-display text-2xl font-bold sm:text-3xl">
+          {{ pageTitle }}
+        </h1>
+      </template>
+    </MarketplaceProviderBrowser>
   </div>
 </template>

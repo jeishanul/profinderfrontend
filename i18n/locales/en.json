@@ -430,7 +430,6 @@
       "apply": "Apply filters"
     },
     "browse": {
-      "titleWithCategory": "{count} {category} near {location}",
       "titleAll": "{count} pros near {location}",
       "anywhere": "you",
       "seoEyebrow": "Browse & filter",
@@ -1497,6 +1496,11 @@
       "emptyHint": "Try clearing your search or explore all available services.",
       "related": "Explore related categories",
       "about": "About {name} services on {site}"
+    },
+    "skill": {
+      "title": "{name}",
+      "subtitle": "Verified {name} pros for {category}, across the Philippines.",
+      "browseIn": "Browse {category} by specialty"
     },
     "province": {
       "badge": "Province in the Philippines",
