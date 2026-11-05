@@ -603,6 +603,10 @@ absolute`, use `@nuxt/fonts` for custom fonts.
 `useCategories({ withSkills?, lazy? })` is the only way to load categories: two cached variants
 (`categories`, `categories-with-skills`), so a page never refetches what another one already has.
 
+A renamed or retired category / sub-category keeps its old `/category/...` address working: Laravel records the move
+(`CategoryRedirect`, written by `CategorySlugObserver` on every slug change) and `server/middleware/location-redirects.ts`
+answers the old address with a 301 before rendering, exactly as for moved locations (`landingPath` covers both).
+
 ### Social sign-in and re-authentication
 
 - The OAuth round trip lives in `server/api/auth/social/*`. What the person asked for before leaving (remember me,

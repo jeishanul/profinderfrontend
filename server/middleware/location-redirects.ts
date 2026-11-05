@@ -1,7 +1,7 @@
 /**
- * Location landing pages whose address changed when the location data followed PSA's PSGC list (a province renamed,
- * a town moved to a new province, a barangay merged) answer the old address with a permanent redirect, before Nuxt
- * renders anything. Laravel keeps the old -> new table (`locations:sync`); the answer for each path is cached like
+ * Landing pages whose address changed answer the old address with a permanent redirect, before Nuxt renders anything:
+ * locations moved when the location data followed PSA's PSGC list (a province renamed, a town moved to a new province,
+ * a barangay merged), and categories or sub-categories that were renamed or retired. Laravel keeps the old -> new table (`locations:sync`); the answer for each path is cached like
  * any other public read (server/utils/publicApi.ts). A failed lookup lets the page render (and 404) as before.
  */
 export default defineEventHandler(async (event) => {

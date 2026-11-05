@@ -9,10 +9,16 @@ describe('landingPath', () => {
     expect(landingPath('/ph/cavite/bacoor-city/aniban-iii')).toBe('/ph/cavite/bacoor-city/aniban-iii')
   })
 
-  it('ignores everything that is not a location landing page', () => {
+  it('normalises category and sub-category paths', () => {
+    expect(landingPath('/category/Plumber/')).toBe('/category/plumber')
+    expect(landingPath('/category/pet-care-animal-services/veterinarians?page=2')).toBe('/category/pet-care-animal-services/veterinarians')
+  })
+
+  it('ignores everything that is not a landing page', () => {
     expect(landingPath('/ph')).toBeNull()
     expect(landingPath('/ph/a/b/c/d')).toBeNull()
-    expect(landingPath('/category/plumbing')).toBeNull()
+    expect(landingPath('/category')).toBeNull()
+    expect(landingPath('/category/a/b/c')).toBeNull()
     expect(landingPath('/api/seo/location/cebu')).toBeNull()
     expect(landingPath('/ph/%E0%A4%A')).toBeNull()
   })
