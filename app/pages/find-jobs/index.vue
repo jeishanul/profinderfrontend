@@ -11,10 +11,11 @@ definePageMeta({
 
 const { t } = useI18n()
 const jobError = useJobErrors()
-const { data: categories } = await useCategories()
+const { data: categories } = await useCategories({ withSkills: true })
 
 const scope = ref<'matching' | 'all'>('matching')
 const category = ref<string | null>(null)
+const skill = ref<string | null>(null)
 const province = ref<string | null>(null)
 const city = ref<string | null>(null)
 const budgetMin = ref('')
@@ -28,6 +29,7 @@ const list = await usePagedList<JobPostForProvider>('/dashboard/seek-jobs', {
   query: computed(() => ({
     scope: scope.value,
     category: category.value ?? undefined,
+    skill: (category.value && skill.value) || undefined,
     province: province.value ?? undefined,
     city: city.value ?? undefined,
     budgetMin: Number(debouncedBudget.value) > 0 ? debouncedBudget.value : undefined,
@@ -37,6 +39,11 @@ const list = await usePagedList<JobPostForProvider>('/dashboard/seek-jobs', {
 })
 
 const categoryOptions = computed(() => (categories.value ?? []).map(c => ({ value: c.id, label: c.name })))
+const skillOptions = computed(() => skillOptionsFor(categories.value ?? [], category.value))
+// A sub-category belongs to one category: changing the category clears it.
+watch(category, () => {
+  skill.value = null
+})
 
 // A profile that isn't complete yet can't browse: say what to do instead of showing an empty list.
 const blockedMessage = computed(() => {
@@ -47,6 +54,7 @@ const blockedMessage = computed(() => {
 const hasFilters = computed(() => !!(category.value || province.value || city.value || budgetMin.value || search.value.trim()))
 function clearFilters() {
   category.value = null
+  skill.value = null
   province.value = null
   city.value = null
   budgetMin.value = ''
@@ -121,6 +129,13 @@ useSeoMeta({ title: t('findJobs.title') })
           :options="categoryOptions"
           :placeholder="t('findJobs.filters.allCategories')"
           :search-placeholder="t('seekJob.form.fields.category.search')"
+        />
+        <UiSelectSearch
+          v-model="skill"
+          :options="skillOptions"
+          :disabled="skillOptions.length === 0"
+          :placeholder="t('publicJobs.filterSkill')"
+          :search-placeholder="t('seekJob.form.fields.skill.search')"
         />
         <UiLocationPicker
           v-model:province="province"

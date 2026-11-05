@@ -18,6 +18,7 @@ const props = defineProps<{
 export interface ServiceFormSubmitPayload {
   title: string
   categoryId: string
+  skillId: string | null
   description: string
   durationLabel: string
   priceType: 'flat' | 'hourly'
@@ -40,6 +41,7 @@ const PRICE_TYPE_OPTIONS = [
 const form = reactive({
   title: '',
   categoryId: null as string | null,
+  skillId: null as string | null,
   description: '',
   durationLabel: '',
   priceType: 'hourly' as 'flat' | 'hourly',
@@ -49,6 +51,7 @@ const form = reactive({
 function resetForm() {
   form.title = props.service?.title ?? ''
   form.categoryId = props.service?.categoryId ?? null
+  form.skillId = props.service?.skillId ?? null
   form.description = props.service?.description ?? ''
   form.durationLabel = props.service?.durationLabel ?? ''
   form.priceType = props.service?.priceType ?? 'hourly'
@@ -62,6 +65,14 @@ watch(() => props.open, (isOpen) => {
 const categoryOptions = computed(() =>
   props.categories.map(category => ({ value: category.id, label: category.name })),
 )
+
+const skillOptions = computed(() => skillOptionsFor(props.categories, form.categoryId))
+
+// A sub-category belongs to one category: picking another category clears it.
+function setCategory(categoryId: string | null) {
+  if (categoryId !== form.categoryId) form.skillId = null
+  form.categoryId = categoryId
+}
 
 const fieldError = (field: string) => props.errors?.[field] ?? ''
 
@@ -78,6 +89,7 @@ function handleSubmit() {
   emit('submit', {
     title: form.title.trim(),
     categoryId: form.categoryId,
+    skillId: form.skillId,
     description: form.description.trim(),
     durationLabel: form.durationLabel.trim(),
     priceType: form.priceType,
@@ -127,15 +139,35 @@ function handleSubmit() {
         >{{ t('dashboard.services.form.categoryLabel') }}</label>
         <UiSelectSearch
           id="service-form-category"
-          v-model="form.categoryId"
+          :model-value="form.categoryId"
           :options="categoryOptions"
           :placeholder="t('dashboard.services.form.categoryPlaceholder')"
+          @update:model-value="setCategory"
         />
         <p
           v-if="fieldError('categoryId')"
           class="mt-1.5 text-xs text-red-600 dark:text-red-400"
         >
           {{ fieldError('categoryId') }}
+        </p>
+      </div>
+
+      <div v-if="skillOptions.length > 0">
+        <label
+          for="service-form-skill"
+          class="mb-1.5 block text-xs font-bold"
+        >{{ t('dashboard.services.form.skillLabel') }}</label>
+        <UiSelectSearch
+          id="service-form-skill"
+          v-model="form.skillId"
+          :options="skillOptions"
+          :placeholder="t('dashboard.services.form.skillPlaceholder')"
+        />
+        <p
+          v-if="fieldError('skillId')"
+          class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+        >
+          {{ fieldError('skillId') }}
         </p>
       </div>
 

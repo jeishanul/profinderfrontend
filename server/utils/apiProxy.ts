@@ -137,7 +137,7 @@ export const callApi = createCallApi({
 
 const LIST_QUERY_KEYS = ['page', 'perPage', 'q', 'status', 'archived', 'sort'] as const
 
-const SEEK_JOB_QUERY_KEYS = ['scope', 'category', 'province', 'city', 'budgetMin', 'q', 'sort', 'page', 'perPage'] as const
+const SEEK_JOB_QUERY_KEYS = ['scope', 'category', 'skill', 'province', 'city', 'budgetMin', 'q', 'sort', 'page', 'perPage'] as const
 
 /** The filters the Seek Job feed understands — nothing else is forwarded. */
 export function pickSeekJobQuery(query: Record<string, unknown>): Record<string, unknown> {

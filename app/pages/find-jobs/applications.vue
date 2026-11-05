@@ -95,7 +95,7 @@ useSeoMeta({ title: t('findJobs.applications.title') })
               {{ application.post?.title }}
             </NuxtLinkLocale>
             <p class="mt-0.5 text-xs text-black/50 dark:text-white/50">
-              {{ application.post?.categoryName }}<template v-if="application.post?.categoryName">
+              {{ categoryWithSkill(application.post?.categoryName, application.post?.skillName) }}<template v-if="application.post?.categoryName">
                 ·
               </template>{{ application.post?.cityName }}<template v-if="application.post?.cityName">
                 ·

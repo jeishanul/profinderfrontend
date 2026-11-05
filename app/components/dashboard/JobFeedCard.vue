@@ -22,7 +22,7 @@ const { budgetLabel, timeLabel, dateLabel, placeLabel, relativeLabel } = useJobL
           {{ post.title }}
         </h2>
         <p class="mt-0.5 text-xs text-black/50 dark:text-white/50">
-          {{ post.categoryName }}<template v-if="post.categoryName">
+          {{ categoryWithSkill(post.categoryName, post.skillName) }}<template v-if="post.categoryName">
             ·
           </template>{{ t('findJobs.card.posted', { when: relativeLabel(post.createdAt) }) }}
           <template v-if="post.postedBy.name">

@@ -18,7 +18,7 @@ const { budgetLabel, dateLabel, placeLabel, relativeLabel } = useJobLabels()
           v-if="post.categoryName"
           class="inline-block rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700 dark:bg-brand-950/60 dark:text-brand-300"
         >
-          {{ post.categoryName }}
+          {{ categoryWithSkill(post.categoryName, post.skillName) }}
         </span>
         <span class="text-xs text-black/40 dark:text-white/40">
           {{ relativeLabel(post.createdAt) }}

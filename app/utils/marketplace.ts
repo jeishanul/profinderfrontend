@@ -21,3 +21,16 @@ export function asIconName(icon: string | null | undefined, fallback: IconName =
 export function getCategoryIcon(categories: ServiceCategory[], categoryId: string): IconName {
   return asIconName(categories.find(category => category.id === categoryId)?.icon)
 }
+
+/** A category's sub-categories (its skills) as select options; empty for no category or one without skills. */
+export function skillOptionsFor(categories: ServiceCategory[], categoryId: string | null | undefined): { value: string, label: string }[] {
+  if (!categoryId) return []
+  return (categories.find(category => category.id === categoryId)?.skills ?? [])
+    .map(skill => ({ value: skill.id, label: skill.name }))
+}
+
+/** "Category › Sub category" when a sub-category is set, else just the category (or '' with neither). */
+export function categoryWithSkill(categoryName: string | null | undefined, skillName: string | null | undefined): string {
+  if (!categoryName) return ''
+  return skillName ? `${categoryName} › ${skillName}` : categoryName
+}

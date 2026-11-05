@@ -6,6 +6,7 @@ export default defineEventHandler((event): Promise<Paged<JobPostBase>> => {
 
   const apiQuery = {
     category: query.category || undefined,
+    skill: query.skill || undefined,
     province: query.province || undefined,
     city: query.city || undefined,
     budgetMin: query.budgetMin || undefined,
