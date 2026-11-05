@@ -26,10 +26,17 @@ const photos = defineModel<File[]>('photos', { default: () => [] })
 
 const { t } = useI18n()
 const { symbol } = useSiteSettings()
-const { data: categories } = await useCategories()
+const { data: categories } = await useCategories({ withSkills: true })
 
 const categoryOptions = computed(() => (categories.value ?? []).map(category => ({ value: category.id, label: category.name })))
 const categoryName = computed(() => categoryOptions.value.find(option => option.value === values.value.categoryId)?.label ?? '')
+const skillOptions = computed(() => skillOptionsFor(categories.value ?? [], values.value.categoryId))
+const skillName = computed(() => skillOptions.value.find(option => option.value === values.value.skillId)?.label ?? '')
+
+// A sub-category belongs to one category: picking another category clears it.
+function setCategory(categoryId: string | null) {
+  if (categoryId !== values.value.categoryId) values.value = { ...values.value, categoryId, skillId: null }
+}
 
 const TIMES: JobPreferredTime[] = ['morning', 'afternoon', 'evening', 'flexible']
 const BUDGETS: JobBudgetType[] = ['open', 'fixed', 'range']
@@ -241,16 +248,44 @@ const chipClass = (active: boolean) => [
       <UiSelectSearch
         v-else
         id="jp-category"
-        v-model="values.categoryId"
+        :model-value="values.categoryId"
         :options="categoryOptions"
         :placeholder="t('seekJob.form.fields.category.placeholder')"
         :search-placeholder="t('seekJob.form.fields.category.search')"
+        @update:model-value="setCategory"
       />
       <p
         v-if="shown.categoryId"
         class="mt-1.5 text-xs text-red-600 dark:text-red-400"
       >
         {{ shown.categoryId }}
+      </p>
+    </div>
+
+    <div v-if="locked ? values.skillId : skillOptions.length > 0">
+      <label
+        for="jp-skill"
+        class="mb-1.5 block text-xs font-bold"
+      >{{ t('seekJob.form.fields.skill.label') }}</label>
+      <p
+        v-if="locked"
+        class="text-sm font-semibold"
+      >
+        {{ skillName }}
+      </p>
+      <UiSelectSearch
+        v-else
+        id="jp-skill"
+        v-model="values.skillId"
+        :options="skillOptions"
+        :placeholder="t('seekJob.form.fields.skill.placeholder')"
+        :search-placeholder="t('seekJob.form.fields.skill.search')"
+      />
+      <p
+        v-if="shown.skillId"
+        class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+      >
+        {{ shown.skillId }}
       </p>
     </div>
 

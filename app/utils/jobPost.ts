@@ -50,6 +50,7 @@ export function buildJobPostFormData(values: JobPostFormValues, photos: File[] =
   for (const task of normalizeTasks(values.tasks)) body.append('tasks[]', task)
 
   if (values.categoryId) body.append('categoryId', values.categoryId)
+  if (values.categoryId && values.skillId) body.append('skillId', values.skillId)
   if (values.provinceCode) body.append('provinceCode', values.provinceCode)
   if (values.cityCode) body.append('cityCode', values.cityCode)
   if (values.barangay) body.append('barangay', values.barangay)
@@ -78,6 +79,7 @@ export function buildJobPostPayload(values: JobPostFormValues) {
     description: values.description.trim(),
     tasks: normalizeTasks(values.tasks),
     categoryId: values.categoryId,
+    skillId: (values.categoryId && values.skillId) || null,
     provinceCode: values.provinceCode,
     cityCode: values.cityCode,
     barangay: values.barangay || null,

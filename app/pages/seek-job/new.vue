@@ -19,6 +19,7 @@ const values = ref<JobPostFormValues>({
   description: '',
   tasks: [''],
   categoryId: null,
+  skillId: null,
   provinceCode: null,
   cityCode: null,
   barangay: null,

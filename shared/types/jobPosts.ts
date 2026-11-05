@@ -30,6 +30,9 @@ export interface JobPostBase {
   tasks: string[]
   categoryId: string | null
   categoryName: string | null
+  /** The optional sub-category (a skill slug of the category). */
+  skillId: string | null
+  skillName: string | null
   provinceCode: string | null
   provinceName: string | null
   cityCode: string | null
@@ -131,6 +134,7 @@ export interface JobApplicationMine extends JobOfferFields {
     status: JobPostStatus
     closedReason: JobPostClosedReason | null
     categoryName: string | null
+    skillName?: string | null
     cityName: string | null
     preferredDate: string | null
     budget: JobBudget
@@ -153,6 +157,8 @@ export interface JobPostFormValues {
   description: string
   tasks: string[]
   categoryId: string | null
+  /** The optional sub-category (a skill slug of the category). */
+  skillId: string | null
   provinceCode: string | null
   cityCode: string | null
   barangay: string | null

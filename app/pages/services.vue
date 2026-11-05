@@ -19,7 +19,7 @@ const list = await usePagedList<ServiceListing, ServiceListMeta>('/dashboard/ser
   perPage: 20,
 })
 const refresh = list.refresh
-const { data: categories } = await useCategories()
+const { data: categories } = await useCategories({ withSkills: true })
 
 const listings = list.items
 
@@ -71,6 +71,7 @@ function toServicePayload(service: ServiceListing): ServiceFormSubmitPayload {
   return {
     title: service.title,
     categoryId: service.categoryId,
+    skillId: service.skillId ?? null,
     description: service.description,
     durationLabel: service.durationLabel,
     priceType: service.priceType,

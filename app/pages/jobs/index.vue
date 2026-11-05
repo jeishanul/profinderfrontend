@@ -2,11 +2,12 @@
 import type { JobPostBase } from '#shared/types/jobPosts'
 
 const { t } = useI18n()
-const { data: categories } = await useCategories()
+const { data: categories } = await useCategories({ withSkills: true })
 
 const route = useRoute()
 
 const category = ref<string | null>((route.query.category as string) || null)
+const skill = ref<string | null>((route.query.skill as string) || null)
 const province = ref<string | null>((route.query.province as string) || null)
 const city = ref<string | null>((route.query.city as string) || null)
 const budgetMin = ref<string>((route.query.budgetMin as string) || '')
@@ -20,6 +21,7 @@ const list = await usePagedList<JobPostBase>('/jobs', {
   key: 'public-jobs-feed',
   query: computed(() => ({
     category: category.value ?? undefined,
+    skill: (category.value && skill.value) || undefined,
     province: province.value ?? undefined,
     city: city.value ?? undefined,
     budgetMin: Number(debouncedBudget.value) > 0 ? debouncedBudget.value : undefined,
@@ -29,10 +31,16 @@ const list = await usePagedList<JobPostBase>('/jobs', {
 })
 
 const categoryOptions = computed(() => (categories.value ?? []).map(c => ({ value: c.id, label: c.name })))
+const skillOptions = computed(() => skillOptionsFor(categories.value ?? [], category.value))
+// A sub-category belongs to one category: changing the category clears it.
+watch(category, () => {
+  skill.value = null
+})
 
 const hasFilters = computed(() => !!(category.value || province.value || city.value || budgetMin.value || search.value.trim()))
 function clearFilters() {
   category.value = null
+  skill.value = null
   province.value = null
   city.value = null
   budgetMin.value = ''
@@ -85,6 +93,13 @@ useSchemaOrg([defineWebPage()])
           v-model="category"
           :options="categoryOptions"
           :placeholder="t('publicJobs.filterCategory')"
+        />
+        <UiSelectSearch
+          v-model="skill"
+          :options="skillOptions"
+          :disabled="skillOptions.length === 0"
+          :placeholder="t('publicJobs.filterSkill')"
+          :search-placeholder="t('seekJob.form.fields.skill.search')"
         />
         <UiLocationPicker
           v-model:province="province"

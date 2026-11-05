@@ -31,6 +31,7 @@ const values = ref<JobPostFormValues>({
   description: post.value.description,
   tasks: [...post.value.tasks],
   categoryId: post.value.categoryId,
+  skillId: post.value.skillId ?? null,
   provinceCode: post.value.provinceCode,
   cityCode: post.value.cityCode,
   barangay: post.value.barangay,

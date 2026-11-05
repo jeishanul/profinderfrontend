@@ -440,6 +440,9 @@ export interface ServiceListing {
   durationLabel: string
   /** The category's current name (null for a listing with no category). */
   categoryName: string | null
+  /** The optional sub-category (a skill slug of the category) and its name. */
+  skillId: string | null
+  skillName: string | null
   priceType: ServicePriceType
   priceAmount: number
   bookingsCount: number

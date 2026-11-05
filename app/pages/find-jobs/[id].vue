@@ -110,7 +110,7 @@ useSeoMeta({ title: () => post.value?.title ?? t('findJobs.title') })
           {{ post.title }}
         </h1>
         <p class="mt-1 text-xs text-black/50 dark:text-white/50">
-          {{ post.categoryName }}<template v-if="post.categoryName">
+          {{ categoryWithSkill(post.categoryName, post.skillName) }}<template v-if="post.categoryName">
             ·
           </template>{{ t('findJobs.card.posted', { when: relativeLabel(post.createdAt) }) }}
           <template v-if="post.postedBy.name">

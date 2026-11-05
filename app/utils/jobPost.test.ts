@@ -7,6 +7,7 @@ const values = (overrides: Partial<JobPostFormValues> = {}): JobPostFormValues =
   description: ' Deep clean. ',
   tasks: ['Sweep', 'Mop'],
   categoryId: 'cleaning',
+  skillId: 'deep-clean',
   provinceCode: '1376',
   cityCode: '137602',
   barangay: null,
@@ -66,6 +67,7 @@ describe('buildJobPostFormData', () => {
     expect(body.get('address')).toBe('12 Sampaguita St')
     expect(body.getAll('tasks[]')).toEqual(['Sweep', 'Mop'])
     expect(body.get('categoryId')).toBe('cleaning')
+    expect(body.get('skillId')).toBe('deep-clean')
     expect(body.has('preferredDate')).toBe(false)
     expect(body.has('barangay')).toBe(false)
     expect(body.has('budgetMin')).toBe(false)

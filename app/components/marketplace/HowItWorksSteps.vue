@@ -121,6 +121,17 @@ onMounted(recalculate)
               <p class="mt-2 max-w-md text-black/60 dark:text-white/60">
                 {{ step.description }}
               </p>
+              <!-- Phones and tablets have no sticky visual, so each step shows its own picture under its text. -->
+              <NuxtImg
+                v-if="step.imageUrl"
+                :src="step.imageUrl"
+                :alt="step.imageAlt ?? step.title"
+                width="440"
+                height="280"
+                sizes="sm:100vw md:440px"
+                loading="lazy"
+                class="mt-4 aspect-[11/7] w-full max-w-md rounded-2xl object-cover lg:hidden"
+              />
             </div>
           </div>
         </button>

@@ -152,7 +152,7 @@
     "browseServices": "Peek Pros",
     "seekJobs": "Seek Jobs",
     "blog": "Blog",
-    "becomeProvider": "Become a provider",
+    "becomeProvider": "Become a Pro",
     "login": "Log in",
     "signup": "Sign up",
     "messages": "Messages",
@@ -194,7 +194,7 @@
     },
     "providers": {
       "heading": "For providers",
-      "becomeProvider": "Become a provider"
+      "becomeProvider": "Become a Pro"
     },
     "contact": {
       "heading": "Contact"
@@ -419,7 +419,7 @@
       "heading": "Filters",
       "resetAll": "Reset all",
       "location": "Location",
-      "service": "Service",
+      "service": "Pros by services",
       "minRating": "Minimum rating",
       "ratingAndUp": "{rating} & up",
       "priceRange": "Price range",
@@ -505,7 +505,7 @@
   "dashboard": {
     "sidebar": {
       "general": "General",
-      "asProvider": "As a provider",
+      "asProvider": "As a Pro",
       "asConsumer": "As a consumer",
       "dashboard": "Dashboard",
       "messages": "Messages",
@@ -515,7 +515,7 @@
       "kycPending": "Pending",
       "myServices": "My services",
       "clientsServed": "Clients served",
-      "browseServices": "Browse",
+      "browseServices": "Peek Pros",
       "alwaysOn": "Open",
       "myPurchases": "My purchases",
       "savedProviders": "Saved providers",
@@ -527,14 +527,14 @@
       "myOrders": "My orders"
     },
     "roleSwitch": {
-      "provider": "Provider",
+      "provider": "Pro",
       "consumer": "Consumer",
-      "becomeProvider": "Become a provider"
+      "becomeProvider": "Become a Pro"
     },
     "dualRoleBanner": {
       "title": "Every {site} account can both offer and book services",
-      "body": "Switching your view swaps between your provider and consumer panels — Browse Services is always one click away, however you're set.",
-      "cta": "Browse services"
+      "body": "Switching your view swaps between your Pro and consumer panels — Peek Pros is always one click away, however you're set.",
+      "cta": "Peek Pros"
     },
     "overview": {
       "title": "Dashboard",
@@ -578,7 +578,7 @@
           "savedProvidersSub": "{count} available now"
         },
         "quickActions": {
-          "browse": "Browse services",
+          "browse": "Peek Pros",
           "message": "Message a provider",
           "review": "Leave a review"
         },
@@ -741,7 +741,7 @@
       "sellBanner": {
         "title": "Have a skill of your own? You can list it too.",
         "body": "Buying and selling both live on the same account — no separate sign-up needed.",
-        "cta": "Set up my provider profile"
+        "cta": "Set up my Pro profile"
       },
       "summary": {
         "totalJobs": "Jobs booked",
@@ -761,12 +761,12 @@
     },
     "emailBanner": {
       "title": "Please verify your email",
-      "body": "We'll send a code to {email}. You need a verified email to send booking requests or become a provider.",
+      "body": "We'll send a code to {email}. You need a verified email to send booking requests or become a Pro.",
       "cta": "Verify now"
     },
     "becomeProvider": {
       "verifyEmail": "Verify my email",
-      "title": "Become a provider",
+      "title": "Become a Pro",
       "subtitle": "Tell clients what you do, what you charge and where. You can edit everything later.",
       "steps": {
         "service": "Your service",
@@ -776,8 +776,8 @@
       "step": "Step {current} of {total}",
       "next": "Continue",
       "back": "Back",
-      "submit": "Create my provider profile",
-      "success": "You're now a provider. Next, verify your identity to start accepting bookings.",
+      "submit": "Create my Pro profile",
+      "success": "You're now a Pro. Next, verify your identity to start accepting bookings.",
       "fields": {
         "category": "What do you do?",
         "categoryPlaceholder": "Choose your main category",
@@ -1338,6 +1338,8 @@
         "titleLabel": "Service title",
         "categoryLabel": "Category",
         "categoryPlaceholder": "Select a category",
+        "skillLabel": "Sub category (optional)",
+        "skillPlaceholder": "Select a sub category",
         "descriptionLabel": "Description",
         "durationLabel": "Duration",
         "durationPlaceholder": "e.g. 2-3 hours",
@@ -1365,7 +1367,7 @@
       "bookNow": "Book now",
       "remove": "Remove from saved",
       "empty": "No saved providers left.",
-      "browse": "Browse services",
+      "browse": "Peek Pros",
       "neverBooked": "Never booked",
       "removed": "Removed {name} from saved",
       "undo": "Undo",
@@ -1488,7 +1490,7 @@
       "browseAll": "Browse all providers"
     },
     "category": {
-      "title": "{name} Services",
+      "title": "{name}",
       "subtitle": "Find verified, high-rated {name} experts across the Philippines.",
       "allServices": "All services",
       "heading": "Verified providers",
@@ -1626,6 +1628,11 @@
           "label": "Category",
           "placeholder": "Choose a category",
           "search": "Search categories"
+        },
+        "skill": {
+          "label": "Sub category (optional)",
+          "placeholder": "Choose a sub category",
+          "search": "Search sub categories"
         },
         "location": {
           "label": "Where is the job?"
@@ -1948,7 +1955,7 @@
       }
     },
     "errors": {
-      "provider_required": "Become a provider to browse and apply to jobs.",
+      "provider_required": "Become a Pro to browse and apply to jobs.",
       "provider_profile_incomplete": "Finish your provider profile (category, rate and location) to browse and apply to jobs.",
       "already_applied": "You have already applied to this job.",
       "applications_full": "This job already has enough applicants.",
@@ -1971,6 +1978,7 @@
     "seoTitle": "Open Job Requests & Gigs | Seek Jobs",
     "seoDescription": "Browse active customer job postings, find local work, and send competitive offers directly.",
     "filterCategory": "All Categories",
+    "filterSkill": "All Sub Categories",
     "filterProvince": "All Provinces",
     "filterCity": "All Cities",
     "searchPlaceholder": "Search jobs by title or keywords...",
@@ -1990,7 +1998,7 @@
     "backToJobs": "Back to all jobs",
     "applyNotice": "To apply for this job and submit an offer, log in as a registered service provider.",
     "loginToApply": "Log in to apply",
-    "registerProvider": "Become a provider"
+    "registerProvider": "Become a Pro"
   },
   "blog": {
     "title": "Blog & Guides",

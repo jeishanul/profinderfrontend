@@ -46,7 +46,7 @@ const isPaused = computed(() => props.service.status === 'paused')
             {{ service.title }}
           </div>
           <div class="mt-0.5 text-xs text-black/60 dark:text-white/60">
-            {{ categoryLabel(service.categoryId, service.categoryName) }} · {{ service.durationLabel }}
+            {{ categoryWithSkill(categoryLabel(service.categoryId, service.categoryName), service.skillName) }} · {{ service.durationLabel }}
           </div>
         </div>
       </div>
