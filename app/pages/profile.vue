@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DashboardSummary, ProviderProfileDetail, RecentWorkPhoto } from '#shared/types/dashboard'
+import type { KycDetail, ProviderProfileDetail, RecentWorkPhoto } from '#shared/types/dashboard'
 
 // Reached from Home's quick tiles or the More sheet, never a bottom-nav tab
 // — mobile gets a back button instead of the tab bar (see `UiBackButton`).
@@ -24,10 +24,6 @@ const { data: profile, error: profileError, refresh: refreshProfile } = await us
 if (profileError.value && apiErrorStatus(profileError.value) === 404) {
   await navigateTo(localePath('/become-a-provider'), { replace: true })
 }
-const { data: summary, refresh: refreshSummary } = await useApi<DashboardSummary>('/dashboard/summary', {
-  key: 'dashboard-summary-provider',
-  query: { role: 'provider' },
-})
 const { data: categories } = await useCategories({ withSkills: true })
 
 // The active tab lives in the URL (`?tab=kyc`), not local state, so the
@@ -49,10 +45,17 @@ function setTab(tab: 'details' | 'kyc' | 'reviews') {
   router.replace({ query })
 }
 
-/** The sidebar's KYC badge (`layouts/dashboard.vue`) reads a separate, independently-keyed fetch — refreshing just the summary leaves it stale after a new submission. */
+// The Verification tab: every level with its requirements. Same key and options as the sidebar's badge
+// (`layouts/dashboard.vue`), so the two share one request.
+const { data: kyc } = useApi<KycDetail>('/dashboard/kyc', {
+  key: 'dashboard-kyc',
+  lazy: true,
+  server: false,
+})
+
+/** After a submission: this tab and the sidebar badge (`dashboard-kyc`), the Billing page's levels and the dashboard's KYC banner. */
 function onKycSubmitted() {
-  refreshSummary()
-  refreshNuxtData('dashboard-kyc')
+  refreshNuxtData(['dashboard-kyc', BILLING_OVERVIEW_KEY, 'dashboard-summary'])
 }
 
 // Editable copy of the fetched profile — "Save changes" PUTs this to
@@ -732,8 +735,8 @@ useSeoMeta({
     </template>
 
     <DashboardKycStepper
-      v-else-if="activeTab === 'kyc' && summary"
-      :kyc="summary.kyc"
+      v-else-if="activeTab === 'kyc' && kyc"
+      :kyc="kyc"
       @submitted="onKycSubmitted"
     />
   </div>

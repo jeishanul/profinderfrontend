@@ -364,7 +364,8 @@
       "viewProfile": "View profile",
       "save": "Save provider",
       "unsave": "Remove from saved providers",
-      "pendingVerification": "This provider is still completing verification and can't take booking requests yet. You can message them in the meantime."
+      "pendingVerification": "This provider is still completing verification and can't take booking requests yet. You can message them in the meantime.",
+      "badgesLabel": "Verification badges"
     },
     "whyChooseUs": {
       "eyebrow": "Why choose us",
@@ -499,7 +500,9 @@
         "repeatClients": "Repeat clients"
       },
       "moreInCity": "More pros in {city}",
-      "moreInProvince": "More pros in {province}"
+      "moreInProvince": "More pros in {province}",
+      "verifiedContacts": "Verified contact numbers",
+      "callContact": "Call {label}: {value}"
     }
   },
   "dashboard": {
@@ -524,7 +527,9 @@
       "seekJob": "Jobs Posting",
       "findJobs": "Find jobs",
       "myApplications": "My applications",
-      "myOrders": "My orders"
+      "myOrders": "My orders",
+      "billing": "Billing",
+      "billingUnpaid": "No unpaid invoices | 1 unpaid invoice | {count} unpaid invoices"
     },
     "roleSwitch": {
       "provider": "Pro",
@@ -551,7 +556,7 @@
         },
         "kycNudge": {
           "title": "Identity verification pending",
-          "body": "Complete KYC to start receiving bookings.",
+          "body": "Choose a verification level, pay for it and send its documents to earn your badge.",
           "cta": "Complete verification"
         },
         "kycVerified": {
@@ -865,7 +870,7 @@
       "saved": "Saved",
       "kyc": {
         "mandatoryTitle": "Verification is mandatory before you can accept bookings",
-        "mandatoryBody": "{site} verifies every service provider's identity to keep clients safe. You can't accept bookings until all three steps are approved.",
+        "mandatoryBody": "{site} checks every pro's documents to keep clients safe. Choose a verification level on the Billing page, pay for it, then send its documents here.",
         "statusVerified": "Verified",
         "statusInReview": "In review",
         "statusNotStarted": "Not started",
@@ -877,34 +882,13 @@
           "type": "Please choose an image (JPG, PNG, WebP or HEIC).",
           "typeWithPdf": "Please choose an image (JPG, PNG, WebP or HEIC) or a PDF.",
           "tooLarge": "That file is larger than 15 MB. Please choose a smaller one.",
-          "submit": "Couldn't submit that step. Please try again."
-        },
-        "steps": {
-          "identity": {
-            "title": "Government-issued ID",
-            "verifiedBody": "Verified and confirmed.",
-            "inReviewBody": "Submitted — our team typically reviews within 24 hours.",
-            "pendingBody": "Enter your NID number and upload clear photos of the front and back."
-          },
-          "selfie": {
-            "title": "Selfie verification",
-            "verifiedBody": "Verified and confirmed.",
-            "inReviewBody": "Submitted — our team typically reviews within 24 hours.",
-            "pendingBody": "Take a quick selfie to confirm it's really you."
-          },
-          "address": {
-            "title": "Proof of address",
-            "verifiedBody": "Verified and confirmed.",
-            "inReviewBody": "Submitted — our team typically reviews within 24 hours.",
-            "pendingBody": "Upload a recent utility bill or bank statement (last 3 months)."
-          }
+          "submit": "Couldn't submit that step. Please try again.",
+          "phone": "Please enter a valid mobile number."
         },
         "nidNumberLabel": "NID number",
         "nidNumberPlaceholder": "Enter your National ID number",
         "nidFront": "NID — front",
         "nidBack": "NID — back",
-        "selfieUpload": "Selfie photo",
-        "addressUpload": "Proof of address",
         "replace": "Replace",
         "submitStep": "Submit for review",
         "dropzone": "Drag a file here, or",
@@ -915,7 +899,32 @@
           "message": "Sending a new document removes your verified status until it's approved again.",
           "confirmLabel": "Replace document"
         },
-        "complianceNote": "Your documents are encrypted and only used for identity verification, per our Trust & Safety policy."
+        "complianceNote": "Your documents are encrypted and only used for identity verification, per our Trust & Safety policy.",
+        "payFirst": "Pay first, then upload: a level's documents can be sent once you hold that level. Its badge shows on your profile when every document is approved.",
+        "noLevels": "No verification levels are available yet.",
+        "getLevel": "Get this level",
+        "renewLevel": "Renew this level",
+        "notHeld": "Buy this level to send these documents.",
+        "expired": "This level has run out. Renew it to send documents again.",
+        "badgeOn": "Badge on profile",
+        "badgeWaiting": "{approved} of {total} approved",
+        "body": {
+          "verified": "Verified and confirmed.",
+          "inReview": "Submitted — our team typically reviews within 24 hours.",
+          "phoneInReview": "We'll call {value} to confirm it.",
+          "pending": {
+            "id_document": "Enter your ID number and upload clear photos of the front and back.",
+            "photo": "Upload a clear photo.",
+            "document": "Upload a clear photo or a PDF.",
+            "phone": "Enter your mobile number. Our team will call you to confirm it.",
+            "text": "Fill this in for our team to check."
+          }
+        },
+        "submittedValue": "Sent: {value}",
+        "phoneLabel": "Mobile number",
+        "phonePlaceholder": "+63 912 345 6789",
+        "textLabel": "Your answer",
+        "fileLabel": "Document for {label}"
       }
     },
     "days": {
@@ -1297,6 +1306,46 @@
       "shop_order_status": {
         "title": "Order {order}: {status}",
         "body": "Your order is now {status}. Tap to see the details."
+      },
+      "billing_invoice": {
+        "title": "New invoice",
+        "body": "An invoice for your verification level is ready. Tap to pay it.",
+        "bodyDetailed": "Invoice {invoice} for {level} ({amount}) is ready. Tap to pay it."
+      },
+      "billing_renewal": {
+        "title": "Renewal invoice",
+        "body": "Your verification level ends soon. Pay the renewal invoice to keep your badge.",
+        "bodyDetailed": "{level} ends soon. Pay invoice {invoice} ({amount}) to keep your badge."
+      },
+      "billing_reminder": {
+        "title": "Invoice reminder",
+        "body": "You have an unpaid verification invoice. Pay it to keep your badge.",
+        "bodyDetailed": "Invoice {invoice} for {level} ({amount}) is still unpaid."
+      },
+      "billing_paid": {
+        "title": "Payment received",
+        "body": "Thanks! Your verification level is active. Upload its documents to get the badge.",
+        "bodyDetailed": "Thanks! {level} is active (invoice {invoice}). Upload its documents to get the badge."
+      },
+      "billing_payment_rejected": {
+        "title": "Payment not confirmed",
+        "body": "We couldn't confirm your payment. Tap to see why and try again.",
+        "bodyDetailed": "We couldn't confirm the payment for invoice {invoice}. Tap to see why."
+      },
+      "billing_expired": {
+        "title": "Verification level expired",
+        "body": "A verification level ran out and its badge was removed. Renew it to get the badge back.",
+        "bodyDetailed": "{level} ran out and its badge was removed. Renew it to get the badge back."
+      },
+      "verification_badge_added": {
+        "title": "New badge on your profile",
+        "body": "A verification badge now shows on your public profile.",
+        "bodyDetailed": "Your {level} badge now shows on your public profile."
+      },
+      "verification_badge_removed": {
+        "title": "Badge removed",
+        "body": "A verification badge was removed from your public profile.",
+        "bodyDetailed": "Your {level} badge was removed from your public profile."
       }
     },
     "services": {
@@ -2255,6 +2304,187 @@
       "total": "Total",
       "payment": "Payment",
       "thanks": "Thank you for your order!"
+    }
+  },
+  "billing": {
+    "seoTitle": "Billing",
+    "title": "Billing",
+    "subtitle": "Your verification levels, invoices and payments.",
+    "loadFailed": "Couldn't load billing. Please try again.",
+    "retry": "Try again",
+    "notProvider": {
+      "title": "Billing is for pros",
+      "body": "Verification levels and their invoices belong to a pro profile. Create yours to get started.",
+      "cta": "Become a pro"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "payFirst": "Pay first, then upload your documents. The badge shows on your profile once both are done.",
+      "renewal": "Renewal invoices are emailed one day before a level runs out. | Renewal invoices are emailed {count} days before a level runs out."
+    },
+    "levels": {
+      "title": "Your levels",
+      "free": "Free",
+      "includes": "Includes",
+      "basicChecks": "What we check",
+      "done": "Done",
+      "notDone": "Not done yet",
+      "choosePlan": "Choose a plan for {level}",
+      "renewsAutomatically": "Renews automatically",
+      "oneTime": "One-time",
+      "buy": "Buy",
+      "renew": "Renew",
+      "notOnSale": "This level is no longer sold. You keep it until it ends.",
+      "noPlans": "No plans are on sale for this level right now.",
+      "purchaseFailed": "Couldn't create the invoice. Please try again.",
+      "autoRenew": "Automatic renewal",
+      "autoRenewHint": "We email a renewal invoice before it ends.",
+      "autoRenewOn": "Automatic renewal is on.",
+      "autoRenewOff": "Automatic renewal is off.",
+      "autoRenewFailed": "Couldn't change automatic renewal. Please try again.",
+      "status": {
+        "free": "Free",
+        "notPurchased": "Not purchased",
+        "active": "Active until {date}",
+        "activeNoDate": "Active",
+        "grandfathered": "Free year until {date}",
+        "grandfatheredNoDate": "Free year",
+        "admin": "Given by admin · until {date}",
+        "adminNoDate": "Given by admin",
+        "expired": "Expired on {date}",
+        "expiredNoDate": "Expired",
+        "cancelled": "Cancelled",
+        "cancelledNoDate": "Cancelled"
+      },
+      "badge": {
+        "onProfile": "Badge on profile",
+        "waiting": "Waiting for documents: {approved} of {total} approved",
+        "upload": "Upload documents"
+      },
+      "openInvoice": {
+        "unpaid": "Invoice {number} is unpaid.",
+        "overdue": "Invoice {number} is overdue.",
+        "pendingReview": "Invoice {number} is awaiting confirmation.",
+        "pay": "Pay now",
+        "view": "View invoice"
+      }
+    },
+    "invoices": {
+      "title": "Invoices",
+      "filters": {
+        "all": "All",
+        "unpaid": "Unpaid",
+        "paid": "Paid"
+      },
+      "empty": "No invoices yet",
+      "emptySub": "Choose a plan above and its invoice shows up here.",
+      "due": "Due {date}",
+      "paidOn": "Paid {date}",
+      "renewal": "Renewal"
+    },
+    "status": {
+      "paid": "Paid",
+      "pendingReview": "Awaiting confirmation",
+      "overdue": "Overdue",
+      "unpaid": "Unpaid",
+      "cancelled": "Cancelled"
+    },
+    "transactions": {
+      "title": "Payment history",
+      "empty": "No payments yet.",
+      "invoice": "Invoice {number}",
+      "reference": "Ref. {reference}"
+    },
+    "invoice": {
+      "seoTitle": "Invoice {number}",
+      "back": "Back to billing",
+      "print": "Print",
+      "title": "Invoice",
+      "loadFailed": "Couldn't load this invoice.",
+      "billedTo": "Billed to",
+      "from": "From",
+      "issued": "Issued",
+      "dueDate": "Due date",
+      "paidOn": "Paid on",
+      "description": "Description",
+      "amount": "Amount",
+      "total": "Total",
+      "status": "Status",
+      "period": "Period covered",
+      "periodValue": "{start} – {end}",
+      "planLine": "{plan} · {duration}",
+      "renewal": "Renewal",
+      "paymentMethod": "Payment method",
+      "reference": "Reference",
+      "payments": "Payments",
+      "date": "Date",
+      "method": "Method",
+      "paypalCancelled": "The PayPal payment was cancelled. You can try again below.",
+      "sentBack": {
+        "title": "Your payment was sent back",
+        "body": "We couldn't confirm the payment you reported. Please check the details and send it again."
+      },
+      "waiting": {
+        "title": "Waiting for confirmation",
+        "body": "We received your payment details ({method}, reference {reference}). Our team will confirm the payment shortly.",
+        "viewProof": "View your receipt"
+      },
+      "paidState": {
+        "title": "Payment received",
+        "body": "Thanks! Now upload the documents for {level}. The badge shows on your profile once they're approved.",
+        "cta": "Upload your documents"
+      },
+      "cancelledState": "This invoice was cancelled.",
+      "cancel": "Cancel invoice",
+      "cancelConfirm": {
+        "title": "Cancel this invoice?",
+        "message": "The plan won't be bought. You can choose a plan again any time.",
+        "confirm": "Cancel invoice"
+      },
+      "cancelled": "Invoice cancelled.",
+      "cancelFailed": "Couldn't cancel the invoice. Please try again.",
+      "paypalPending": {
+        "title": "Payment being processed",
+        "body": "PayPal has your payment and is reviewing it. This invoice will be marked paid as soon as PayPal confirms it, and we'll email you. No need to pay again."
+      }
+    },
+    "pay": {
+      "title": "Pay this invoice",
+      "choose": "Payment method",
+      "paypal": "Pay with PayPal",
+      "paypalHint": "You'll go to PayPal to pay, then come back here.",
+      "payStartFailed": "Couldn't start the PayPal payment. Please try again.",
+      "instructions": "How to pay",
+      "instructionsHint": "Put {number} in the payment note if you can.",
+      "reference": "Reference number",
+      "referencePlaceholder": "Transaction or reference number",
+      "referenceHint": "The reference on your bank or e-wallet receipt.",
+      "proof": "Receipt (optional)",
+      "proofHint": "A photo or PDF of your receipt, up to 10 MB.",
+      "chooseFile": "Choose file",
+      "removeFile": "Remove",
+      "submit": "I've paid — send for confirmation",
+      "submitted": "Thanks! We'll confirm your payment shortly.",
+      "submitFailed": "Couldn't send your payment details. Please try again.",
+      "none": "No payment method is available right now. Please contact us.",
+      "errors": {
+        "type": "Please choose an image (JPG, PNG, WebP or AVIF) or a PDF.",
+        "size": "That file is larger than 10 MB. Please choose a smaller one."
+      }
+    },
+    "paypalReturn": {
+      "processing": "Processing your payment…",
+      "paid": "Payment received. Thank you!",
+      "failed": "The PayPal payment didn't go through.",
+      "errors": {
+        "paypal_declined": "PayPal declined the payment. Please try again or use another method.",
+        "not_payable": "This invoice can no longer be paid.",
+        "paypal_mismatch": "The PayPal payment didn't match this invoice. Please contact us.",
+        "paypal_error": "PayPal had a problem. Please try again.",
+        "paypal_pending": "PayPal is still reviewing an earlier payment for this invoice.",
+        "paypal_amount_mismatch": "PayPal took a payment that doesn't match this invoice. Our team has been told and will contact you."
+      },
+      "pending": "PayPal is still reviewing your payment. We'll email you as soon as it clears."
     }
   }
 }

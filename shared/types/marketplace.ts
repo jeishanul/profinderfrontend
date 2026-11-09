@@ -3,6 +3,7 @@
  * (e.g. `marketplace.categories.${category.id}.label`) — see Internationalization
  * in CLAUDE.md. Only genuine proper nouns (`name`, `reviewerName`) are plain strings.
  */
+import type { VerificationBadge, VerifiedContact } from './billing'
 
 export interface ServiceCategory {
   id: string
@@ -96,6 +97,8 @@ export interface ProviderSummary {
   ratePerHour: number
   yearsExperience: number
   verified: boolean
+  /** The paid verification badges on show ("Verified identity"…), in level order. Optional: older cached answers lack it. */
+  badges?: VerificationBadge[]
   /** Philippines Province -> City/Municipality -> Barangay — see
    * `shared/types/location.ts`. `provinceCode`/`cityCode` are the real
    * PSGC-derived codes (used for filtering); the `*Name` fields and
@@ -131,6 +134,8 @@ export interface ProviderProfile extends ProviderSummary {
   /** Published reviews per star, highest first. */
   ratingBreakdown: { stars: number, count: number }[]
   reviewsTotal: number
+  /** Phone numbers our team confirmed (a verification level's `phone` requirement), shown with the badges. */
+  verifiedContacts?: VerifiedContact[]
 }
 
 export interface Testimonial {

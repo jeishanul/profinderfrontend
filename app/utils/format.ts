@@ -44,3 +44,10 @@ export function formatRelativeDate(date: Date | string, locale = 'en-US', now: D
   if (days < 365) return formatter.format(-Math.floor(days / 30), 'month')
   return formatter.format(-Math.floor(days / 365), 'year')
 }
+
+/** A phone number as typed ("+63 912 345-6789") turned into what a `tel:` link wants ("+639123456789"). */
+export function telHref(phone: string): string {
+  const trimmed = phone.trim()
+  const digits = trimmed.replace(/\D/g, '')
+  return trimmed.startsWith('+') ? `+${digits}` : digits
+}

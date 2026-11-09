@@ -119,6 +119,8 @@ export default defineNuxtConfig({
     '/shop/checkout': { ssr: false, robots: false },
     '/shop/orders': { ssr: false, robots: false },
     '/shop/orders/**': { ssr: false, robots: false },
+    '/billing': { ssr: false, robots: false },
+    '/billing/**': { ssr: false, robots: false },
     // Credential endpoints: Laravel also throttles per account/IP, this just caps a single address hammering them.
     '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 60, interval: 300000 } } },
     // The backend's public files (admin-uploaded pictures). Images on the pages come straight from the backend's own

@@ -54,6 +54,16 @@ watch(isProvider, (provider) => {
 })
 const isConsumer = computed(() => session.activeRole.value === 'consumer')
 
+// Billing (verification levels and their invoices) belongs to the provider account, whichever panel is showing, so it
+// follows `session.isProvider`, not the active role. The badge is the number of open invoices.
+const hasProviderAccount = computed(() => session.isProvider.value)
+const { data: billing } = useBillingOverview(hasProviderAccount.value)
+watch(hasProviderAccount, (provider) => {
+  if (provider && !billing.value) refreshNuxtData(BILLING_OVERVIEW_KEY)
+})
+const unpaidInvoices = computed(() => billing.value?.data.counts.unpaid ?? 0)
+const isOnBilling = computed(() => route.path === localePath('/billing') || route.path.startsWith(`${localePath('/billing')}/`))
+
 // --- Shared booking UI ---------------------------------------------------------
 // One booking drawer + one "book again" request form for the whole panel; any
 // page opens them through `useBookingDrawer()` / `useBookAgain()`. A
@@ -99,6 +109,7 @@ const mobileNavItems = computed(() => [
   { to: '/shop/orders', label: t('dashboard.sidebar.myOrders') },
   { to: '/messages', label: t('dashboard.sidebar.messages') },
   { to: '/notifications', label: t('dashboard.sidebar.notifications') },
+  ...(hasProviderAccount.value ? [{ to: '/billing', label: t('dashboard.sidebar.billing') }] : []),
   { to: '/settings', label: t('dashboard.sidebar.settings') },
 ])
 
@@ -129,7 +140,7 @@ async function handleLogout() {
 
 <template>
   <div class="flex min-h-screen bg-white text-black dark:bg-black dark:text-white">
-    <aside class="hidden w-64 shrink-0 flex-col gap-0.5 border-r border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.04] lg:flex">
+    <aside class="hidden w-64 shrink-0 print:hidden flex-col gap-0.5 border-r border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.04] lg:flex">
       <NuxtLinkLocale
         to="/"
         class="flex items-center gap-2.5 px-2 pt-1.5 pb-5 font-display font-bold text-brand-700 dark:text-brand-500"
@@ -316,6 +327,27 @@ async function handleLogout() {
 
       <div class="flex-1" />
       <NuxtLinkLocale
+        v-if="hasProviderAccount"
+        to="/billing"
+        class="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
+        :class="isOnBilling
+          ? 'bg-brand-50 text-brand-700 dark:bg-brand-700/20 dark:text-brand-100'
+          : 'text-black/60 hover:bg-black/5 hover:text-black dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white'"
+      >
+        <span class="flex items-center gap-3 whitespace-nowrap">
+          <UiIcon
+            name="wallet"
+            :size="18"
+            class="shrink-0"
+          />{{ t('dashboard.sidebar.billing') }}
+        </span>
+        <span
+          v-if="unpaidInvoices > 0"
+          class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent-600 px-1 text-[11px] font-bold text-white"
+          :title="t('dashboard.sidebar.billingUnpaid', { count: unpaidInvoices }, unpaidInvoices)"
+        >{{ formatBadgeCount(unpaidInvoices) }}</span>
+      </NuxtLinkLocale>
+      <NuxtLinkLocale
         to="/settings"
         :class="linkClass('/settings')"
       >
@@ -337,7 +369,7 @@ async function handleLogout() {
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 px-5 py-3.5 dark:border-white/10 sm:px-8">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 px-5 py-3.5 print:hidden dark:border-white/10 sm:px-8">
         <nav class="hidden items-center gap-1 overflow-x-auto md:flex lg:hidden">
           <NuxtLinkLocale
             v-for="item in mobileNavItems"
@@ -394,15 +426,15 @@ async function handleLogout() {
         </div>
       </div>
 
-      <div class="hidden items-center px-5 py-2.5 md:flex lg:hidden">
+      <div class="hidden items-center px-5 py-2.5 md:flex lg:hidden print:hidden">
         <DashboardRoleSwitch />
       </div>
 
       <main
-        class="flex-1 px-5 py-6 sm:px-8 sm:py-8 md:pb-8"
+        class="flex-1 px-5 py-6 sm:px-8 sm:py-8 md:pb-8 print:p-0"
         :class="bottomNavHidden ? 'pb-6' : 'pb-20'"
       >
-        <DashboardEmailVerifyBanner />
+        <DashboardEmailVerifyBanner class="print:hidden" />
         <slot />
       </main>
     </div>
