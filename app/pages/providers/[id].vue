@@ -41,6 +41,8 @@ const toast = useToast()
 const isOpeningChat = ref(false)
 
 // Your own profile shows the public view, without the actions that make no sense on yourself.
+// Phone numbers our team confirmed (a verification level's mobile check); older cached answers lack the field.
+const verifiedContacts = computed(() => provider.value?.verifiedContacts ?? [])
 const isOwnProfile = computed(() => session.isAuthenticated.value && session.user.value?.id === provider.value?.userId)
 
 // "Request a booking" opens the structured job-request form (logged-out
@@ -269,6 +271,11 @@ useSchemaOrg([
               {{ t('marketplace.providerProfile.verifiedPro') }}
             </UiTag>
           </div>
+          <MarketplaceVerificationBadges
+            :badges="provider.badges"
+            size="md"
+            class="mt-2"
+          />
           <p
             v-if="provider.headline"
             class="mt-1 text-black/70 dark:text-white/70"
@@ -532,6 +539,27 @@ useSchemaOrg([
                 />
                 {{ t('marketplace.providerProfile.identityChecked') }}
               </p>
+              <div
+                v-if="verifiedContacts.length > 0"
+                class="flex flex-col gap-1.5"
+              >
+                <p class="text-xs font-bold tracking-wide text-black/50 uppercase dark:text-white/50">
+                  {{ t('marketplace.providerProfile.verifiedContacts') }}
+                </p>
+                <a
+                  v-for="contact in verifiedContacts"
+                  :key="`${contact.label}-${contact.value}`"
+                  :href="`tel:${telHref(contact.value)}`"
+                  class="flex items-center gap-2.5 font-semibold text-brand-700 hover:underline dark:text-brand-100"
+                  :aria-label="t('marketplace.providerProfile.callContact', { label: contact.label, value: contact.value })"
+                >
+                  <UiIcon
+                    name="phone"
+                    :size="16"
+                  />
+                  <span>{{ contact.label }}: {{ contact.value }}</span>
+                </a>
+              </div>
               <p class="flex items-center gap-2.5">
                 <UiIcon
                   name="calendar"

@@ -66,6 +66,14 @@ const ICON_BY_KIND: Record<NotificationItem['kind'], IconName> = {
   job_post_match: 'search',
   shop_order_placed: 'bag',
   shop_order_status: 'bag',
+  billing_invoice: 'wallet',
+  billing_renewal: 'wallet',
+  billing_reminder: 'calendar',
+  billing_paid: 'check-circle',
+  billing_payment_rejected: 'alert-triangle',
+  billing_expired: 'shield-check',
+  verification_badge_added: 'shield-check',
+  verification_badge_removed: 'shield-check',
 }
 
 // Good news is brand green, money is amber, problems are red, everything else neutral.
@@ -122,7 +130,23 @@ const TINT_BY_KIND: Record<NotificationItem['kind'], string> = {
   job_post_match: TINT.brand,
   shop_order_placed: TINT.brand,
   shop_order_status: TINT.neutral,
+  billing_invoice: TINT.accent,
+  billing_renewal: TINT.accent,
+  billing_reminder: TINT.accent,
+  billing_paid: TINT.brand,
+  billing_payment_rejected: TINT.danger,
+  billing_expired: TINT.danger,
+  verification_badge_added: TINT.brand,
+  verification_badge_removed: TINT.danger,
 }
+
+const BILLING_KINDS = new Set<NotificationItem['kind']>([
+  'billing_invoice', 'billing_renewal', 'billing_reminder', 'billing_paid', 'billing_payment_rejected',
+  'billing_expired', 'verification_badge_added', 'verification_badge_removed',
+])
+const INVOICE_KINDS = new Set<NotificationItem['kind']>([
+  'billing_invoice', 'billing_renewal', 'billing_reminder', 'billing_paid', 'billing_payment_rejected',
+])
 
 // Copy the server wrote itself (announcements, account notices, a cancellation
 // reason) wins; every other notification is a translated template for its kind.
@@ -131,14 +155,24 @@ const params = computed(() => ({
   subject: props.item.subjectName ?? '',
   rating: props.item.ratingGiven ?? '',
   category: props.item.categoryName ?? categoryLabel(props.item.categoryId),
-  amount: money(props.item.amountUsd ?? 0),
   site: settings.value.siteName ?? t('brand.name'),
   order: props.item.orderNumber ?? props.item.subjectName ?? '',
   status: props.item.status ? t(`shop.status.${props.item.status}`) : '',
+  invoice: props.item.invoiceNumber ?? '',
+  level: props.item.levelName ?? '',
+  amount: money(props.item.amount ?? props.item.amountUsd ?? 0),
 }))
 
+// Billing copy names the level (and invoice) when the row carries them, else falls back to a generic sentence.
+const bodyKey = computed(() => {
+  const kind = props.item.kind
+  if (!BILLING_KINDS.has(kind)) return 'body'
+  const detailed = !!props.item.levelName && (!INVOICE_KINDS.has(kind) || !!props.item.invoiceNumber)
+  return detailed ? 'bodyDetailed' : 'body'
+})
+
 const title = computed(() => props.item.title || t(`dashboard.notificationsPage.${props.item.kind}.title`, params.value))
-const body = computed(() => props.item.body || t(`dashboard.notificationsPage.${props.item.kind}.body`, params.value))
+const body = computed(() => props.item.body || t(`dashboard.notificationsPage.${props.item.kind}.${bodyKey.value}`, params.value))
 
 const timeLabel = computed(() => props.item.timeAgoHours < 24
   ? t('dashboard.notificationsPage.hoursAgo', { count: props.item.timeAgoHours })

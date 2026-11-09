@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
+// `steps` are the requirements of the levels held (or of Level 2 when none is), so the count follows what is bought.
 const completedCount = computed(() => props.kyc.steps.filter(step => step.status === 'verified').length)
 </script>
 
@@ -46,7 +47,9 @@ const completedCount = computed(() => props.kyc.steps.filter(step => step.status
           {{ t('dashboard.overview.provider.kycNudge.title') }}
         </div>
         <div class="mt-0.5 text-xs text-black/60 dark:text-white/60">
-          {{ t('dashboard.overview.provider.kycNudge.body') }} ({{ completedCount }}/{{ kyc.steps.length }})
+          {{ t('dashboard.overview.provider.kycNudge.body') }}<template v-if="kyc.steps.length > 0">
+            ({{ completedCount }}/{{ kyc.steps.length }})
+          </template>
         </div>
       </div>
     </div>

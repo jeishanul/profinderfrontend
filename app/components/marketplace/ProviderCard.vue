@@ -111,6 +111,10 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
           class="text-brand-600"
         />
       </div>
+      <MarketplaceVerificationBadges
+        :badges="provider.badges"
+        class="mt-1.5"
+      />
       <div class="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-sm text-black/50 dark:text-white/50">
         <UiRating
           :rating="provider.rating"
@@ -198,6 +202,10 @@ const linkButtonClass = 'inline-flex items-center justify-center gap-2 rounded-f
         <p class="text-xs text-black/50 dark:text-white/50">
           {{ provider.categoryName }}
         </p>
+        <MarketplaceVerificationBadges
+          :badges="provider.badges"
+          class="mt-1"
+        />
       </div>
     </div>
 

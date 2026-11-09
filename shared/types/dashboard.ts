@@ -4,23 +4,34 @@
  * `providerName`) are plain strings here. `categoryId` reuses the same ids
  * as `ServiceCategory` in `marketplace.ts` (`marketplace.categories.<id>.label`).
  */
+import type { RequirementKind, RequirementStatus, VerificationBadge, VerificationLevel } from './billing'
 import type { Review } from './marketplace'
 
 export type UserRole = 'provider' | 'consumer'
 
-export type KycStepId = 'identity' | 'selfie' | 'address'
-export type KycStepStatus = 'verified' | 'in_review' | 'not_started' | 'rejected'
+/** A KYC step is a verification requirement; its id is the requirement key (`identity`, `selfie`, `mobile`, …), set by the admin. */
+export type KycStepStatus = RequirementStatus
 
 export interface KycStep {
-  id: KycStepId
+  id: string
+  label: string
+  kind: RequirementKind
   status: KycStepStatus
   /** Why a `rejected` step was rejected — shown so the provider knows what to fix. */
   rejectionReason?: string | null
+  reviewedAt?: string | null
 }
 
+/** The KYC summary (dashboard summary, sidebar badge): the requirements of the levels held, else of Level 2. */
 export interface KycState {
   steps: KycStep[]
   isVerified: boolean
+}
+
+/** `GET /dashboard/kyc`: the summary plus every level with its requirements, for the Verification tab. */
+export interface KycDetail extends KycState {
+  levels: VerificationLevel[]
+  badges: VerificationBadge[]
 }
 
 export type BookingStatus = 'completed' | 'upcoming' | 'in_progress' | 'cancelled'
@@ -404,6 +415,14 @@ export type NotificationKind
     | 'report_dismissed'
     | 'shop_order_placed'
     | 'shop_order_status'
+    | 'billing_invoice'
+    | 'billing_renewal'
+    | 'billing_reminder'
+    | 'billing_paid'
+    | 'billing_payment_rejected'
+    | 'billing_expired'
+    | 'verification_badge_added'
+    | 'verification_badge_removed'
 
 export interface NotificationItem {
   id: string
@@ -420,6 +439,10 @@ export interface NotificationItem {
   /** Shop order notifications: the order's number and (for `shop_order_status`) its new status. */
   orderNumber?: string | null
   status?: string | null
+  /** Billing notifications: the invoice, the verification level and the amount (site currency). */
+  invoiceNumber?: string | null
+  levelName?: string | null
+  amount?: number | null
   /** Free text — only set for kinds that carry their own copy (admin announcements). */
   title?: string | null
   body?: string | null

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBadgeCount, formatDateTime, formatRelativeDate, fromDateTimeLocalValue, toDateTimeLocalValue } from './format'
+import { formatBadgeCount, formatDateTime, formatRelativeDate, fromDateTimeLocalValue, telHref, toDateTimeLocalValue } from './format'
 
 describe('formatBadgeCount', () => {
   it('shows the exact count at or below 9', () => {
@@ -50,5 +50,12 @@ describe('formatRelativeDate', () => {
 
   it('never goes into the future for a slightly-ahead timestamp (clock skew)', () => {
     expect(formatRelativeDate('2026-10-15T12:00:30Z', 'en-US', now)).toBe('today')
+  })
+})
+
+describe('telHref', () => {
+  it('keeps a leading plus and only the digits', () => {
+    expect(telHref(' +63 (912) 345-6789 ')).toBe('+639123456789')
+    expect(telHref('0912 345 6789')).toBe('09123456789')
   })
 })

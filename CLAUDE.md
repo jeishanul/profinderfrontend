@@ -640,6 +640,24 @@ answers the old address with a 301 before rendering, exactly as for moved locati
   `whenSynced()`. Pure helpers (merge, clamp, URL query) in `utils/shop.ts`, variant picking in `utils/shopVariants.ts`.
 - Rows without an `id` (products, orders) page with `usePagedList(url, { itemKey })`.
 
+### Billing (paid verification levels)
+
+- Pages: `/billing` (levels with their plans, invoices, payment history) and `/billing/invoices/[number]` (printable
+  invoice + payment) with `/billing/invoices/[number]/paypal-return` (captures `?token=`, like the shop's). All
+  `ssr: false` + `robots: false`; a non-provider sees a "become a pro" prompt (the API answers 403).
+- BFF under `server/api/dashboard/billing/**` (`callApi`; the receipt `proof.get.ts` streams like chat attachments).
+  Types in `shared/types/billing.ts`, pure helpers (status lines, badge state, `kycSections`, receipt checks) in
+  `utils/billing.ts`.
+- `useBillingOverview(enabled)` (`BILLING_OVERVIEW_KEY`) is shared by the page and the sidebar's unpaid badge; refresh
+  that key after buying, paying, cancelling or sending a KYC document. Render buttons from the invoice's
+  `canPay`/`canCancel`, never from `status`.
+- Pay first, then upload: the Verification tab (`DashboardKycStepper`) is built from `GET /dashboard/kyc` `levels`, one
+  section per paid level, inputs chosen by requirement `kind`; only levels with `canUpload` take uploads.
+- Public badges: `<MarketplaceVerificationBadges :badges>` next to the `verified` shield; the provider page also lists
+  `verifiedContacts` as `tel:` links.
+- The invoice page prints without the dashboard chrome (`print:hidden` in `layouts/dashboard.vue`); the invoice itself
+  is always paper-white so it reads the same in dark mode.
+
 ### Testing the BFF
 
 `callApi` is built by `createCallApi(deps)` (`server/utils/apiProxy.ts`) so its rules (token, client address,
