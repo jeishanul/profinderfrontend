@@ -17,3 +17,12 @@ export function useBillingOverview(enabled: boolean) {
     immediate: enabled,
   })
 }
+
+/**
+ * Re-read everything that shows where a pro stands with verification: the Verification tab and the sidebar's
+ * "Pending" tag (`dashboard-kyc`), the Billing levels and the dashboard banner. Call it after anything that can change
+ * Level 1 (email verified, profile saved, photo uploaded) or a badge (document sent, level bought or paid).
+ */
+export function refreshVerificationState() {
+  return refreshNuxtData(['dashboard-kyc', BILLING_OVERVIEW_KEY, 'dashboard-summary'])
+}

@@ -207,7 +207,7 @@ async function handleLogout() {
             />{{ t('dashboard.sidebar.kyc') }}
           </span>
           <UiTag
-            v-if="kyc && !kyc.isVerified"
+            v-if="kyc && !kyc.levelOne.complete"
             variant="danger"
             size="sm"
             class="shrink-0"

@@ -364,7 +364,7 @@
       "viewProfile": "View profile",
       "save": "Save provider",
       "unsave": "Remove from saved providers",
-      "pendingVerification": "This provider is still completing verification and can't take booking requests yet. You can message them in the meantime.",
+      "pendingVerification": "This provider is still setting up their profile and can't take booking requests yet. You can message them in the meantime.",
       "badgesLabel": "Verification badges"
     },
     "whyChooseUs": {
@@ -554,19 +554,23 @@
           "rating": "Average rating",
           "ratingSub": "{count} reviews"
         },
-        "kycNudge": {
-          "title": "Identity verification pending",
-          "body": "Choose a verification level, pay for it and send its documents to earn your badge.",
-          "cta": "Complete verification"
+        "levelOne": {
+          "incompleteTitle": "Finish Level 1 to start taking bookings",
+          "incompleteBody": "Level 1 is free: verify your email and complete your profile, and clients can book you.",
+          "missing": "Still to do:",
+          "completeProfile": "Complete your profile",
+          "promoTitle": "Get your pro profile to a trusted level",
+          "promoBody": "Verify your identity, your professional certificate and more, and earn a badge clients trust. Check our verification packages!",
+          "promoCta": "See verification packages"
         },
         "kycVerified": {
-          "title": "Identity verified",
-          "body": "You're all set to start receiving bookings."
+          "title": "Verified pro",
+          "body": "Your verification badge is on your profile, so clients can see you've been checked."
         },
         "quickActions": {
           "addService": "Add a new service",
           "updateAvailability": "Update availability",
-          "finishKyc": "Finish KYC verification"
+          "finishKyc": "Get a verification badge"
         },
         "recentTable": {
           "heading": "Recently served clients"
@@ -782,7 +786,7 @@
       "next": "Continue",
       "back": "Back",
       "submit": "Create my Pro profile",
-      "success": "You're now a Pro. Next, verify your identity to start accepting bookings.",
+      "success": "You're now a Pro and can take bookings. Add a verification badge to earn clients' trust.",
       "fields": {
         "category": "What do you do?",
         "categoryPlaceholder": "Choose your main category",
@@ -807,10 +811,10 @@
     },
     "profile": {
       "title": "My profile & verification",
-      "subtitle": "Manage how clients see you, and verify your identity to start accepting bookings",
+      "subtitle": "Manage how clients see you, and earn verification badges clients trust",
       "tabs": {
         "details": "Profile details",
-        "kyc": "KYC verification · required",
+        "kyc": "KYC verification",
         "reviews": "Reviews"
       },
       "changePhoto": "Change photo",
@@ -869,8 +873,6 @@
       "save": "Save changes",
       "saved": "Saved",
       "kyc": {
-        "mandatoryTitle": "Verification is mandatory before you can accept bookings",
-        "mandatoryBody": "{site} checks every pro's documents to keep clients safe. Choose a verification level on the Billing page, pay for it, then send its documents here.",
         "statusVerified": "Verified",
         "statusInReview": "In review",
         "statusNotStarted": "Not started",
@@ -1086,10 +1088,10 @@
           "withdraw": "Couldn't withdraw the quote. Please try again.",
           "accept": "Couldn't accept the quote. Please try again.",
           "decline": "Couldn't decline the quote. Please try again.",
-          "needVerification": "Complete identity verification to send quotes."
+          "needVerification": "Verify your email and complete your profile to send quotes."
         },
         "acceptedBooked": "Booked — see it in your bookings.",
-        "verifyToSend": "Verify your identity to send quotes"
+        "verifyToSend": "Verify your email and complete your profile to send quotes"
       },
       "jobApplication": {
         "heading": "Job application",
@@ -1165,7 +1167,7 @@
       },
       "provider_verified": {
         "title": "You're verified!",
-        "body": "Your profile now shows the Verified badge, and you can send quotes."
+        "body": "Your profile now shows the Verified badge."
       },
       "provider_unverified": {
         "title": "Your verification was removed",
@@ -1272,11 +1274,11 @@
         "body": "\"{subject}\" is no longer taking applications."
       },
       "job_post_hire_blocked": {
-        "title": "Verify to be hired",
-        "body": "A client wants to hire you for \"{subject}\". Finish identity verification so they can."
+        "title": "Finish your profile to be hired",
+        "body": "A client wants to hire you for \"{subject}\". Verify your email and complete your profile so they can."
       },
       "job_post_applicant_verified": {
-        "title": "{name} is now verified",
+        "title": "{name} can be hired now",
         "body": "You can now hire {name} for \"{subject}\"."
       },
       "job_post_expiring": {
@@ -1361,8 +1363,8 @@
       "preview": "Preview",
       "delete": "Delete",
       "unverified": {
-        "title": "Your services stay paused until you're verified",
-        "body": "You can create and edit them now. Finish verification and they can go live."
+        "title": "Your services stay paused until you finish Level 1",
+        "body": "You can create and edit them now. Verify your email and complete your profile, and they can go live."
       },
       "deleted": "Service deleted.",
       "empty": "You haven't listed any services yet. Add one so clients can find you.",
@@ -1837,7 +1839,7 @@
         "profile": "View profile"
       },
       "hints": {
-        "mustVerify": "They must finish verification before you can hire them.",
+        "mustVerify": "They must verify their email and complete their profile before you can hire them.",
         "datePassed": "The date in this offer has passed. Ask them to update it."
       }
     },
@@ -1873,7 +1875,7 @@
       "post_fields_locked": "The category and location can't be changed once providers have applied.",
       "post_has_applications": "Providers have applied to this post, so it can only be closed.",
       "too_many_photos": "A post can have up to 5 photos.",
-      "provider_unverified": "This provider must finish verification before you can hire them.",
+      "provider_unverified": "This provider must verify their email and complete their profile before you can hire them.",
       "offer_date_passed": "The date in this offer has passed. Ask the provider to update it.",
       "application_not_pending": "This application can no longer be changed.",
       "offer_changed": "The provider changed their offer. Check the new terms, then confirm again.",
@@ -1941,8 +1943,8 @@
         "expired": "This job is no longer taking applications."
       },
       "myApplication": "Your application",
-      "unverifiedBanner": "You can apply, but you must finish identity verification before a client can hire you.",
-      "verifyCta": "Finish verification",
+      "unverifiedBanner": "You can apply, but you must verify your email and complete your profile before a client can hire you.",
+      "verifyCta": "Finish Level 1",
       "applied": "You applied {when}",
       "editOffer": "Edit offer",
       "withdraw": "Withdraw",
@@ -2329,6 +2331,7 @@
       "basicChecks": "What we check",
       "done": "Done",
       "notDone": "Not done yet",
+      "recommended": "Recommended",
       "choosePlan": "Choose a plan for {level}",
       "renewsAutomatically": "Renews automatically",
       "oneTime": "One-time",
@@ -2394,6 +2397,23 @@
       "empty": "No payments yet.",
       "invoice": "Invoice {number}",
       "reference": "Ref. {reference}"
+    },
+    "checkout": {
+      "seoTitle": "Checkout",
+      "title": "Checkout",
+      "subtitle": "Review your verification level, then pay for it.",
+      "review": "Your order",
+      "changePlan": "Change plan",
+      "payWith": "You can pay by {methods}.",
+      "continue": "Continue to payment",
+      "continuing": "Creating your invoice…",
+      "continueHint": "We create an invoice for this plan. You can pay it now or later from Billing.",
+      "summary": "Order summary",
+      "viewInvoice": "View invoice {number}",
+      "unavailable": "This plan isn't available any more. Choose another one on the Billing page.",
+      "missing": "Choose a verification plan on the Billing page first.",
+      "backToBilling": "Back to Billing",
+      "afterPayment": "Once it's paid, send the level's documents from the Verification tab. The badge shows when they are approved."
     },
     "invoice": {
       "seoTitle": "Invoice {number}",

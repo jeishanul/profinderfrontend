@@ -8,6 +8,8 @@ interface RebookResult {
   providerId: string
   providerName: string
   verified: boolean
+  /** Level 1 (verified email + required profile): takes booking requests and can be hired. `verified` is the paid badge. */
+  acceptsBookings: boolean
   /** The provider's services a client can pick today (active ones). */
   services: ServiceChoice[]
   prefill: { serviceListingId: string | null, address: string | null }
@@ -41,8 +43,8 @@ export function useBookAgain() {
     isStarting.value = true
     try {
       const result = await useApiFetch<RebookResult>(`/api/dashboard/bookings/${bookingId}/rebook`, { method: 'POST' })
-      if (!result.verified) {
-        // They can't quote until verified, so a request would go nowhere — keep the conversation open instead.
+      if (!result.acceptsBookings) {
+        // They can't quote until they meet Level 1, so a request would go nowhere — keep the conversation open instead.
         toast.info(t('marketplace.provider.pendingVerification'))
         await navigateTo(localePath({ path: '/messages', query: { conversation: result.conversationId } }))
         return

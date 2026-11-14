@@ -126,6 +126,13 @@ export interface BasicCheck {
   key: string
   label: string
   done: boolean
+  /** Needed for Level 1 (taking bookings); the others are recommended. */
+  required: boolean
+}
+
+export interface LevelOneState {
+  complete: boolean
+  checks: BasicCheck[]
 }
 
 export interface VerificationLevel {

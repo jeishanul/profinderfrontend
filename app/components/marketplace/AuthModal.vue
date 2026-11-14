@@ -387,6 +387,8 @@ async function handleVerifySubmit() {
   try {
     await useApiFetch('/api/auth/email/verify', { method: 'POST', body: { code: verifyCode.value } })
     await session.fetchUser()
+    // A verified email can complete Level 1 (taking bookings): refresh the banners and the sidebar tag.
+    refreshVerificationState()
     toast.success(t('auth.verifyEmail.verified'))
     await authModal.complete()
   }

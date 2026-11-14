@@ -97,6 +97,8 @@ export interface ProviderSummary {
   ratePerHour: number
   yearsExperience: number
   verified: boolean
+  /** Level 1 (verified email + required profile): takes booking requests and can be hired. `verified` is the paid badge. */
+  acceptsBookings: boolean
   /** The paid verification badges on show ("Verified identity"…), in level order. Optional: older cached answers lack it. */
   badges?: VerificationBadge[]
   /** Philippines Province -> City/Municipality -> Barangay — see

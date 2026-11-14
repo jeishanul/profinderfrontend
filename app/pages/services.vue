@@ -30,7 +30,8 @@ const { data: kyc } = useApi<KycState>('/dashboard/kyc', {
   lazy: true,
   server: false,
 })
-const needsVerification = computed(() => kyc.value !== null && kyc.value !== undefined && !kyc.value.isVerified)
+// Below Level 1 (verified email + required profile) services are saved but can't go live.
+const needsVerification = computed(() => kyc.value !== null && kyc.value !== undefined && !kyc.value.levelOne.complete)
 
 async function toggleStatus(id: string) {
   const service = listings.value.find(item => item.id === id)

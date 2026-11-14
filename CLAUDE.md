@@ -645,6 +645,16 @@ answers the old address with a 301 before rendering, exactly as for moved locati
 - Pages: `/billing` (levels with their plans, invoices, payment history) and `/billing/invoices/[number]` (printable
   invoice + payment) with `/billing/invoices/[number]/paypal-return` (captures `?token=`, like the shop's). All
   `ssr: false` + `robots: false`; a non-provider sees a "become a pro" prompt (the API answers 403).
+- Checkout: `/subscription/checkout` (the shop checkout's counterpart). `?plan=<id>` ("Buy" / "Renew") shows the plan
+  and creates the invoice only when the provider presses "Continue to payment"; `?invoice=<number>` ("Pay now") shows
+  `<BillingPaymentOptions>` next to the summary and hands over to the invoice page once it can't be paid any more.
+  Build its links with `subscriptionCheckoutPath()` (`utils/billing.ts`). New top-level routes like `billing` and
+  `subscription` must be in `KNOWN_ROOTS` in `middleware/seo-redirects.global.ts`, or a 3-segment address is 301'd to
+  `/ph/...` as if it were a location.
+- Level 1 vs badges: `acceptsBookings` (providers) and `levelOne.complete` (`GET /dashboard/kyc`, the dashboard
+  summary) mean Level 1 is done (verified email + headline, category, city), which is what booking, quoting, live
+  services and hiring need. `verified` / `isVerified` only mean a paid badge (the shield). Gate actions on the first,
+  show the shield from the second. `<DashboardLevelOnePrompt>` is the banner for a pro without a badge.
 - BFF under `server/api/dashboard/billing/**` (`callApi`; the receipt `proof.get.ts` streams like chat attachments).
   Types in `shared/types/billing.ts`, pure helpers (status lines, badge state, `kycSections`, receipt checks) in
   `utils/billing.ts`.

@@ -87,6 +87,8 @@ export interface JobApplicantProvider {
   avatarUrl: string | null
   headline: string | null
   verified: boolean
+  /** Level 1 (verified email + required profile): takes booking requests and can be hired. `verified` is the paid badge. */
+  acceptsBookings: boolean
   rating: number
   reviewCount: number
   /** The number the list is sorted by (a rating that accounts for how many reviews back it). */

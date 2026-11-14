@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { VerificationLevel, VerificationRequirement, VerificationSubscription } from '#shared/types/billing'
-import { badgeState, defaultPlanId, invoiceStatusKey, isPlausiblePhone, kycSections, levelStatus, proofProblem, requirementProgress } from './billing'
+import { badgeState, defaultPlanId, findLevelPlan, levelCheckoutTarget, invoiceStatusKey, isPlausiblePhone, kycSections, levelStatus, proofProblem, requirementProgress, subscriptionCheckoutPath, subscriptionCheckoutTarget } from './billing'
 
 function subscription(overrides: Partial<VerificationSubscription> = {}): VerificationSubscription {
   return { state: 'active', source: 'purchase', startsAt: '2026-01-01T00:00:00Z', endsAt: '2027-01-01T00:00:00Z', autoRenew: true, planName: 'Yearly', planIsRecurring: true, ...overrides }
@@ -117,5 +117,50 @@ describe('isPlausiblePhone', () => {
     expect(isPlausiblePhone('(02) 8123-4567')).toBe(true)
     expect(isPlausiblePhone('12345')).toBe(false)
     expect(isPlausiblePhone('call me')).toBe(false)
+  })
+})
+
+describe('subscription checkout', () => {
+  it('reads a plan or an invoice from the query, the invoice winning', () => {
+    expect(subscriptionCheckoutTarget({ plan: '10' })).toEqual({ kind: 'plan', planId: 10 })
+    expect(subscriptionCheckoutTarget({ invoice: 'INV-000004' })).toEqual({ kind: 'invoice', number: 'INV-000004' })
+    expect(subscriptionCheckoutTarget({ plan: '10', invoice: 'INV-000004' })).toEqual({ kind: 'invoice', number: 'INV-000004' })
+  })
+
+  it('ignores a missing or malformed target', () => {
+    expect(subscriptionCheckoutTarget({})).toBeNull()
+    expect(subscriptionCheckoutTarget({ plan: 'abc' })).toBeNull()
+    expect(subscriptionCheckoutTarget({ plan: '0' })).toBeNull()
+    expect(subscriptionCheckoutTarget({ invoice: '  ' })).toBeNull()
+    expect(subscriptionCheckoutTarget({ plan: ['10'] })).toBeNull()
+  })
+
+  it('builds the checkout address back from a target', () => {
+    expect(subscriptionCheckoutPath({ kind: 'plan', planId: 10 })).toEqual({ path: '/subscription/checkout', query: { plan: '10' } })
+    expect(subscriptionCheckoutPath({ kind: 'invoice', number: 'INV-000004' })).toEqual({ path: '/subscription/checkout', query: { invoice: 'INV-000004' } })
+  })
+
+  it('finds the level a plan belongs to', () => {
+    const business = level({ id: 3, slug: 'business', plans: [{ id: 20, name: 'Half year', durationCount: 6, durationUnit: 'month', durationLabel: '6 months', price: 200, isRecurring: false }] })
+    const found = findLevelPlan([level(), business], 20)
+    expect(found?.level.slug).toBe('business')
+    expect(found?.plan.name).toBe('Half year')
+    expect(findLevelPlan([level()], 99)).toBeNull()
+  })
+})
+
+describe('levelCheckoutTarget', () => {
+  const invoice = { number: 'INV-000004', kind: 'new' as const, status: 'unpaid' as const, isOverdue: false, levelName: 'Level 2', planName: 'Yearly', durationLabel: '365 days', currency: 'PHP', amount: 365, dueAt: null, paidAt: null, paymentMethodName: null, createdAt: null }
+
+  it('pays an open unpaid invoice, else checks out the default plan', () => {
+    expect(levelCheckoutTarget(level({ openInvoice: invoice }))).toEqual({ kind: 'invoice', number: 'INV-000004' })
+    expect(levelCheckoutTarget(level())).toEqual({ kind: 'plan', planId: 10 })
+  })
+
+  it('has nothing to check out for a free level, one off sale, one without plans or an invoice in review', () => {
+    expect(levelCheckoutTarget(level({ isFree: true }))).toBeNull()
+    expect(levelCheckoutTarget(level({ isOnSale: false }))).toBeNull()
+    expect(levelCheckoutTarget(level({ plans: [] }))).toBeNull()
+    expect(levelCheckoutTarget(level({ openInvoice: { ...invoice, status: 'pending_review' } }))).toBeNull()
   })
 })

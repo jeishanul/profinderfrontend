@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { Invoice, VerificationLevel, VerificationSubscription } from '#shared/types/billing'
+import type { VerificationLevel, VerificationSubscription } from '#shared/types/billing'
 
 // Auto-imported as <BillingLevelCard/>. One verification level on the Billing page: what it includes (or, for the
 // free Level 1, what it checks), where the provider stands with it, its badge, and its plans with a Buy / Renew
-// button. Choosing a plan creates the invoice and opens it; an open invoice replaces the plans with "Pay now".
+// button. Choosing a plan opens the checkout (`/subscription/checkout?plan=`), where the invoice is created once the
+// provider confirms; an open invoice replaces the plans with "Pay now", which opens the checkout for that invoice.
 const props = defineProps<{
   level: VerificationLevel
 }>()
@@ -60,16 +61,7 @@ const buying = ref(false)
 async function buy() {
   if (selectedPlanId.value === null) return
   buying.value = true
-  try {
-    const { data: invoice } = await useApiFetch<{ data: Invoice }>(`/api/dashboard/billing/plans/${selectedPlanId.value}/purchase`, { method: 'POST' })
-    // The level now has an open invoice; the sidebar's unpaid count changed too.
-    refreshNuxtData(BILLING_OVERVIEW_KEY)
-    await navigateTo(localePath(`/billing/invoices/${encodeURIComponent(invoice.number)}`))
-  }
-  catch (error) {
-    toast.error(Object.values(apiFieldErrors(error))[0] ?? apiErrorMessage(error, t('billing.levels.purchaseFailed')))
-    buying.value = false
-  }
+  await navigateTo(localePath(subscriptionCheckoutPath({ kind: 'plan', planId: selectedPlanId.value })))
 }
 
 const showAutoRenew = computed(() => props.level.subscription?.state === 'active' && props.level.subscription.planIsRecurring)
@@ -146,6 +138,12 @@ async function setAutoRenew(value: boolean) {
             :class="check.done ? 'text-brand-600' : 'text-black/30 dark:text-white/30'"
           />
           <span>{{ check.label }}</span>
+          <UiTag
+            v-if="!check.required"
+            size="sm"
+          >
+            {{ t('billing.levels.recommended') }}
+          </UiTag>
           <span class="sr-only">({{ check.done ? t('billing.levels.done') : t('billing.levels.notDone') }})</span>
         </li>
       </ul>
@@ -229,7 +227,9 @@ async function setAutoRenew(value: boolean) {
     >
       <span class="font-semibold">{{ t(`billing.levels.openInvoice.${openInvoiceKey}`, { number: level.openInvoice.number }) }}</span>
       <NuxtLinkLocale
-        :to="`/billing/invoices/${encodeURIComponent(level.openInvoice.number)}`"
+        :to="level.openInvoice.status === 'unpaid'
+          ? subscriptionCheckoutPath({ kind: 'invoice', number: level.openInvoice.number })
+          : `/billing/invoices/${encodeURIComponent(level.openInvoice.number)}`"
         :class="linkButtonClass(level.openInvoice.status === 'unpaid' ? 'primary' : 'secondary', 'sm')"
       >
         {{ level.openInvoice.status === 'unpaid' ? t('billing.levels.openInvoice.pay') : t('billing.levels.openInvoice.view') }}

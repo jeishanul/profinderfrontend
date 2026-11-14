@@ -25,9 +25,9 @@ if (error.value || !post.value) {
   throw createError({ statusCode: apiErrorStatus(error.value) ?? 404, statusMessage: t('errors.notFound'), fatal: true })
 }
 
-// Verification decides whether a client can hire them (applying is open to everyone), so say so up front.
+// Level 1 decides whether a client can hire them (applying is open to everyone), so say so up front.
 const { data: kyc } = useApi<KycState>('/dashboard/kyc', { key: 'dashboard-kyc', lazy: true, server: false })
-const needsVerification = computed(() => kyc.value !== null && kyc.value !== undefined && !kyc.value.isVerified)
+const needsVerification = computed(() => kyc.value !== null && kyc.value !== undefined && !kyc.value.levelOne.complete)
 
 const application = computed(() => post.value?.myApplication ?? null)
 const isOpen = computed(() => post.value?.status === 'open')

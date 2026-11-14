@@ -46,12 +46,12 @@ const verifiedContacts = computed(() => provider.value?.verifiedContacts ?? [])
 const isOwnProfile = computed(() => session.isAuthenticated.value && session.user.value?.id === provider.value?.userId)
 
 // "Request a booking" opens the structured job-request form (logged-out
-// visitors are asked to log in first — the request needs an account). An
-// unverified provider can't send quotes yet, so the request would go nowhere.
+// visitors are asked to log in first — the request needs an account). A pro
+// below Level 1 can't send quotes yet, so the request would go nowhere.
 const isJobRequestOpen = ref(false)
 const requestedServiceId = ref<string | null>(null)
 function startRequest(serviceId: string | null) {
-  if (!provider.value?.verified || isOwnProfile.value) return
+  if (!provider.value?.acceptsBookings || isOwnProfile.value) return
   if (!session.isAuthenticated.value) {
     authModal.open('login', { onSuccess: () => startRequest(serviceId) })
     return
@@ -317,7 +317,7 @@ useSchemaOrg([
           <UiButton
             v-if="!isOwnProfile"
             variant="primary"
-            :disabled="!provider.verified"
+            :disabled="!provider.acceptsBookings"
             @click="openJobRequest"
           >
             {{ t('marketplace.providerProfile.requestBooking') }}
@@ -450,7 +450,7 @@ useSchemaOrg([
                 <UiButton
                   v-if="!isOwnProfile"
                   variant="ghost"
-                  :disabled="!provider.verified"
+                  :disabled="!provider.acceptsBookings"
                   @click="requestService(service.id)"
                 >
                   {{ t('marketplace.providerProfile.requestService') }}
@@ -512,13 +512,13 @@ useSchemaOrg([
             >
               <UiButton
                 variant="primary"
-                :disabled="!provider.verified"
+                :disabled="!provider.acceptsBookings"
                 @click="openJobRequest"
               >
                 {{ t('marketplace.providerProfile.requestBooking') }}
               </UiButton>
               <p
-                v-if="!provider.verified"
+                v-if="!provider.acceptsBookings"
                 class="text-xs font-semibold text-accent-700 dark:text-accent-100"
               >
                 {{ t('marketplace.provider.pendingVerification') }}
@@ -661,7 +661,7 @@ useSchemaOrg([
       <UiButton
         variant="primary"
         class="flex-1 justify-center"
-        :disabled="!provider.verified"
+        :disabled="!provider.acceptsBookings"
         @click="openJobRequest"
       >
         {{ t('marketplace.providerProfile.requestBooking') }} · {{ t('marketplace.provider.estimate', { rate: money(provider.ratePerHour) }) }}
