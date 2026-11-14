@@ -17,8 +17,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { settings } = useSiteSettings()
-const siteName = computed(() => settings.value.siteName ?? t('brand.name'))
 const toast = useToast()
 const { confirm } = useConfirm()
 
@@ -60,6 +58,12 @@ function bodyFor(requirement: VerificationRequirement) {
       : t('dashboard.profile.kyc.rejectedNoReason')
   }
   return requirement.description || t(`dashboard.profile.kyc.body.pending.${requirement.kind}`)
+}
+
+/** "Get this level" goes straight to its checkout; Billing when it can't be bought from here. */
+function checkoutLink(section: KycSection) {
+  const target = levelCheckoutTarget(section.level)
+  return target ? subscriptionCheckoutPath(target) : '/billing'
 }
 
 function sectionBadge(section: KycSection) {
@@ -217,31 +221,10 @@ async function submit(requirement: VerificationRequirement) {
 
 <template>
   <div class="flex flex-col gap-5">
-    <div
+    <DashboardLevelOnePrompt
       v-if="!kyc.isVerified"
-      class="flex items-center gap-4 rounded-2xl border border-red-600/30 bg-red-50 p-5 dark:bg-red-900/10"
-    >
-      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-        <UiIcon
-          name="alert-triangle"
-          :size="21"
-        />
-      </span>
-      <div class="min-w-0 flex-1">
-        <div class="text-[15px] font-bold">
-          {{ t('dashboard.profile.kyc.mandatoryTitle') }}
-        </div>
-        <div class="mt-0.5 text-[13px] text-black/60 dark:text-white/60">
-          {{ t('dashboard.profile.kyc.mandatoryBody', { site: siteName }) }}
-        </div>
-      </div>
-      <NuxtLinkLocale
-        to="/billing"
-        :class="linkButtonClass('primary', 'sm')"
-      >
-        {{ t('dashboard.sidebar.billing') }}
-      </NuxtLinkLocale>
-    </div>
+      :level-one="kyc.levelOne"
+    />
 
     <p class="flex items-start gap-2.5 text-[13px] text-black/60 dark:text-white/60">
       <UiIcon
@@ -300,7 +283,7 @@ async function submit(requirement: VerificationRequirement) {
         </UiTag>
         <NuxtLinkLocale
           v-else-if="!section.level.canUpload"
-          to="/billing"
+          :to="checkoutLink(section)"
           :class="linkButtonClass('secondary', 'sm')"
         >
           {{ section.level.subscription ? t('dashboard.profile.kyc.renewLevel') : t('dashboard.profile.kyc.getLevel') }}

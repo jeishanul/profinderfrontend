@@ -54,7 +54,8 @@ const { data: kyc } = useApi<KycState>('/dashboard/kyc', {
   server: false,
   immediate: session.isProvider.value,
 })
-const providerVerified = computed(() => kyc.value ? kyc.value.isVerified : undefined)
+// Quoting needs Level 1 (verified email + required profile), not a paid badge.
+const providerVerified = computed(() => kyc.value ? kyc.value.levelOne.complete : undefined)
 
 const view = ref<'inbox' | 'archived'>('inbox')
 const activeId = ref('')

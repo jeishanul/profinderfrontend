@@ -94,3 +94,44 @@ export function proofProblem(file: Pick<File, 'type' | 'size'>): 'type' | 'size'
 export function isPlausiblePhone(value: string): boolean {
   return /^\+?[0-9 ()-]{7,20}$/.test(value.trim())
 }
+
+/**
+ * What `/subscription/checkout` is checking out: a plan not bought yet (`?plan=<id>`, nothing is created until the
+ * provider confirms) or an invoice already raised (`?invoice=<number>`, a renewal or one confirmed earlier).
+ */
+export type SubscriptionCheckoutTarget = { kind: 'plan', planId: number } | { kind: 'invoice', number: string }
+
+export function subscriptionCheckoutTarget(query: Record<string, unknown>): SubscriptionCheckoutTarget | null {
+  const invoice = typeof query.invoice === 'string' ? query.invoice.trim() : ''
+  if (invoice) return { kind: 'invoice', number: invoice }
+  const planId = typeof query.plan === 'string' && /^\d+$/.test(query.plan) ? Number(query.plan) : null
+  return planId ? { kind: 'plan', planId } : null
+}
+
+/** The checkout address for a plan or an open invoice; "Buy", "Renew" and "Pay now" all lead here. */
+export function subscriptionCheckoutPath(target: SubscriptionCheckoutTarget): { path: string, query: Record<string, string> } {
+  return target.kind === 'plan'
+    ? { path: '/subscription/checkout', query: { plan: String(target.planId) } }
+    : { path: '/subscription/checkout', query: { invoice: target.number } }
+}
+
+/** The level a plan belongs to, with the plan, among the levels on sale to this provider. */
+export function findLevelPlan(levels: VerificationLevel[], planId: number): { level: VerificationLevel, plan: VerificationLevel['plans'][number] } | null {
+  for (const level of levels) {
+    const plan = level.plans.find(candidate => candidate.id === planId)
+    if (plan) return { level, plan }
+  }
+  return null
+}
+
+/**
+ * Where "Get this level" / "Renew this level" leads: paying the level's open invoice, else checking out its default
+ * plan. `null` when it can't be bought here (free, off sale, no plans, or an invoice already waiting for an admin).
+ */
+export function levelCheckoutTarget(level: Pick<VerificationLevel, 'isFree' | 'isOnSale' | 'plans' | 'subscription' | 'openInvoice'>): SubscriptionCheckoutTarget | null {
+  if (level.isFree) return null
+  if (level.openInvoice) return level.openInvoice.status === 'unpaid' ? { kind: 'invoice', number: level.openInvoice.number } : null
+  if (!level.isOnSale) return null
+  const planId = defaultPlanId(level)
+  return planId === null ? null : { kind: 'plan', planId }
+}

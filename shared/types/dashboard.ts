@@ -4,7 +4,7 @@
  * `providerName`) are plain strings here. `categoryId` reuses the same ids
  * as `ServiceCategory` in `marketplace.ts` (`marketplace.categories.<id>.label`).
  */
-import type { RequirementKind, RequirementStatus, VerificationBadge, VerificationLevel } from './billing'
+import type { LevelOneState, RequirementKind, RequirementStatus, VerificationBadge, VerificationLevel } from './billing'
 import type { Review } from './marketplace'
 
 export type UserRole = 'provider' | 'consumer'
@@ -25,7 +25,10 @@ export interface KycStep {
 /** The KYC summary (dashboard summary, sidebar badge): the requirements of the levels held, else of Level 2. */
 export interface KycState {
   steps: KycStep[]
+  /** Holds at least one paid verification badge. */
   isVerified: boolean
+  /** The free Level 1: complete = can take bookings, quote, put services live and be hired. */
+  levelOne: LevelOneState
 }
 
 /** `GET /dashboard/kyc`: the summary plus every level with its requirements, for the Verification tab. */
@@ -485,6 +488,8 @@ export interface SavedProvider {
   /** ISO timestamp of the last booking with them, `null` if never booked. */
   lastBookedAt: string | null
   verified: boolean
+  /** Level 1 (verified email + required profile): takes booking requests and can be hired. `verified` is the paid badge. */
+  acceptsBookings: boolean
 }
 
 export interface NotificationPreferences {

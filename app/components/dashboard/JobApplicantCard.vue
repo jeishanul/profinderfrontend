@@ -31,7 +31,7 @@ const ratingText = computed(() => {
 // Why "Hire" isn't offered, so the card never just goes quiet.
 const hireHint = computed(() => {
   if (!isPending.value || props.applicant.can.hire) return null
-  if (!provider.value.verified) return t('seekJob.applicant.hints.mustVerify')
+  if (!provider.value.acceptsBookings) return t('seekJob.applicant.hints.mustVerify')
   if (offerDatePassed.value) return t('seekJob.applicant.hints.datePassed')
   return null
 })

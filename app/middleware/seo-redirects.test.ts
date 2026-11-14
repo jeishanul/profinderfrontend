@@ -47,6 +47,20 @@ describe('seo-redirects.global middleware', () => {
     expect(result).toBeUndefined()
   })
 
+  it('does not redirect billing invoices or the subscription checkout to /ph/', () => {
+    for (const path of ['/billing/invoices/INV-000004', '/subscription/checkout']) {
+      const to = { path, query: {} } as unknown as RouteLocationNormalized
+      expect(middleware(to, dummyFrom)).toBeUndefined()
+    }
+  })
+
+  it('sends an app page wrongly redirected under /ph/ back to the page', async () => {
+    const to = { path: '/ph/billing/invoices/INV-000004', query: {} } as unknown as RouteLocationNormalized
+    expect(await middleware(to, dummyFrom)).toBeDefined()
+    const place = { path: '/ph/cebu/cebu-city', query: {} } as unknown as RouteLocationNormalized
+    expect(middleware(place, dummyFrom)).toBeUndefined()
+  })
+
   it('does not redirect /browse without category query', () => {
     const to = {
       path: '/browse',

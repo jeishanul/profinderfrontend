@@ -120,8 +120,8 @@ async function messageProvider() {
         </UiButton>
         <UiButton
           size="sm"
-          :disabled="!provider.verified"
-          :title="provider.verified ? undefined : t('marketplace.provider.pendingVerification')"
+          :disabled="!provider.acceptsBookings"
+          :title="provider.acceptsBookings ? undefined : t('marketplace.provider.pendingVerification')"
           @click="bookAgain.requestFrom(provider.id, provider.name)"
         >
           {{ t('dashboard.savedProviders.bookNow') }}

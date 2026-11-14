@@ -171,7 +171,7 @@ describe('TrustStats', () => {
 describe('FeaturedProviders modes', () => {
   const provider: ProviderSummary = {
     id: '1', userId: '9', name: 'Jane Pro', headline: 'Plumber', avatarUrl: null, coverPhotoUrl: null, categoryName: 'Plumbing', skills: [],
-    categoryId: 'plumbing', rating: 4.8, reviewCount: 3, ratePerHour: 500, yearsExperience: 5, verified: true,
+    categoryId: 'plumbing', rating: 4.8, reviewCount: 3, ratePerHour: 500, yearsExperience: 5, verified: true, acceptsBookings: true,
     provinceCode: '0722', provinceName: 'Cebu', cityCode: '072217', cityName: 'Cebu City', barangay: 'Poblacion',
   }
 

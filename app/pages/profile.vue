@@ -55,7 +55,7 @@ const { data: kyc } = useApi<KycDetail>('/dashboard/kyc', {
 
 /** After a submission: this tab and the sidebar badge (`dashboard-kyc`), the Billing page's levels and the dashboard's KYC banner. */
 function onKycSubmitted() {
-  refreshNuxtData(['dashboard-kyc', BILLING_OVERVIEW_KEY, 'dashboard-summary'])
+  refreshVerificationState()
 }
 
 // Editable copy of the fetched profile — "Save changes" PUTs this to
@@ -178,8 +178,9 @@ async function onAvatarChange(event: Event) {
   const result = await uploadImage<{ url: string }>('/api/dashboard/profile/avatar', file)
   if (!result) return
   photoUrl.value = result.url
-  // Header/menus read the avatar from the session user.
+  // Header/menus read the avatar from the session user; the photo is on the Level 1 checklist.
   await useSession().fetchUser()
+  refreshVerificationState()
 }
 
 async function onCoverChange(event: Event) {
@@ -262,6 +263,8 @@ async function handleSave() {
       },
     })
     await refreshProfile()
+    // Headline, category and city are part of Level 1 (taking bookings).
+    refreshVerificationState()
     justSaved.value = true
     setTimeout(() => (justSaved.value = false), 2500)
   }
