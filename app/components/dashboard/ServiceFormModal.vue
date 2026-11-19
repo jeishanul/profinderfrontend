@@ -58,9 +58,10 @@ function resetForm() {
   form.priceAmount = props.service ? String(props.service.priceAmount) : ''
 }
 
+// Immediate: the modal can be mounted already open (lazily, on first use), and that first opening must reset too.
 watch(() => props.open, (isOpen) => {
   if (isOpen) resetForm()
-})
+}, { immediate: true })
 
 const categoryOptions = computed(() =>
   props.categories.map(category => ({ value: category.id, label: category.name })),

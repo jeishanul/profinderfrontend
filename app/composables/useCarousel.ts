@@ -40,9 +40,17 @@ export function useCarousel(itemCount: MaybeRefOrGetter<number>, options: UseCar
     isPaused.value = false
   }
 
-  useIntervalFn(() => {
+  // A hidden tab neither advances nor wakes up for it: the timer stops while hidden and restarts when it's shown.
+  const visibility = useDocumentVisibility()
+  const timer = useIntervalFn(() => {
     if (!isPaused.value) next()
   }, intervalMs, { immediate: autoplay })
+  if (autoplay) {
+    watch(visibility, (state) => {
+      if (state === 'hidden') timer.pause()
+      else timer.resume()
+    })
+  }
 
   watch(cycleLength, (length) => {
     if (index.value > length - 1) index.value = 0

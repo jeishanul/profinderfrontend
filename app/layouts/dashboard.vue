@@ -73,6 +73,13 @@ const bookingDrawer = useBookingDrawer()
 const bookAgain = useBookAgain()
 const reviewForm = useReviewForm()
 
+// Overlays loaded the first time they're needed (see `useMountWhenNeeded` and layouts/default.vue), so their code
+// isn't in this layout's chunk. The login modal still mounts the moment a 401 mid-use opens it.
+const authModal = useAuthModal()
+const moreMenu = useMoreMenu()
+const authModalMounted = useMountWhenNeeded(() => authModal.isOpen.value || route.query.social !== undefined)
+const moreMenuMounted = useMountWhenNeeded(() => moreMenu.isOpen.value)
+
 watch(() => route.query.booking, (value) => {
   if (typeof value === 'string' && value) bookingDrawer.open(value)
 }, { immediate: true })
@@ -439,20 +446,20 @@ async function handleLogout() {
       </main>
     </div>
 
-    <DashboardBookingDrawer
+    <LazyDashboardBookingDrawer
       v-if="bookingDrawer.openId.value"
       :key="bookingDrawer.openId.value"
       :booking-id="bookingDrawer.openId.value"
       :start-cancelling="bookingDrawer.startCancelling.value"
       @close="closeBookingDrawer"
     />
-    <DashboardReviewFormModal
+    <LazyDashboardReviewFormModal
       v-if="reviewForm.target.value"
       :key="reviewForm.target.value.review?.id ?? reviewForm.target.value.bookingId"
       :target="reviewForm.target.value"
       @close="reviewForm.close"
     />
-    <MarketplaceJobRequestModal
+    <LazyMarketplaceJobRequestModal
       v-if="bookAgain.target.value"
       :open="true"
       :provider-id="bookAgain.target.value.providerId"
@@ -464,8 +471,8 @@ async function handleLogout() {
     />
 
     <!-- Also mounted here: an expired session mid-use (a 401) must be able to ask for a login. -->
-    <MarketplaceAuthModal />
+    <LazyMarketplaceAuthModal v-if="authModalMounted" />
     <AppBottomNav />
-    <AppMoreMenu />
+    <LazyAppMoreMenu v-if="moreMenuMounted" />
   </div>
 </template>

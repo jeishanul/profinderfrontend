@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { effectScope, nextTick } from 'vue'
 import { useCarousel } from './useCarousel'
 
 describe('useCarousel', () => {
@@ -34,6 +34,30 @@ describe('useCarousel', () => {
     expect(carousel.index.value).toBe(1)
 
     scope.stop()
+    vi.useRealTimers()
+  })
+
+  it('stops advancing while the tab is hidden and picks up again when shown', async () => {
+    vi.useFakeTimers()
+    let visibility: DocumentVisibilityState = 'visible'
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
+    const scope = effectScope()
+    const carousel = scope.run(() => useCarousel(3, { intervalMs: 1000 }))!
+
+    visibility = 'hidden'
+    document.dispatchEvent(new Event('visibilitychange'))
+    await nextTick()
+    vi.advanceTimersByTime(5000)
+    expect(carousel.index.value).toBe(0)
+
+    visibility = 'visible'
+    document.dispatchEvent(new Event('visibilitychange'))
+    await nextTick()
+    vi.advanceTimersByTime(1000)
+    expect(carousel.index.value).toBe(1)
+
+    scope.stop()
+    vi.restoreAllMocks()
     vi.useRealTimers()
   })
 

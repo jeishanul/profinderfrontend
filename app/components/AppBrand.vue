@@ -21,9 +21,13 @@ const name = computed(() => settings.value.siteName ?? t('brand.name'))
 <template>
   <span class="flex items-center gap-2.5">
     <template v-if="settings.logoUrl">
+      <!-- Requested at the height it's shown (1x and 2x), not the uploaded original. The dark-mode logo is lazy:
+           a hidden lazy image isn't downloaded, so light-mode visitors never fetch it. -->
       <NuxtImg
         :src="settings.logoUrl"
         :alt="name"
+        :height="size === 'md' ? 40 : 36"
+        densities="x1 x2"
         class="w-auto"
         :class="[size === 'md' ? 'h-10' : 'h-9', settings.logoDarkUrl ? 'dark:hidden' : '']"
       />
@@ -31,6 +35,9 @@ const name = computed(() => settings.value.siteName ?? t('brand.name'))
         v-if="settings.logoDarkUrl"
         :src="settings.logoDarkUrl"
         :alt="name"
+        :height="size === 'md' ? 40 : 36"
+        densities="x1 x2"
+        loading="lazy"
         class="hidden w-auto dark:block"
         :class="size === 'md' ? 'h-10' : 'h-9'"
       />

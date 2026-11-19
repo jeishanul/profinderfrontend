@@ -149,6 +149,7 @@ function handleDockedSearch({ category, province, city, barangay }: { category: 
             <UiAvatar
               :name="session.name.value"
               :src="session.user.value?.avatarUrl"
+              eager
             />
             {{ firstName }}
           </NuxtLinkLocale>

@@ -43,6 +43,8 @@ const closedBannerKey = computed(() => {
 
 // --- applying / editing --------------------------------------------------------------------------------------------
 const isApplyOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const applyMounted = useMountWhenNeeded(() => isApplyOpen.value)
 const submitting = ref(false)
 const applyErrors = ref<Record<string, string>>({})
 
@@ -92,7 +94,11 @@ async function withdraw() {
 }
 
 const lightboxIndex = ref<number | null>(null)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const lightboxMounted = useMountWhenNeeded(() => lightboxIndex.value !== null)
 const isReportOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const reportMounted = useMountWhenNeeded(() => isReportOpen.value)
 
 useSeoMeta({ title: () => post.value?.title ?? t('findJobs.title') })
 </script>
@@ -314,14 +320,16 @@ useSeoMeta({ title: () => post.value?.title ?? t('findJobs.title') })
       {{ t('findJobs.detail.report') }}
     </button>
 
-    <MarketplaceReportModal
+    <LazyMarketplaceReportModal
+      v-if="reportMounted"
       :open="isReportOpen"
       type="job_post"
       :target-id="post.id"
       @close="isReportOpen = false"
     />
 
-    <DashboardJobApplyModal
+    <LazyDashboardJobApplyModal
+      v-if="applyMounted"
       :open="isApplyOpen"
       :post="post"
       :application="hasActiveApplication ? application : null"
@@ -331,7 +339,8 @@ useSeoMeta({ title: () => post.value?.title ?? t('findJobs.title') })
       @submit="submit"
     />
 
-    <UiLightbox
+    <LazyUiLightbox
+      v-if="lightboxMounted"
       :photos="post.photos.filter(photo => photo.available)"
       :index="lightboxIndex"
       :label="post.title"

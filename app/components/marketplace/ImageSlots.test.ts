@@ -119,4 +119,16 @@ describe('UiAvatar', () => {
     expect(initials.find('img').exists()).toBe(false)
     expect(initials.text()).toBe('JD')
   })
+
+  it('requests the photo at the size it is shown, lazily unless told otherwise', async () => {
+    const card = await mountSuspended(UiAvatar, { props: { name: 'Jane Doe', src: 'https://cdn.example.com/jane.webp', sizeClass: 'h-[76px] w-[76px] rounded-2xl' } })
+    const profile = await mountSuspended(UiAvatar, { props: { name: 'Jane Doe', src: 'https://cdn.example.com/jane.webp', sizeClass: 'h-full w-full', px: 148, eager: true } })
+
+    const cardImage = card.find('img')
+    expect(cardImage.attributes('width')).toBe('76')
+    expect(cardImage.attributes('loading')).toBe('lazy')
+    expect(cardImage.attributes('srcset')).toContain('2x')
+    expect(profile.find('img').attributes('width')).toBe('148')
+    expect(profile.find('img').attributes('loading')).toBe('eager')
+  })
 })

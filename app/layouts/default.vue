@@ -15,8 +15,16 @@ const moreMenuMounted = useMountWhenNeeded(() => moreMenu.isOpen.value)
     <main class="flex-1 pb-20 md:pb-0">
       <slot />
     </main>
-    <AppFooter class="hidden md:block" />
-    <AppFooterCompact class="pb-24 md:hidden" />
+    <!-- Both footers are below the fold and CSS shows one of them: each hydrates only once it scrolls into view, so
+         the hidden one never does (display: none never intersects). Both are still server-rendered. -->
+    <LazyAppFooter
+      hydrate-on-visible
+      class="hidden md:block"
+    />
+    <LazyAppFooterCompact
+      hydrate-on-visible
+      class="pb-24 md:hidden"
+    />
     <UiScrollToTopButton />
     <LazyMarketplaceAuthModal v-if="authModalMounted" />
     <AppBottomNav />

@@ -5,10 +5,19 @@ type PublicApiModule = typeof import('./publicApi')
 
 const callApi = vi.fn()
 const cachedCall = vi.fn()
+/** maxAge of each cached function defined, in definition order, and which one each call went through. */
+let cachedMaxAges: number[] = []
+let usedMaxAges: number[] = []
 let token: string | undefined
 
 async function load(): Promise<PublicApiModule> {
-  vi.stubGlobal('defineCachedFunction', () => cachedCall)
+  vi.stubGlobal('defineCachedFunction', (_fn: unknown, options: { maxAge: number }) => {
+    cachedMaxAges.push(options.maxAge)
+    return (...args: unknown[]) => {
+      usedMaxAges.push(options.maxAge)
+      return cachedCall(...args)
+    }
+  })
   vi.stubGlobal('callApi', callApi)
   vi.stubGlobal('getAuthToken', () => token)
   return import('./publicApi')
@@ -18,6 +27,8 @@ beforeEach(() => {
   callApi.mockReset().mockResolvedValue('from laravel')
   cachedCall.mockReset().mockResolvedValue('from cache')
   token = undefined
+  cachedMaxAges = []
+  usedMaxAges = []
 })
 
 afterEach(() => {
@@ -63,5 +74,17 @@ describe('getPublicApi', () => {
     expect(cachedCall).not.toHaveBeenCalled()
     // No `auth: false`: callApi attaches the visitor's token as for any personal request.
     expect(callApi).toHaveBeenCalledWith({}, '/providers/7', { query: {} })
+  })
+
+  it('uses the default lifetime unless the caller picks another', async () => {
+    const { getPublicApi, PUBLIC_API_TTL_SECONDS } = await load()
+
+    await getPublicApi({} as never, '/home')
+    await getPublicApi({} as never, '/settings', {}, { ttl: 'short' })
+    await getPublicApi({} as never, '/seo/redirect', { path: '/ph/x' }, { ttl: 'long' })
+
+    expect(usedMaxAges).toEqual([PUBLIC_API_TTL_SECONDS.default, PUBLIC_API_TTL_SECONDS.short, PUBLIC_API_TTL_SECONDS.long])
+    expect(PUBLIC_API_TTL_SECONDS.short).toBeLessThan(PUBLIC_API_TTL_SECONDS.default)
+    expect(PUBLIC_API_TTL_SECONDS.long).toBeGreaterThan(PUBLIC_API_TTL_SECONDS.default)
   })
 })

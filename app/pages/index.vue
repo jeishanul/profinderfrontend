@@ -183,8 +183,10 @@ useSchemaOrg([defineWebPage()])
         :section="section"
         :items="faqItems ?? []"
       />
-      <CmsBlock
+      <!-- Each block type inside is its own lazy chunk too, so only the types the admin used are downloaded. -->
+      <LazyCmsBlock
         v-else
+        hydrate-on-visible
         :section="section"
       />
     </template>

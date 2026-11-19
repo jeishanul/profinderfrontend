@@ -9,31 +9,31 @@ defineProps<{
 </script>
 
 <template>
-  <CmsImageText
+  <LazyCmsImageText
     v-if="section.type === 'image_text'"
     :section="section"
   />
-  <CmsCtaBanner
+  <LazyCmsCtaBanner
     v-else-if="section.type === 'cta_banner'"
     :section="section"
   />
-  <CmsFeaturesGrid
+  <LazyCmsFeaturesGrid
     v-else-if="section.type === 'features_grid'"
     :section="section"
   />
-  <CmsLogoStrip
+  <LazyCmsLogoStrip
     v-else-if="section.type === 'logo_strip'"
     :section="section"
   />
-  <MarketplaceTrustStats
+  <LazyMarketplaceTrustStats
     v-else-if="section.type === 'stats'"
     :section="section"
   />
-  <CmsRichText
+  <LazyCmsRichText
     v-else-if="section.type === 'rich_text'"
     :section="section"
   />
-  <CmsImageGallery
+  <LazyCmsImageGallery
     v-else-if="section.type === 'image_gallery'"
     :section="section"
   />

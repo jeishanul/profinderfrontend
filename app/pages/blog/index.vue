@@ -58,7 +58,7 @@ useSchemaOrg([defineWebPage()])
       class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
     >
       <article
-        v-for="post in list.items.value"
+        v-for="(post, index) in list.items.value"
         :key="post.id"
         class="group flex flex-col justify-between overflow-hidden rounded-3xl border border-black/10 bg-white/70 shadow-sm backdrop-blur-xl transition hover:border-brand-500/50 hover:shadow-md dark:border-white/10 dark:bg-black/30 dark:hover:border-brand-500/50"
       >
@@ -73,6 +73,7 @@ useSchemaOrg([defineWebPage()])
               :src="post.featured_image_url"
               :alt="post.featured_image_alt || post.title"
               sizes="sm:100vw md:50vw lg:384px"
+              :loading="index < 3 ? 'eager' : 'lazy'"
               class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div

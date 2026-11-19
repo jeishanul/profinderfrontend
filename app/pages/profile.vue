@@ -15,16 +15,20 @@ const localePath = useLocalePath()
 const toast = useToast()
 const { confirm } = useConfirm()
 
-const { data: profile, error: profileError, refresh: refreshProfile } = await useApi<ProviderProfileDetail>('/dashboard/profile', {
+// Both started at once and awaited together: the categories don't depend on the profile.
+const profileRequest = useApi<ProviderProfileDetail>('/dashboard/profile', {
   key: 'dashboard-profile',
 })
+const categoriesRequest = useCategories({ withSkills: true })
+await Promise.all([profileRequest, categoriesRequest])
+const { data: profile, error: profileError, refresh: refreshProfile } = profileRequest
+const { data: categories } = categoriesRequest
 
 // Only providers have a profile to edit — everyone else is sent to the
 // explicit "Become a provider" onboarding instead of getting one by accident.
 if (profileError.value && apiErrorStatus(profileError.value) === 404) {
   await navigateTo(localePath('/become-a-provider'), { replace: true })
 }
-const { data: categories } = await useCategories({ withSkills: true })
 
 // The active tab lives in the URL (`?tab=kyc`), not local state, so the
 // sidebar's "Verification" link can both open this tab directly and know

@@ -95,6 +95,9 @@ useSchemaOrg([
         sizes="sm:100vw md:768px"
         width="1200"
         height="630"
+        loading="eager"
+        fetchpriority="high"
+        :preload="{ fetchPriority: 'high' }"
         class="aspect-[16/9] w-full object-cover"
       />
     </div>

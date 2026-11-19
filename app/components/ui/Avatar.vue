@@ -9,12 +9,18 @@ const props = withDefaults(
     /** Tailwind size + radius classes, e.g. `h-8 w-8 rounded-full`. */
     sizeClass?: string
     textClass?: string
+    /** Displayed size in CSS pixels, when `sizeClass` doesn't say (e.g. `h-full`). Read from `sizeClass` otherwise. */
+    px?: number
+    /** Above the fold (header, a profile's own photo): load at once instead of when scrolled near. */
+    eager?: boolean
   }>(),
-  { src: null, sizeClass: 'h-8 w-8 rounded-full', textClass: 'text-xs' },
+  { src: null, sizeClass: 'h-8 w-8 rounded-full', textClass: 'text-xs', px: undefined, eager: false },
 )
 
 const { settings } = useSiteSettings()
 const shownSrc = computed(() => props.src || settings.value.defaultAvatarUrl)
+// Requested at the size it's shown (1x and 2x), not the uploaded original: a card's 76 px avatar was a full photo.
+const pixels = computed(() => props.px ?? avatarPixels(props.sizeClass))
 </script>
 
 <template>
@@ -22,6 +28,11 @@ const shownSrc = computed(() => props.src || settings.value.defaultAvatarUrl)
     v-if="shownSrc"
     :src="shownSrc"
     :alt="name"
+    :width="pixels"
+    :height="pixels"
+    densities="x1 x2"
+    :loading="eager ? 'eager' : 'lazy'"
+    decoding="async"
     class="shrink-0 object-cover"
     :class="sizeClass"
   />

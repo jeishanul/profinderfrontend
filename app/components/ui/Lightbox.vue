@@ -31,11 +31,14 @@ function step(delta: number) {
   emit('update:index', (props.index + delta + count) % count)
 }
 
-watch(isOpen, (open) => {
+// Immediate: it can be mounted already open (lazily, on first use). A first run while closed changes nothing, so it
+// never clears another overlay's scroll lock.
+watch(isOpen, (open, wasOpen) => {
   if (!import.meta.client) return
+  if (!open && !wasOpen) return
   document.body.style.overflow = open ? 'hidden' : ''
   if (open) nextTick(() => dialogRef.value?.focus())
-})
+}, { immediate: true })
 onUnmounted(() => {
   if (import.meta.client) document.body.style.overflow = ''
 })

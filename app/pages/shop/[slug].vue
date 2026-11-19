@@ -132,6 +132,9 @@ useSchemaOrg([
             :src="currentImage.url"
             :alt="currentImage.alt || product.name"
             sizes="sm:100vw md:100vw lg:560px"
+            loading="eager"
+            fetchpriority="high"
+            :preload="{ fetchPriority: 'high' }"
             class="h-full w-full object-cover"
           />
           <NuxtImg
@@ -139,6 +142,9 @@ useSchemaOrg([
             :src="product.imageUrl"
             :alt="product.imageAlt || product.name"
             sizes="sm:100vw md:100vw lg:560px"
+            loading="eager"
+            fetchpriority="high"
+            :preload="{ fetchPriority: 'high' }"
             class="h-full w-full object-cover"
           />
           <UiPlaceholderMedia

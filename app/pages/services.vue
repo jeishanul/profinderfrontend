@@ -14,12 +14,15 @@ const { t } = useI18n()
 const toast = useToast()
 const { confirm } = useConfirm()
 
-const list = await usePagedList<ServiceListing, ServiceListMeta>('/dashboard/services', {
+// Both started at once and awaited together: neither needs the other.
+const list = usePagedList<ServiceListing, ServiceListMeta>('/dashboard/services', {
   key: 'dashboard-services',
   perPage: 20,
 })
+const categoriesRequest = useCategories({ withSkills: true })
+await Promise.all([list, categoriesRequest])
 const refresh = list.refresh
-const { data: categories } = await useCategories({ withSkills: true })
+const { data: categories } = categoriesRequest
 
 const listings = list.items
 
@@ -87,8 +90,12 @@ const averageRating = computed(() => totals.value.averageRating === null ? '—'
 // --- Add/edit form + preview modals ----------------------------------------
 
 const isFormOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const formMounted = useMountWhenNeeded(() => isFormOpen.value)
 const editingService = ref<ServiceListing | null>(null)
 const isPreviewOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const previewMounted = useMountWhenNeeded(() => isPreviewOpen.value)
 const previewingService = ref<ServiceListing | null>(null)
 
 function openCreateForm() {
@@ -235,7 +242,8 @@ useSeoMeta({
       @more="list.loadMore()"
     />
 
-    <DashboardServiceFormModal
+    <LazyDashboardServiceFormModal
+      v-if="formMounted"
       :open="isFormOpen"
       :categories="categories ?? []"
       :service="editingService"
@@ -244,7 +252,8 @@ useSeoMeta({
       @close="isFormOpen = false"
       @submit="handleFormSubmit"
     />
-    <DashboardServicePreviewModal
+    <LazyDashboardServicePreviewModal
+      v-if="previewMounted"
       :open="isPreviewOpen"
       :service="previewingService"
       @close="isPreviewOpen = false"

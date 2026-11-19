@@ -2,9 +2,11 @@
 import type { ShopProductCard } from '#shared/types/shop'
 
 // Auto-imported as <ShopProductCard/>. One product in the storefront grid.
-defineProps<{
+withDefaults(defineProps<{
   product: ShopProductCard
-}>()
+  /** In the first row of the grid (the page's largest image): load at once instead of lazily. */
+  eager?: boolean
+}>(), { eager: false })
 
 const { t } = useI18n()
 </script>
@@ -20,7 +22,8 @@ const { t } = useI18n()
         :src="product.imageUrl"
         :alt="product.imageAlt || product.name"
         sizes="sm:50vw md:33vw lg:280px"
-        loading="lazy"
+        :loading="eager ? 'eager' : 'lazy'"
+        :fetchpriority="eager ? 'high' : 'auto'"
         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
       <UiPlaceholderMedia

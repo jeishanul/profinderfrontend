@@ -4,5 +4,7 @@ import type { Barangay } from '#shared/types/location'
 export default defineEventHandler(async (event): Promise<Barangay[]> => {
   const city = getQuery(event).city
   if (typeof city !== 'string' || !city) return []
-  return getPublicApi<Barangay[]>(event, '/locations/barangays', { city })
+  const barangays = await getPublicApi<Barangay[]>(event, '/locations/barangays', { city })
+  setBrowserCache(event, LOCATIONS_BROWSER_SECONDS)
+  return barangays
 })

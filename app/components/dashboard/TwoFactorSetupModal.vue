@@ -56,12 +56,13 @@ async function startSetup() {
   }
 }
 
+// Immediate: the modal can be mounted already open (lazily, on first use), and that first opening must reset too.
 watch(() => props.open, (isOpen) => {
   if (!isOpen) return
   step.value = 'password'
   password.value = ''
   error.value = ''
-})
+}, { immediate: true })
 
 async function copyCodes() {
   try {

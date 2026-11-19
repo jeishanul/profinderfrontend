@@ -11,7 +11,8 @@ definePageMeta({
 
 const { t } = useI18n()
 const jobError = useJobErrors()
-const { data: categories } = await useCategories({ withSkills: true })
+// Started now, awaited together with the job list below: neither needs the other.
+const categoriesRequest = useCategories({ withSkills: true })
 
 const scope = ref<'matching' | 'all'>('matching')
 const category = ref<string | null>(null)
@@ -24,7 +25,7 @@ const search = ref('')
 const debouncedSearch = refDebounced(search, 300)
 const debouncedBudget = refDebounced(budgetMin, 400)
 
-const list = await usePagedList<JobPostForProvider>('/dashboard/seek-jobs', {
+const list = usePagedList<JobPostForProvider>('/dashboard/seek-jobs', {
   key: 'find-jobs-feed',
   query: computed(() => ({
     scope: scope.value,
@@ -37,6 +38,8 @@ const list = await usePagedList<JobPostForProvider>('/dashboard/seek-jobs', {
     sort: sort.value,
   })),
 })
+await Promise.all([categoriesRequest, list])
+const { data: categories } = categoriesRequest
 
 const categoryOptions = computed(() => (categories.value ?? []).map(c => ({ value: c.id, label: c.name })))
 const skillOptions = computed(() => skillOptionsFor(categories.value ?? [], category.value))

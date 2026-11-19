@@ -39,17 +39,14 @@ useHead(() => ({
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png', key: 'icon-16' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', key: 'apple-touch-icon' },
       ],
-  meta: [
-    ...(settings.value.googleSiteVerification
-      ? [{ name: 'google-site-verification', content: settings.value.googleSiteVerification, key: 'google-site-verification' }]
-      : []),
-  ],
 }))
 
-// Re-verify settings on window focus so admin changes in another tab reflect instantly
+// Re-verify settings on window focus so admin changes in another tab show up, at most every 30 s: switching tabs
+// back and forth would otherwise send a request each time (the server caches the answer ~10 s, see settings.get.ts).
 if (import.meta.client) {
+  const refreshSettings = useThrottleFn(() => refreshNuxtData(SITE_SETTINGS_KEY), 30_000)
   useEventListener(window, 'focus', () => {
-    refreshNuxtData(SITE_SETTINGS_KEY)
+    refreshSettings()
   })
 }
 

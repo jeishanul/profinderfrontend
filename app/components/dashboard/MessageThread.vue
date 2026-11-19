@@ -430,6 +430,10 @@ function handleKeydown(event: KeyboardEvent) {
               :src="message.attachment.url"
               class="h-full w-full object-cover"
               alt=""
+              loading="lazy"
+              decoding="async"
+              width="224"
+              height="176"
             >
             <UiPlaceholderMedia
               v-else-if="message.attachment.type === 'image'"

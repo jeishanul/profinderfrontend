@@ -88,6 +88,7 @@ const toneClasses: Record<'primary' | 'accent', string> = {
           :alt="featuredImageAlt"
           width="560"
           height="380"
+          loading="lazy"
           class="h-full w-full object-cover"
         />
         <UiPlaceholderMedia
