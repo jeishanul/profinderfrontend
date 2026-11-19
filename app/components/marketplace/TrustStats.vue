@@ -52,6 +52,7 @@ const stats = computed(() => props.section.items.map((item, index) => ({
             :alt="stat.imageAlt"
             width="48"
             height="48"
+            loading="lazy"
             class="h-7 w-7 object-contain"
           />
           <UiIcon

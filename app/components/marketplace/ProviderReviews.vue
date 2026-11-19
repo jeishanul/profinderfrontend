@@ -44,6 +44,8 @@ async function loadMore() {
 const maxCount = computed(() => Math.max(1, ...props.breakdown.map(row => row.count)))
 
 const reportTarget = ref<string | null>(null)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const reportMounted = useMountWhenNeeded(() => reportTarget.value !== null)
 function report(reviewId: string) {
   if (!session.isAuthenticated.value) {
     authModal.open('login', { onSuccess: () => report(reviewId) })
@@ -242,7 +244,8 @@ async function sendReply(reviewId: string) {
       </UiButton>
     </div>
 
-    <MarketplaceReportModal
+    <LazyMarketplaceReportModal
+      v-if="reportMounted"
       :open="reportTarget !== null"
       type="review"
       :target-id="reportTarget ?? ''"

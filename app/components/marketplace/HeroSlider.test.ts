@@ -123,13 +123,22 @@ describe('HeroSlider', () => {
     expect(wrapper.find('h1').classes()).toContain('text-white')
   })
 
-  it('background layout: a phone image gets its own element shown only on small screens', async () => {
+  it('background layout: a phone image is a <source> for small screens, so each device downloads only one', async () => {
     const wrapper = await mountHero([slide({ imageUrl: 'https://cdn.example.com/d.webp', secondaryImageUrl: 'https://cdn.example.com/m.webp', meta: { layout: 'background' } })])
 
-    const images = wrapper.findAll('img')
-    expect(images).toHaveLength(2)
-    expect(images[0]!.classes()).toContain('md:hidden')
-    expect(images[1]!.classes()).toContain('hidden')
+    expect(wrapper.findAll('img')).toHaveLength(1)
+    const source = wrapper.find('picture source')
+    expect(source.attributes('media')).toBe('(max-width: 767.98px)')
+    expect(source.attributes('srcset')).toContain('m.webp')
+    expect(wrapper.find('picture img').attributes('src')).toContain('d.webp')
+  })
+
+  it('background layout: the first slide\'s photo is fetched at high priority', async () => {
+    const wrapper = await mountHero([slide({ imageUrl: 'https://cdn.example.com/d.webp', meta: { layout: 'background' } })])
+
+    const image = wrapper.find('picture img')
+    expect(image.attributes('fetchpriority')).toBe('high')
+    expect(image.attributes('loading')).toBe('eager')
   })
 
   it('only keeps the neighbouring backgrounds in the page, not every photo', async () => {

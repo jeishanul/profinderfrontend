@@ -20,10 +20,8 @@ const { budgetLabel, timeLabel, dateLabel, placeLabel, relativeLabel } = useJobL
 const id = String(route.params.id)
 const postKey = `seek-job-${id}`
 
-const { data: post, error, refresh: refreshPost } = await useApi<JobPost>(`/dashboard/job-posts/${id}`, { key: postKey })
-if (error.value || !post.value) {
-  throw createError({ statusCode: apiErrorStatus(error.value) ?? 404, statusMessage: t('errors.notFound'), fatal: true })
-}
+// The post and its applicants are requested together (the list only needs the id); a missing post still 404s.
+const postRequest = useApi<JobPost>(`/dashboard/job-posts/${id}`, { key: postKey })
 
 // --- applicants ----------------------------------------------------------------------------------------------------
 const SORTS = ['recommended', 'price', 'newest'] as const
@@ -31,10 +29,16 @@ const FILTERS = ['active', 'all', 'pending', 'hired', 'not_selected', 'declined'
 const sort = ref<(typeof SORTS)[number]>('recommended')
 const filter = ref<(typeof FILTERS)[number]>('active')
 
-const applicants = await usePagedList<JobApplicant, JobApplicantListMeta>(`/dashboard/job-posts/${id}/applications`, {
+const applicants = usePagedList<JobApplicant, JobApplicantListMeta>(`/dashboard/job-posts/${id}/applications`, {
   key: `seek-job-applicants-${id}`,
   query: computed(() => ({ sort: sort.value, status: filter.value })),
 })
+
+await Promise.all([postRequest, applicants])
+const { data: post, error, refresh: refreshPost } = postRequest
+if (error.value || !post.value) {
+  throw createError({ statusCode: apiErrorStatus(error.value) ?? 404, statusMessage: t('errors.notFound'), fatal: true })
+}
 
 const counts = computed(() => applicants.meta.value?.counts ?? post.value?.applicationCounts)
 const filterOptions = computed(() => FILTERS.map((value) => {
@@ -158,6 +162,8 @@ async function deletePost() {
 
 // --- applicant actions ---------------------------------------------------------------------------------------------
 const hiring = ref<JobApplicant | null>(null)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const hireMounted = useMountWhenNeeded(() => hiring.value !== null)
 const hireError = ref('')
 
 async function confirmHire() {
@@ -455,7 +461,8 @@ useSeoMeta({ title: () => post.value?.title ?? t('seekJob.title') })
       />
     </section>
 
-    <DashboardJobHireModal
+    <LazyDashboardJobHireModal
+      v-if="hireMounted"
       :open="hiring !== null"
       :applicant="hiring"
       :post="post"

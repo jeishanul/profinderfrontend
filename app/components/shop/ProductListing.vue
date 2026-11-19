@@ -202,10 +202,12 @@ useSchemaOrg([
           v-if="list.items.value.length > 0"
           class="grid grid-cols-2 gap-4 sm:grid-cols-3"
         >
+          <!-- The first row (up to 3 across) is above the fold: loaded at once, not lazily. -->
           <ShopProductCard
-            v-for="product in list.items.value"
+            v-for="(product, index) in list.items.value"
             :key="product.slug"
             :product="product"
+            :eager="index < 3"
           />
         </div>
         <div

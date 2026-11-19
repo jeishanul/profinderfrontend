@@ -30,13 +30,14 @@ const isUploadingAvatar = ref(false)
 
 // Re-seed from the latest account data each time the modal opens, so a
 // cancelled edit never leaks into the next open.
+// Immediate: the modal can be mounted already open (lazily, on first use), and that first opening must reset too.
 watch(() => props.open, (isOpen) => {
   if (!isOpen) return
   fullName.value = props.account.fullName
   phone.value = props.account.phone ?? ''
   email.value = props.account.email
   errors.value = {}
-})
+}, { immediate: true })
 
 async function onAvatarChange(event: Event) {
   const input = event.target as HTMLInputElement

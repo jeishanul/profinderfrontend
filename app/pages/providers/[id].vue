@@ -49,6 +49,8 @@ const isOwnProfile = computed(() => session.isAuthenticated.value && session.use
 // visitors are asked to log in first — the request needs an account). A pro
 // below Level 1 can't send quotes yet, so the request would go nowhere.
 const isJobRequestOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const jobRequestMounted = useMountWhenNeeded(() => isJobRequestOpen.value)
 const requestedServiceId = ref<string | null>(null)
 function startRequest(serviceId: string | null) {
   if (!provider.value?.acceptsBookings || isOwnProfile.value) return
@@ -116,7 +118,11 @@ const locationBreadcrumb = computed(() => {
 const memberSinceLabel = computed(() => formatDate(provider.value!.memberSince, locale.value))
 
 const lightboxIndex = ref<number | null>(null)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const lightboxMounted = useMountWhenNeeded(() => lightboxIndex.value !== null)
 const isReportOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const reportMounted = useMountWhenNeeded(() => isReportOpen.value)
 
 function openReport() {
   if (!session.isAuthenticated.value) {
@@ -212,6 +218,10 @@ useSchemaOrg([
           :alt="provider.name"
           width="1152"
           height="220"
+          sizes="sm:100vw lg:1152px"
+          loading="eager"
+          fetchpriority="high"
+          :preload="{ fetchPriority: 'high' }"
           class="h-full w-full object-cover"
         />
         <UiPlaceholderMedia
@@ -252,6 +262,8 @@ useSchemaOrg([
             :src="provider.avatarUrl"
             size-class="h-full w-full rounded-full"
             text-class="text-4xl"
+            :px="148"
+            eager
           />
         </div>
         <div class="min-w-0 flex-1 sm:pt-4">
@@ -668,7 +680,8 @@ useSchemaOrg([
       </UiButton>
     </div>
 
-    <MarketplaceJobRequestModal
+    <LazyMarketplaceJobRequestModal
+      v-if="jobRequestMounted"
       :open="isJobRequestOpen"
       :provider-id="provider.id"
       :provider-name="provider.name"
@@ -676,13 +689,15 @@ useSchemaOrg([
       :service-id="requestedServiceId"
       @close="isJobRequestOpen = false"
     />
-    <MarketplaceReportModal
+    <LazyMarketplaceReportModal
+      v-if="reportMounted"
       :open="isReportOpen"
       type="provider"
       :target-id="provider.id"
       @close="isReportOpen = false"
     />
-    <UiLightbox
+    <LazyUiLightbox
+      v-if="lightboxMounted"
       :photos="provider.workPhotos"
       :index="lightboxIndex"
       :label="provider.name"

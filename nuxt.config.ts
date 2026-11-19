@@ -21,7 +21,6 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/image',
     '@nuxt/fonts',
-    '@nuxt/icon',
     '@nuxtjs/seo',
     '@vueuse/nuxt',
     '@pinia/nuxt',
@@ -190,9 +189,14 @@ export default defineNuxtConfig({
     },
   },
 
+  // Only the scripts this site's text uses (Latin, incl. Filipino ñ and accented names). The cyrillic and vietnamese
+  // subsets were dozens of extra @font-face rules in the entry CSS. Italic stays: blockquotes and excerpts use it,
+  // and without the face browsers fake a slanted one.
   fonts: {
     defaults: {
       weights: [400, 500, 600, 700],
+      styles: ['normal', 'italic'],
+      subsets: ['latin', 'latin-ext'],
     },
   },
 
@@ -204,6 +208,11 @@ export default defineNuxtConfig({
     locales: [
       { code: 'en', language: 'en-US', name: 'English', file: 'en.json', dir: 'ltr' },
     ],
+    // The messages URL carries a hash of the locale file (it changes whenever the text does), so browsers may keep it
+    // for a year instead of re-downloading ~80 KB on every visit before the app can start (the default is 10 s).
+    experimental: {
+      httpCacheDuration: 31536000,
+    },
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
@@ -237,6 +246,9 @@ export default defineNuxtConfig({
   // 3. crossOriginOpenerPolicy false kora hoyeche IP origin warning bondho korte.
   security: {
     csrf: true,
+    // Its console stripping targets esbuild, which this (oxc) build doesn't use, so it only printed a warning. The few
+    // console calls left in the client are deliberate error reports.
+    removeLoggers: false,
     // The defaults (150 / 5 min / IP) are within reach of one idle messages tab (thread poll every 10 s, inbox
     // and badges every 30 s) and shared NATs, so the global cap is generous. Login/register/OTP are throttled
     // by Laravel per account/IP and get a much tighter cap on /api/auth/** (see routeRules).

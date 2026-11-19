@@ -5,19 +5,29 @@ import type { PagedResult, ProviderSummary } from '#shared/types/marketplace'
 // Auto-imported as <MarketplaceCategoryLanding/>. The body of a category landing page (`/category/{category}`) and a
 // sub-category one (`/category/{category}/{skill}`): the admin's SEO content around the same filter sidebar and
 // provider list as Browse. The category, and the sub-category, come from the address; every other filter lives in
-// the query string. The page loads `seoData` (and 404s) before rendering this.
+// the query string.
+//
+// The SEO content, the categories and the providers are requested here together, from the slugs in the address: the
+// page used to await the SEO content first and only then render this, which made the provider list a second round
+// trip on every landing page. An unknown slug still 404s, after all three answered.
 const props = defineProps<{
-  seoData: CategorySeoResponse | SkillSeoResponse
+  categorySlug: string
+  skillSlug?: string
 }>()
 
 const { t } = useI18n()
 const { settings } = useSiteSettings()
 
-const isSkill = props.seoData.type === 'skill'
-const categorySlug = props.seoData.type === 'skill' ? props.seoData.category.slug : props.seoData.entity.slug
-const categoryName = props.seoData.type === 'skill' ? props.seoData.category.name : props.seoData.entity.name
-const skillSlug = props.seoData.type === 'skill' ? props.seoData.entity.slug : undefined
-const name = props.seoData.entity.name
+const { categorySlug, skillSlug } = props
+const isSkill = skillSlug !== undefined
+
+const seoRequest = isSkill
+  ? useApi<SkillSeoResponse>(`/seo/category/${encodeURIComponent(categorySlug)}/${encodeURIComponent(skillSlug)}`, {
+      key: `seo-skill-${categorySlug}-${skillSlug}`,
+    })
+  : useApi<CategorySeoResponse>(`/seo/category/${encodeURIComponent(categorySlug)}`, {
+      key: `seo-category-${categorySlug}`,
+    })
 
 const { filters, searchInput, providerQuery, carriedQuery, filterSheetOpen, draft, applyDraft, resetDraft, goToPage } = useBrowseFilters({
   category: categorySlug,
@@ -25,24 +35,37 @@ const { filters, searchInput, providerQuery, carriedQuery, filterSheetOpen, draf
   perPage: 8,
 })
 
-// Started together and awaited once: neither needs the other.
+// Started together and awaited once: none needs another.
 const categoriesRequest = useCategories({ withSkills: true })
 const providersRequest = useApi<PagedResult<ProviderSummary>>('/providers', {
   query: providerQuery,
   key: `category-${categorySlug}-${skillSlug ?? 'all'}-providers`,
 })
-await Promise.all([categoriesRequest, providersRequest])
+await Promise.all([seoRequest, categoriesRequest, providersRequest])
 const { data: categories } = categoriesRequest
 const { data: providersPage } = providersRequest
+
+const seoResponse = computed<CategorySeoResponse | SkillSeoResponse | undefined>(() => seoRequest.data.value ?? undefined)
+if (seoRequest.error.value || !seoResponse.value) {
+  const status = seoRequest.error.value?.statusCode ?? 404
+  throw createError({
+    statusCode: status,
+    statusMessage: status === 404 ? t('errors.notFound') : t('errors.somethingWrong'),
+    fatal: true,
+  })
+}
+const seoData = computed(() => seoResponse.value!)
+const categoryName = computed(() => seoData.value.type === 'skill' ? seoData.value.category.name : seoData.value.entity.name)
+const name = seoData.value.entity.name
 
 // Provider cards show a save heart: personal, so filled in after mount.
 useSavedProviders().loadAfterMount()
 
-const meta = computed(() => props.seoData.metadata)
+const meta = computed(() => seoData.value.metadata)
 useSeoLanding(meta, name)
 
-const subCategories = computed(() => props.seoData.skills ?? [])
-const relatedCategories = computed(() => props.seoData.type === 'category' ? (props.seoData.related_categories ?? []) : [])
+const subCategories = computed(() => seoData.value.skills ?? [])
+const relatedCategories = computed(() => seoData.value.type === 'category' ? (seoData.value.related_categories ?? []) : [])
 </script>
 
 <template>

@@ -23,12 +23,13 @@ const details = ref('')
 const error = ref('')
 const isSending = ref(false)
 
+// Immediate: the modal can be mounted already open (lazily, on first use), and that first opening must reset too.
 watch(() => props.open, (isOpen) => {
   if (!isOpen) return
   reason.value = null
   details.value = ''
   error.value = ''
-})
+}, { immediate: true })
 
 async function submit() {
   if (!reason.value) {

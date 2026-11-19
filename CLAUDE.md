@@ -15,7 +15,8 @@ file in the same change.
 - **@nuxtjs/seo** (site-config, robots, sitemap, og-image, schema-org, seo-utils, link-checker).
 - **@nuxtjs/i18n** — multi-locale-ready, only `en` active (see Internationalization below).
 - **@vueuse/nuxt** for generic reactive utilities, **@pinia/nuxt** for cross-component state,
-  **@nuxt/image**, **@nuxt/fonts**, **@nuxt/icon** for media/perf.
+  **@nuxt/image**, **@nuxt/fonts** for media/perf. Icons are inline SVG (`components/ui/Icon.vue`, `utils/icons.ts`);
+  `@nuxt/icon` was removed as unused, so no icon module or Iconify request is involved.
 - **@nuxtjs/color-mode** for the light/dark theme toggle — persists to `localStorage`, applied by
   a blocking inline script the module injects before hydration so there's no flash of the wrong
   theme on refresh despite not being cookie-based. `classSuffix: ''` in `nuxt.config.ts` so the
@@ -193,6 +194,11 @@ admin, like the landing page.
   it: the home page's lists need `/home` to know which sections exist, and the city/barangay pages need the SEO
   response for the city code (city slugs repeat across provinces). Today's floor is 3 rounds on `/` (shell, then
   layout + categories, then lists) and 2 on every other public page. Keep it there.
+  - The rule holds across a page and its child component: a page that awaits its own request before rendering a
+    component makes the component's requests a second wave. The category landing pages hand the slugs to
+    `MarketplaceCategoryLanding`, which starts the SEO content, the categories and the providers together and 404s
+    itself. Don't share a `useAsyncData` key between a page and a component to "prefetch": both share the first
+    caller's handler, so a reactive query in the second goes stale.
 - **Personal data stays out of the server render.** Saved-provider hearts use `useSavedProviders().loadAfterMount()`,
   and the unread badges use `server: false`. Never `await` personal data in page setup: in the browser that
   changes the markup mid-hydration. The session is the exception, since the header must be right on first paint.
@@ -209,6 +215,13 @@ admin, like the landing page.
   - Personal data and writes keep `callApi`. So do free-text searches (`/providers?q=`): every phrasing would be
     its own entry.
   - `NUXT_API_CACHE=false` switches the cache off.
+  - `{ ttl: 'short' | 'long' }` picks another lifetime (`PUBLIC_API_TTL_SECONDS`): `short` (~10 s) for `/settings`,
+    read on every render but expected to change at once (branding, maintenance mode); `long` (1 h) only for data
+    no admin action changes. Not the old-address redirect lookup (`server/middleware/location-redirects.ts`): renaming
+    a category adds a redirect, and an hour-old "no redirect" answer would 404 the old address instead of a 301.
+  - Browser caching is separate: public lists (categories, FAQ, testimonials, gallery, locations, shop categories)
+    call `setBrowserCache(event, seconds)` (`server/utils/browserCache.ts`) after the answer arrived. Never a
+    `routeRules` `headers` entry for an API route: those are set on failures too, so a browser would keep a 500.
 - **Fetched data is shallow** (`useAsyncData.deep: false`, Nuxt 4's default). Never change it in place
   (`data.value.items.push(...)`, `row.read = true`): replace `data.value` as a whole, or copy it into a local `ref`
   first, as `ProviderReviews.vue` does.
@@ -355,6 +368,22 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   the first page load and their closed markup out of every server render. Do the same for any new global overlay.
   Note: `hydrate-never` is **not** enough to keep a component's JavaScript out: Nuxt still `modulepreload`s every
   module rendered on the server.
+  - The same goes for a page's own modals (job request, report, lightbox, apply, hire, settings dialogs) and the
+    dashboard layout's overlays. A component mounted this way first renders already open, so a
+    `watch(() => props.open, ...)` that resets or fills its form needs `{ immediate: true }` (returning early
+    when closed).
+- **Images and the LCP.** The page's largest image above the fold (hero slide 0, provider cover, product photo,
+  blog featured image, first row of product/blog cards) is `loading="eager" fetchpriority="high"`, plus
+  `:preload="{ fetchPriority: 'high' }"` when it's a single image. Everything below the fold is `loading="lazy"`.
+  An image with a separate phone crop is one `<picture>` with a `<source media>` (see `HeroSlider.vue`), never
+  two `<img>`s with one hidden by CSS: the browser downloads both, and a preload can't follow the CSS.
+  Avatars (`UiAvatar`) and the logo (`AppBrand`) are requested at their displayed size (`width`/`height` +
+  `densities="x1 x2"`), not the uploaded original: `UiAvatar` reads it from `sizeClass` (`h-9` → 36 px), or
+  takes `px` when the size comes from the parent (`h-full`), and `eager` above the fold.
+- **Fonts**: `fonts.defaults` limits faces to the `latin` and `latin-ext` subsets (normal + italic: blockquotes and
+  excerpts use italic). Add a subset only if the site starts showing a script outside them.
+- **The locale messages** (`/_i18n/<hash>/en/messages.json`) are cached by browsers for a year
+  (`i18n.experimental.httpCacheDuration`): the URL's hash changes with the text, so this is safe.
 - **The QR code is an `<img>` of `/api/qr`** (SVG made on the server, cached a day), so the QR encoder never ships
   to browsers.
 - **Price and date formatting** go through the cached formatters in `utils/intl.ts`

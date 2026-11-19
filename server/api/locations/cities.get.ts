@@ -4,5 +4,7 @@ import type { CityMunicipality } from '#shared/types/location'
 export default defineEventHandler(async (event): Promise<CityMunicipality[]> => {
   const province = getQuery(event).province
   if (typeof province !== 'string' || !province) return []
-  return getPublicApi<CityMunicipality[]>(event, '/locations/cities', { province })
+  const cities = await getPublicApi<CityMunicipality[]>(event, '/locations/cities', { province })
+  setBrowserCache(event, LOCATIONS_BROWSER_SECONDS)
+  return cities
 })

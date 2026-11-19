@@ -2,7 +2,8 @@
 import type { JobPostBase } from '#shared/types/jobPosts'
 
 const { t } = useI18n()
-const { data: categories } = await useCategories({ withSkills: true })
+// Started now, awaited together with the job list below: neither needs the other.
+const categoriesRequest = useCategories({ withSkills: true })
 
 const route = useRoute()
 
@@ -17,7 +18,7 @@ const sort = ref<'newest' | 'soonest' | 'budget'>((route.query.sort as 'newest' 
 const debouncedSearch = refDebounced(search, 300)
 const debouncedBudget = refDebounced(budgetMin, 400)
 
-const list = await usePagedList<JobPostBase>('/jobs', {
+const list = usePagedList<JobPostBase>('/jobs', {
   key: 'public-jobs-feed',
   query: computed(() => ({
     category: category.value ?? undefined,
@@ -29,6 +30,8 @@ const list = await usePagedList<JobPostBase>('/jobs', {
     sort: sort.value,
   })),
 })
+await Promise.all([categoriesRequest, list])
+const { data: categories } = categoriesRequest
 
 const categoryOptions = computed(() => (categories.value ?? []).map(c => ({ value: c.id, label: c.name })))
 const skillOptions = computed(() => skillOptionsFor(categories.value ?? [], category.value))

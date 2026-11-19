@@ -17,6 +17,8 @@ const localePath = useLocalePath()
 const NuxtLinkLocale = resolveComponent('NuxtLinkLocale')
 const isProvider = computed(() => session.isProvider.value)
 const isPersonalInfoOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const personalInfoMounted = useMountWhenNeeded(() => isPersonalInfoOpen.value)
 
 // The language section only means something once a second language exists.
 const { locale, locales } = useI18n()
@@ -49,6 +51,8 @@ watch(account, (value) => {
 // accidental click.
 
 const isTwoFactorSetupOpen = ref(false)
+// Mounted on first use (see `useMountWhenNeeded`): its code stays out of the page's first load.
+const twoFactorSetupMounted = useMountWhenNeeded(() => isTwoFactorSetupOpen.value)
 const isTwoFactorDisableOpen = ref(false)
 const hasPassword = computed(() => account.value?.hasPassword ?? true)
 const disablePassword = ref('')
@@ -700,8 +704,8 @@ useSeoMeta({
       </div>
     </template>
 
-    <DashboardPersonalInfoModal
-      v-if="account"
+    <LazyDashboardPersonalInfoModal
+      v-if="account && personalInfoMounted"
       :open="isPersonalInfoOpen"
       :account="account"
       @close="isPersonalInfoOpen = false"
@@ -826,7 +830,8 @@ useSeoMeta({
       </div>
     </UiModal>
 
-    <DashboardTwoFactorSetupModal
+    <LazyDashboardTwoFactorSetupModal
+      v-if="twoFactorSetupMounted"
       :open="isTwoFactorSetupOpen"
       :has-password="hasPassword"
       @close="isTwoFactorSetupOpen = false"

@@ -68,6 +68,16 @@ const backgroundSlides = computed(() => {
     .filter(({ slide, index }) => slide.layout === 'background' && wanted.has(index))
 })
 
+const HERO_SIZES = 'sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw'
+
+// The phone crop's responsive sources, built the way <NuxtImg> builds its own (same sizes and modifiers).
+// The first slide is in the server-rendered HTML, so the browser finds the right source without a preload link
+// (a preload can't follow the <source media> choice).
+const $img = useImage()
+const mobileSources = computed(() => Object.fromEntries(backgroundSlides.value
+  .filter(({ slide }) => slide.mobileImageUrl)
+  .map(({ slide }) => [slide.id, $img.getSizes(slide.mobileImageUrl!, { sizes: HERO_SIZES, modifiers: { width: 900, height: 1200 } })])))
+
 const isDark = computed(() => activeSlide.value.layout === 'background' || activeSlide.value.tone === 'dark')
 
 const toneClasses: Record<HeroTone, string> = {
@@ -126,30 +136,30 @@ observe(searchAnchor)
           :class="index === activeIndex ? 'opacity-100' : 'opacity-0'"
           :aria-hidden="index === activeIndex ? undefined : 'true'"
         >
-          <NuxtImg
-            v-if="slide.mobileImageUrl"
-            :src="slide.mobileImageUrl"
-            :alt="slide.imageAlt"
-            sizes="sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw"
-            width="900"
-            height="1200"
-            loading="eager"
-            class="absolute inset-0 h-full w-full object-cover md:hidden"
-            :style="{ objectPosition: `${slide.focalX}% ${slide.focalY}%` }"
-          />
-          <NuxtImg
-            :src="slide.imageUrl!"
-            :alt="slide.imageAlt"
-            sizes="sm:100vw md:100vw lg:100vw xl:100vw 2xl:100vw"
-            width="1920"
-            height="800"
-            :loading="index === 0 ? 'eager' : 'lazy'"
-            :fetchpriority="index === 0 ? 'high' : 'auto'"
-            :preload="index === 0"
-            class="absolute inset-0 h-full w-full object-cover"
-            :class="slide.mobileImageUrl ? 'hidden md:block' : ''"
-            :style="{ objectPosition: `${slide.focalX}% ${slide.focalY}%` }"
-          />
+          <!-- One <picture>, so a phone downloads only the phone crop and a desktop only the wide photo. Two <img>s
+               (one hidden by CSS) made phones fetch both, and preload the desktop one. -->
+          <picture>
+            <source
+              v-if="slide.mobileImageUrl"
+              media="(max-width: 767.98px)"
+              :srcset="mobileSources[slide.id]?.srcset"
+              :sizes="mobileSources[slide.id]?.sizes"
+              width="900"
+              height="1200"
+            >
+            <NuxtImg
+              :src="slide.imageUrl!"
+              :alt="slide.imageAlt"
+              :sizes="HERO_SIZES"
+              width="1920"
+              height="800"
+              :loading="index === 0 ? 'eager' : 'lazy'"
+              :fetchpriority="index === 0 ? 'high' : 'auto'"
+              :preload="index === 0 && !slide.mobileImageUrl"
+              class="absolute inset-0 h-full w-full object-cover"
+              :style="{ objectPosition: `${slide.focalX}% ${slide.focalY}%` }"
+            />
+          </picture>
           <div
             class="absolute inset-0 bg-black"
             :style="{ opacity: slide.overlay / 100 }"
