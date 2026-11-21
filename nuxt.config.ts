@@ -66,6 +66,9 @@ export default defineNuxtConfig({
   // Server-only — read exclusively by the Nitro proxy layer in server/api/
   // Server-to-server direct internal call to Laravel backend port 8000
   runtimeConfig: {
+    // The one public origin (https://www.profinder.vip in production). server/middleware/canonical-host.ts reads it to
+    // 301 the other spelling of the domain; site-config's own getSiteConfig() isn't set up yet when middleware runs.
+    siteUrl,
     apiBaseUrl: process.env.NUXT_API_BASE_URL || 'http://127.0.0.1:8000',
     // Social login: the public client IDs (the secrets live only in Laravel's .env). A provider
     // with an empty ID is treated as not configured and its button is hidden.
