@@ -448,6 +448,12 @@ absolute`, use `@nuxt/fonts` for custom fonts.
   `site.url`/`site.indexable`. **`indexable` defaults to `false`** unless the env var is
   explicitly `"true"` — fail-safe so staging/preview deployments never get indexed by accident.
   Set both in production's real environment config before launch.
+- **One host: `https://www.profinder.vip`.** Production's `NUXT_PUBLIC_SITE_URL` is the www address (canonical,
+  hreflang, og:url, sitemap and robots.txt all follow it; it is read at build time, so rebuild after changing it).
+  Cloudflare 301s `profinder.vip` and http to it at the edge; `server/middleware/canonical-host.ts` does the same at
+  the origin as a safety net, reading `runtimeConfig.siteUrl` (site-config's `getSiteConfig()` isn't initialised yet
+  when our middleware runs). Laravel's `CANONICAL_BASE_URL` must match; an admin canonical typed on the other spelling
+  of the domain is moved onto it (`SeoResolverService::onCanonicalHost`).
 
 ## Before considering any feature "done"
 
